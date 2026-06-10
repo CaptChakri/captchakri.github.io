@@ -3,6 +3,19 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Writing by Chakri about distributed systems, Rust, latency, language learning, and camping.">
+<meta name="theme-color" content="#060B1C">
+<link rel="canonical" href="https://captchakri.github.io/blog/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Blog · Chakri's World">
+<meta property="og:description" content="Writing by Chakri about distributed systems, Rust, latency, language learning, and camping.">
+<meta property="og:url" content="https://captchakri.github.io/blog/">
+<meta property="og:site_name" content="Chakri's World">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Blog · Chakri's World">
+<meta name="twitter:description" content="Writing by Chakri about distributed systems, Rust, latency, language learning, and camping.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <title>Blog · Chakri's World</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
@@ -22,27 +35,33 @@ body > footer { margin-top: auto; }
 </head>
 <body>
 
-<div id="intro">
+<a class="skip-link" href="#main-content">Skip to main content</a>
+
+<div id="intro" aria-hidden="true">
   <div class="intro-logo">CK<span class="dot">.</span></div>
   <div class="intro-bar"></div>
 </div>
 
-<div id="cursor-ring"></div>
-<div id="cursor-dot"></div>
-<div id="progress"></div>
-<canvas id="starfield"></canvas>
+<div id="cursor-ring" aria-hidden="true"></div>
+<div id="cursor-dot" aria-hidden="true"></div>
+<div id="progress" aria-hidden="true"></div>
+<canvas id="starfield" aria-hidden="true"></canvas>
 
-<nav>
-  <a href="../index.html" class="nav-logo">CK<span>.</span></a>
-  <ul class="nav-links">
-    <li><a href="../index.html#about">About</a></li>
-    <li><a href="../index.html#experience">Experience</a></li>
-    <li><a href="../index.html#projects">Projects</a></li>
-    <li><a href="index.html" class="active">Blog</a></li>
-    <li><a href="../index.html#contact">Contact</a></li>
+<nav aria-label="Primary navigation">
+  <a href="/" class="nav-logo">CK<span>.</span></a>
+  <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="primary-links" aria-label="Open navigation menu">
+    <span></span><span></span><span></span>
+  </button>
+  <ul class="nav-links" id="primary-links">
+    <li><a href="/#about">About</a></li>
+    <li><a href="/#experience">Experience</a></li>
+    <li><a href="/#projects">Projects</a></li>
+    <li><a href="/blog/" class="active">Blog</a></li>
+    <li><a href="/#contact">Contact</a></li>
   </ul>
 </nav>
 
+<main id="main-content" tabindex="-1">
 <header class="blog-hero">
   <div class="section-tag rv">// things I write</div>
   <h2 data-type="From the Blog"></h2>
@@ -50,12 +69,14 @@ body > footer { margin-top: auto; }
 </header>
 
 <div class="section-wrap" style="padding-top: 1rem;">
-  <div class="tag-filter-bar rv" id="tag-filter-bar"></div>
+  <div class="tag-filter-bar rv" id="tag-filter-bar" role="group" aria-label="Filter posts by topic"></div>
   <div class="blog-list" id="blog-list"></div>
   <p class="blog-empty" id="blog-empty" hidden>No posts with this tag yet — check back soon.</p>
 </div>
 
-<footer>© <span data-year>2026</span> Chakradhar Konda · All rights reserved · <a href="../index.html">Home</a></footer>
+</main>
+
+<footer>© <span data-year>2026</span> Chakri · All rights reserved · <a href="/">Home</a></footer>
 
 <script src="../assets/js/theme.js"></script>
 <script>
@@ -66,28 +87,62 @@ body > footer { margin-top: auto; }
   let posts = [];
   let activeTag = 'all';
 
+  function postUrl(post) {
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(post.date);
+    if (!match) throw new Error(`Invalid publication date for ${post.slug}`);
+    const [, year, month, day] = match;
+    const slug = encodeURIComponent(post.slug);
+    return `${year}/${month}/${day}/${slug}.html`;
+  }
+
   function render() {
     list.innerHTML = '';
     const filtered = activeTag === 'all' ? posts : posts.filter(p => p.tags.includes(activeTag));
     empty.hidden = filtered.length > 0;
 
     filtered.forEach((post, i) => {
-      const a = document.createElement('a');
-      a.href = `posts/${post.slug}.html`;
-      a.className = 'blog-card rv show';
-      a.style.animationDelay = (i * 0.06) + 's';
-      a.innerHTML = `
-        <div>
-          <div class="blog-date">${post.dateLabel || post.date}</div>
-          ${post.readMins ? `<div class="blog-read">${post.readMins} min read</div>` : ''}
-        </div>
-        <div>
-          <div class="blog-title">${post.title}</div>
-          <div class="blog-excerpt">${post.excerpt}</div>
-          <div class="blog-tags">${post.tags.map(t => `<span class="tag">${t}</span>`).join('')}</div>
-        </div>
-        <div class="blog-arrow">→</div>`;
-      list.appendChild(a);
+      const card = document.createElement('a');
+      card.href = postUrl(post);
+      card.className = 'blog-card rv show';
+      card.style.animationDelay = `${i * 0.06}s`;
+
+      const meta = document.createElement('div');
+      const date = document.createElement('time');
+      date.className = 'blog-date';
+      date.dateTime = post.date;
+      date.textContent = post.dateLabel || post.date;
+      meta.appendChild(date);
+
+      if (post.readMins) {
+        const readTime = document.createElement('div');
+        readTime.className = 'blog-read';
+        readTime.textContent = `${post.readMins} min read`;
+        meta.appendChild(readTime);
+      }
+
+      const content = document.createElement('div');
+      const title = document.createElement('div');
+      title.className = 'blog-title';
+      title.textContent = post.title;
+      const excerpt = document.createElement('div');
+      excerpt.className = 'blog-excerpt';
+      excerpt.textContent = post.excerpt;
+      const tags = document.createElement('div');
+      tags.className = 'blog-tags';
+      post.tags.forEach(tagName => {
+        const tag = document.createElement('span');
+        tag.className = 'tag';
+        tag.textContent = tagName;
+        tags.appendChild(tag);
+      });
+      content.append(title, excerpt, tags);
+
+      const arrow = document.createElement('div');
+      arrow.className = 'blog-arrow';
+      arrow.setAttribute('aria-hidden', 'true');
+      arrow.textContent = '→';
+      card.append(meta, content, arrow);
+      list.appendChild(card);
     });
   }
 
@@ -97,25 +152,36 @@ body > footer { margin-top: auto; }
     tags.forEach(tag => {
       const btn = document.createElement('button');
       btn.className = 'tag-filter' + (tag === activeTag ? ' active' : '');
+      btn.setAttribute('aria-pressed', String(tag === activeTag));
       btn.textContent = tag === 'all' ? 'All posts' : tag;
       btn.addEventListener('click', () => {
         activeTag = tag;
-        filterBar.querySelectorAll('.tag-filter').forEach(b => b.classList.remove('active'));
+        filterBar.querySelectorAll('.tag-filter').forEach(b => {
+          b.classList.remove('active');
+          b.setAttribute('aria-pressed', 'false');
+        });
         btn.classList.add('active');
+        btn.setAttribute('aria-pressed', 'true');
         render();
       });
       filterBar.appendChild(btn);
     });
   }
 
+  list.setAttribute('aria-busy', 'true');
   fetch('posts.json')
-    .then(r => r.json())
+    .then(response => {
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      return response.json();
+    })
     .then(data => {
       posts = data.slice().sort((a, b) => new Date(b.date) - new Date(a.date));
       renderFilters();
       render();
+      list.setAttribute('aria-busy', 'false');
     })
     .catch(() => {
+      list.setAttribute('aria-busy', 'false');
       empty.hidden = false;
       empty.textContent = 'Could not load posts right now.';
     });
