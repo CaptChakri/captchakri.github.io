@@ -3,9 +3,11 @@
     "slug": "welcome-to-the-blog",
     "title": "Welcome to the blog",
     "date": "2026-06-10",
-    "dateLabel": "Jun 2026",
+    "dateLabel": "Jun 10, 2026",
     "readMins": 2,
-    "tags": ["meta"],
+    "tags": [
+      "meta"
+    ],
     "excerpt": "Why I'm starting this thing, and what to expect — distributed systems, Rust, language learning, and dispatches from the campsite."
   }
 ]
