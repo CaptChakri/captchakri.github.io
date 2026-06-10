@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Blog · Chakri's World</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
+<link rel="stylesheet" href="../assets/css/theme.css">
+<style>
+/* sticky footer: keep it pinned to the bottom even when there are few posts.
+   In-flow children (hero, listing, footer) stack in a min-height column and
+   the footer is pushed down by the listing's auto bottom margin. */
+body { display: flex; flex-direction: column; min-height: 100vh; }
+body > footer { margin-top: auto; }
+.blog-hero { padding: 9rem 2.5rem 3rem; position: relative; z-index: 1; max-width: 1100px; margin: 0 auto; width: 100%; }
+.blog-hero p { color: var(--text); max-width: 620px; font-size: 1rem; }
+.blog-list-wrap { width: 100%; }
+.blog-empty { color: var(--gray); font-size: 0.9rem; padding: 2rem 0; }
+@media (max-width: 768px) { .blog-hero { padding: 7rem 1.25rem 2rem; } }
+</style>
+</head>
+<body>
+
+<div id="intro">
+  <div class="intro-logo">CK<span class="dot">.</span></div>
+  <div class="intro-bar"></div>
+</div>
+
+<div id="cursor-ring"></div>
+<div id="cursor-dot"></div>
+<div id="progress"></div>
+<canvas id="starfield"></canvas>
+
+<nav>
+  <a href="../index.html" class="nav-logo">CK<span>.</span></a>
+  <ul class="nav-links">
+    <li><a href="../index.html#about">About</a></li>
+    <li><a href="../index.html#experience">Experience</a></li>
+    <li><a href="../index.html#projects">Projects</a></li>
+    <li><a href="index.html" class="active">Blog</a></li>
+    <li><a href="../index.html#contact">Contact</a></li>
+  </ul>
+</nav>
+
+<header class="blog-hero">
+  <div class="section-tag rv">// things I write</div>
+  <h2 data-type="From the Blog"></h2>
+  <p class="rv">Distributed systems, Rust, latency war stories, language learning, and dispatches from wherever I've pitched a tent. Filter by topic below.</p>
+</header>
+
+<div class="section-wrap" style="padding-top: 1rem;">
+  <div class="tag-filter-bar rv" id="tag-filter-bar"></div>
+  <div class="blog-list" id="blog-list"></div>
+  <p class="blog-empty" id="blog-empty" hidden>No posts with this tag yet — check back soon.</p>
+</div>
+
+<footer>© <span data-year>2026</span> Chakradhar Konda · All rights reserved · <a href="../index.html">Home</a></footer>
+
+<script src="../assets/js/theme.js"></script>
+<script>
+(function() {
+  const list = document.getElementById('blog-list');
+  const filterBar = document.getElementById('tag-filter-bar');
+  const empty = document.getElementById('blog-empty');
+  let posts = [];
+  let activeTag = 'all';
+
+  function render() {
+    list.innerHTML = '';
+    const filtered = activeTag === 'all' ? posts : posts.filter(p => p.tags.includes(activeTag));
+    empty.hidden = filtered.length > 0;
+
+    filtered.forEach((post, i) => {
+      const a = document.createElement('a');
+      a.href = `posts/${post.slug}.html`;
+      a.className = 'blog-card rv show';
+      a.style.animationDelay = (i * 0.06) + 's';
+      a.innerHTML = `
+        <div>
+          <div class="blog-date">${post.dateLabel || post.date}</div>
+          ${post.readMins ? `<div class="blog-read">${post.readMins} min read</div>` : ''}
+        </div>
+        <div>
+          <div class="blog-title">${post.title}</div>
+          <div class="blog-excerpt">${post.excerpt}</div>
+          <div class="blog-tags">${post.tags.map(t => `<span class="tag">${t}</span>`).join('')}</div>
+        </div>
+        <div class="blog-arrow">→</div>`;
+      list.appendChild(a);
+    });
+  }
+
+  function renderFilters() {
+    const tags = ['all', ...new Set(posts.flatMap(p => p.tags))];
+    filterBar.innerHTML = '';
+    tags.forEach(tag => {
+      const btn = document.createElement('button');
+      btn.className = 'tag-filter' + (tag === activeTag ? ' active' : '');
+      btn.textContent = tag === 'all' ? 'All posts' : tag;
+      btn.addEventListener('click', () => {
+        activeTag = tag;
+        filterBar.querySelectorAll('.tag-filter').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        render();
+      });
+      filterBar.appendChild(btn);
+    });
+  }
+
+  fetch('posts.json')
+    .then(r => r.json())
+    .then(data => {
+      posts = data.slice().sort((a, b) => new Date(b.date) - new Date(a.date));
+      renderFilters();
+      render();
+    })
+    .catch(() => {
+      empty.hidden = false;
+      empty.textContent = 'Could not load posts right now.';
+    });
+})();
+</script>
+
+</body>
+</html>

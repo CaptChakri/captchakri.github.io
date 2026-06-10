@@ -1,0 +1,109 @@
+<!--
+  POST TEMPLATE
+  =============
+  How to write a new post:
+    1. Copy this file to a new name, e.g. blog/posts/my-camping-trip.html
+    2. Fill in <title>, .post-title, .post-meta, .blog-tags, and the article body.
+    3. Add a matching entry to blog/posts.json (slug must match the filename
+       without .html), e.g.:
+         {
+           "slug": "my-camping-trip",
+           "title": "...",
+           "date": "2026-06-15",
+           "dateLabel": "Jun 2026",
+           "tags": ["camping"],
+           "excerpt": "..."
+         }
+    4. Optional: anything goes in the CUSTOM SECTION at the bottom — add your
+       own <style>/<script> for one-off animations, interactive maps, photo
+       galleries, embedded canvases, etc. The shared starfield/cursor/intro/
+       progress bar/tag styling all keep working underneath.
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Post Title · Chakri's World</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
+<link rel="stylesheet" href="../../assets/css/theme.css">
+<style>
+/* Page-specific styles for this post go here. */
+</style>
+</head>
+<body>
+
+<div id="intro">
+  <div class="intro-logo">CK<span class="dot">.</span></div>
+  <div class="intro-bar"></div>
+</div>
+
+<div id="cursor-ring"></div>
+<div id="cursor-dot"></div>
+<div id="progress"></div>
+<canvas id="starfield"></canvas>
+
+<nav>
+  <a href="../../index.html" class="nav-logo">CK<span>.</span></a>
+  <ul class="nav-links">
+    <li><a href="../../index.html#about">About</a></li>
+    <li><a href="../../index.html#experience">Experience</a></li>
+    <li><a href="../../index.html#projects">Projects</a></li>
+    <li><a href="../index.html" class="active">Blog</a></li>
+    <li><a href="../../index.html#contact">Contact</a></li>
+  </ul>
+</nav>
+
+<header class="post-header">
+  <div class="section-tag rv">// blog post</div>
+  <h1 class="post-title rv">Post Title Goes Here</h1>
+  <div class="post-meta rv">
+    <span class="post-date">Jun 2026</span>
+    <span>· 5 min read</span>
+  </div>
+  <div class="blog-tags rv">
+    <span class="tag">camping</span>
+  </div>
+</header>
+
+<article class="post-article">
+  <p class="rv">Opening paragraph — hook the reader. This whole article area
+  uses normal typography (headings, paragraphs, lists, images, code blocks,
+  blockquotes), so you can mostly just write.</p>
+
+  <h2 class="rv" data-type="A Section Heading"></h2>
+  <p class="rv">More content. Use <strong>strong</strong> for emphasis and
+  <a href="https://example.com" target="_blank" rel="noopener">links</a> like this.</p>
+
+  <blockquote class="rv">A pull-quote or a memorable line from the trip.</blockquote>
+
+  <figure class="rv">
+    <img src="../../assets/img/your-photo.jpg" alt="Description of the photo">
+    <figcaption>Caption for the photo.</figcaption>
+  </figure>
+
+  <ul class="rv">
+    <li>Bullet point one</li>
+    <li>Bullet point two</li>
+  </ul>
+
+  <pre class="rv"><code>// code blocks for engineering posts
+fn main() {
+    println!("hello from the campsite wifi");
+}</code></pre>
+</article>
+
+<div class="post-nav rv">
+  <a href="../index.html">← Back to all posts</a>
+</div>
+
+<footer>© <span data-year>2026</span> Chakradhar Konda · All rights reserved · <a href="../../index.html">Home</a></footer>
+
+<script src="../../assets/js/theme.js"></script>
+<script>
+/* CUSTOM SECTION — add post-specific interactivity/animations here. */
+</script>
+
+</body>
+</html>

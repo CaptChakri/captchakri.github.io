@@ -1,0 +1,236 @@
+/* =====================================================================
+   THEME — shared behaviour for all pages (portfolio + blog)
+   Requires the markup blocks documented in blog/posts/template.html:
+     #intro, #cursor-dot, #cursor-ring, #progress, #starfield
+   Exposes window.REDUCED for page-specific scripts.
+   ===================================================================== */
+const REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+window.REDUCED = REDUCED;
+
+/* ===== INTRO — real loading screen ====================================
+   Stays up until the page has actually loaded (window load + fonts), with
+   a minimum hold so the animation reads and a hard cap so a stalled asset
+   can never trap the visitor. Plays once per session; later pages skip it.
+   Pages can await window.INTRO_DONE to sequence their own animations. */
+let introResolve;
+window.INTRO_DONE = new Promise(r => { introResolve = r; });
+(function() {
+  const intro = document.getElementById('intro');
+  if (!intro) { introResolve(); return; }
+  let seen = false;
+  try {
+    seen = sessionStorage.getItem('ck-intro') === '1';
+    sessionStorage.setItem('ck-intro', '1');
+  } catch (e) {}
+  if (seen || REDUCED) {
+    document.body.classList.add('skip-intro');
+    intro.classList.add('done');
+    introResolve();
+    return;
+  }
+
+  function finish() {
+    if (intro.classList.contains('done')) return;
+    intro.classList.add('done');
+    introResolve();
+  }
+
+  const minShow = new Promise(r => setTimeout(r, 900));
+  const loaded = document.readyState === 'complete'
+    ? Promise.resolve()
+    : new Promise(r => addEventListener('load', r, { once: true }));
+  const fonts = (document.fonts && document.fonts.ready) || Promise.resolve();
+  Promise.all([minShow, loaded, fonts]).then(finish);
+  setTimeout(finish, 4000); // hard cap
+})();
+
+/* ===== FOOTER YEAR ===== */
+(function() {
+  document.querySelectorAll('[data-year]').forEach(el => {
+    el.textContent = new Date().getFullYear();
+  });
+})();
+
+/* ===== CURSOR ===== */
+(function() {
+  const dot = document.getElementById('cursor-dot');
+  const ring = document.getElementById('cursor-ring');
+  if (!dot || !ring) return;
+  if (!matchMedia('(hover: hover) and (pointer: fine)').matches) return;
+  let mx = -100, my = -100, rx = -100, ry = -100;
+  window.addEventListener('mousemove', e => { mx = e.clientX; my = e.clientY; });
+  (function loop() {
+    rx += (mx - rx) * 0.16; ry += (my - ry) * 0.16;
+    dot.style.left = mx + 'px'; dot.style.top = my + 'px';
+    ring.style.left = rx + 'px'; ring.style.top = ry + 'px';
+    requestAnimationFrame(loop);
+  })();
+  document.querySelectorAll('a, button, .tilt').forEach(el => {
+    el.addEventListener('mouseenter', () => document.body.classList.add('cursor-hover'));
+    el.addEventListener('mouseleave', () => document.body.classList.remove('cursor-hover'));
+  });
+})();
+
+/* ===== SCROLL PROGRESS ===== */
+(function() {
+  const bar = document.getElementById('progress');
+  if (!bar) return;
+  window.addEventListener('scroll', () => {
+    const max = document.documentElement.scrollHeight - innerHeight;
+    bar.style.width = (max > 0 ? scrollY / max * 100 : 0) + '%';
+  }, { passive: true });
+})();
+
+/* ===== TYPED SECTION HEADINGS + .rv REVEALS ===== */
+(function() {
+  const io = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (!e.isIntersecting) return;
+      const el = e.target;
+      io.unobserve(el);
+
+      if (el.tagName === 'H2' && el.dataset.type) {
+        // typed headings may also carry .rv (opacity 0) — reveal before typing
+        el.classList.add('show');
+        el.style.animationDelay = '0s';
+        const text = el.dataset.type;
+        if (REDUCED) { el.textContent = text; return; }
+        const caret = document.createElement('span');
+        caret.className = 'h2caret';
+        el.appendChild(caret);
+        let i = 0;
+        (function tick() {
+          if (i <= text.length) {
+            el.childNodes[0] && el.childNodes[0].nodeType === 3
+              ? el.childNodes[0].textContent = text.slice(0, i)
+              : el.insertBefore(document.createTextNode(text.slice(0, i)), caret);
+            i++;
+            setTimeout(tick, 40 + Math.random() * 40);
+          } else {
+            setTimeout(() => caret.remove(), 1600);
+          }
+        })();
+      } else {
+        el.classList.add('show');
+      }
+    });
+  }, { threshold: 0.25, rootMargin: '0px 0px -40px 0px' });
+
+  document.querySelectorAll('h2[data-type]').forEach(h => io.observe(h));
+
+  // stagger .rv siblings within each section — capped so elements deep in a
+  // long section don't wait seconds after scrolling into view; article body
+  // text reveals immediately (the scroll position is the stagger)
+  document.querySelectorAll('.section-wrap, .contact-section, .post-header, .post-article, .post-nav, .blog-hero, [data-rv-group]').forEach(section => {
+    const inArticle = section.classList.contains('post-article');
+    section.querySelectorAll('.rv').forEach((el, i) => {
+      el.style.animationDelay = inArticle ? '0s' : Math.min(i * 0.09, 0.45) + 's';
+      io.observe(el);
+    });
+  });
+
+  // experience bullets cascade in once the list scrolls into view
+  const bulletIO = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (!e.isIntersecting) return;
+      bulletIO.unobserve(e.target);
+      e.target.querySelectorAll('li').forEach((li, i) => {
+        li.style.animationDelay = Math.min(i * 0.07, 0.5) + 's';
+        li.classList.add('show');
+      });
+    });
+  }, { threshold: 0.2 });
+  document.querySelectorAll('.exp-bullets').forEach(ul => bulletIO.observe(ul));
+})();
+
+/* ===== STARFIELD + SAKURA + SHOOTING STARS ===== */
+(function() {
+  const canvas = document.getElementById('starfield');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  let W, H, stars = [], shooters = [], petals = [];
+  const N_STARS = 220, N_PETALS = 14;
+
+  function resize() { W = canvas.width = innerWidth; H = canvas.height = innerHeight; }
+
+  function mkStar() {
+    return {
+      x: Math.random() * W, y: Math.random() * H,
+      r: Math.random() * 1.4 + 0.3,
+      alpha: Math.random() * 0.75 + 0.15,
+      ts: Math.random() * 0.008 + 0.002,
+      td: Math.random() > 0.5 ? 1 : -1,
+      par: Math.random() * 0.3 + 0.05,
+    };
+  }
+  function mkShooter() {
+    const a = (Math.random() * 30 + 15) * Math.PI / 180;
+    return {
+      x: Math.random() * W, y: -10,
+      vx: Math.cos(a) * (6 + Math.random() * 5),
+      vy: Math.sin(a) * (6 + Math.random() * 5),
+      len: 80 + Math.random() * 80, alpha: 1, life: 1,
+    };
+  }
+  function mkPetal(init) {
+    return {
+      x: Math.random() * W, y: init ? Math.random() * H : -20,
+      size: 4 + Math.random() * 5,
+      vy: 0.4 + Math.random() * 0.7,
+      drift: Math.random() * Math.PI * 2,
+      ds: 0.005 + Math.random() * 0.012,
+      da: 0.6 + Math.random() * 1.2,
+      rot: Math.random() * Math.PI * 2,
+      rs: (Math.random() - 0.5) * 0.02,
+      alpha: 0.25 + Math.random() * 0.35,
+    };
+  }
+
+  resize();
+  for (let i = 0; i < N_STARS; i++) stars.push(mkStar());
+  for (let i = 0; i < N_PETALS; i++) petals.push(mkPetal(true));
+
+  let lastShooter = 0, mouseX = W / 2, mouseY = H / 2, sY = 0;
+  addEventListener('resize', resize);
+  addEventListener('mousemove', e => { mouseX = e.clientX; mouseY = e.clientY; });
+  addEventListener('scroll', () => { sY = scrollY; }, { passive: true });
+
+  function draw(ts) {
+    ctx.clearRect(0, 0, W, H);
+    if (!REDUCED && ts - lastShooter > 3500 + Math.random() * 4000) {
+      shooters.push(mkShooter()); lastShooter = ts;
+    }
+    const mx = (mouseX / W - 0.5) * 12, my = (mouseY / H - 0.5) * 12, sy = sY * 0.04;
+
+    for (const s of stars) {
+      s.alpha += s.ts * s.td;
+      if (s.alpha > 0.9 || s.alpha < 0.08) s.td *= -1;
+      ctx.beginPath();
+      ctx.arc(s.x + mx * s.par, s.y + my * s.par - sy * s.par, s.r, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(200,220,255,${s.alpha})`;
+      ctx.fill();
+    }
+    shooters = shooters.filter(s => s.alpha > 0.01);
+    for (const s of shooters) {
+      s.x += s.vx; s.y += s.vy; s.life -= 0.018; s.alpha = s.life;
+      const tx = s.x - s.vx * (s.len / 12), ty = s.y - s.vy * (s.len / 12);
+      const g = ctx.createLinearGradient(tx, ty, s.x, s.y);
+      g.addColorStop(0, 'rgba(0,200,240,0)');
+      g.addColorStop(1, `rgba(0,200,240,${s.alpha * 0.9})`);
+      ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(s.x, s.y);
+      ctx.strokeStyle = g; ctx.lineWidth = 1.5; ctx.stroke();
+      ctx.beginPath(); ctx.arc(s.x, s.y, 1.5, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(180,240,255,${s.alpha})`; ctx.fill();
+    }
+    if (!REDUCED) for (const p of petals) {
+      p.drift += p.ds; p.x += Math.sin(p.drift) * p.da; p.y += p.vy; p.rot += p.rs;
+      if (p.y > H + 20) Object.assign(p, mkPetal(false));
+      ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot);
+      ctx.beginPath(); ctx.ellipse(0, 0, p.size, p.size * 0.55, 0, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(255,170,200,${p.alpha})`; ctx.fill();
+      ctx.restore();
+    }
+    requestAnimationFrame(draw);
+  }
+  requestAnimationFrame(draw);
+})();
