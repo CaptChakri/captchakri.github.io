@@ -12,22 +12,22 @@ Personal portfolio and blog for [Chakri](https://captchakri.github.io/), hosted 
 - `blog/YYYY/MM/DD/<slug>.html` — published posts grouped by publication date.
 - `blog/posts/template.html` — starting point for new posts.
 - `scripts/validate_blog.py` — checks dates, post paths, canonical URLs, and sitemap entries.
-- `scripts/preview.sh` — validates and serves the site locally.
 
 ## Preview before creating a pull request
 
-Run the preview script from the repository root:
+Run the blog validator from the repository root:
 
-```bash
-./scripts/preview.sh
+```powershell
+python scripts/validate_blog.py
 ```
 
-Then open:
+Then open `index.html` with the VS Code Live Server extension. With Live Server's
+default port, review:
 
-- Portfolio: <http://localhost:8000/>
-- Blog: <http://localhost:8000/blog/>
+- Portfolio: <http://localhost:5500/>
+- Blog: <http://localhost:5500/blog/>
 
-Use `./scripts/preview.sh 9000` to choose another port. The script validates the date-based blog URLs before starting the server. Press `Ctrl+C` when you are finished reviewing the site.
+If Live Server chooses another port, use the URL shown in the VS Code status bar.
 
 For a final pre-PR check, review the diff too:
 
@@ -72,7 +72,8 @@ maps to:
 3. Update the title, description, canonical URL, Open Graph URL, heading, `<time datetime>`, tags, and article content.
 4. Add the post metadata to `blog/posts.json` using the same ISO date and slug.
 5. Add the canonical public URL to `sitemap.xml` with the publication date as `<lastmod>`.
-6. Run `./scripts/preview.sh` and verify the generated URL printed by the validator.
+6. Run `python scripts/validate_blog.py`, then review the post through Live Server
+   at the generated date-based URL.
 
 ## Accessibility and performance notes
 

@@ -113,7 +113,10 @@ body.skip-intro #intro { display: none; }
   letter-spacing: -0.02em; text-decoration: none;
 }
 .nav-logo span { color: var(--cyan); }
-.nav-links { display: flex; gap: 2rem; list-style: none; }
+.nav-links {
+  position: absolute; left: 50%; transform: translateX(-50%);
+  display: flex; gap: 2rem; list-style: none;
+}
 .nav-links a {
   color: var(--gray); text-decoration: none; font-size: 0.875rem;
   letter-spacing: 0.04em; position: relative;
@@ -363,11 +366,12 @@ body.nav-open { overflow: hidden; }
   .nav-ready .nav-toggle { display: flex; }
   .nav-ready .nav-links {
     position: absolute; top: 100%; left: 0; right: 0;
+    transform: translateY(-0.75rem);
     display: flex; flex-direction: column; gap: 0;
     padding: 0.5rem 1.25rem 1.25rem;
     background: rgba(6,11,28,0.98); border-bottom: 1px solid var(--border);
     box-shadow: 0 18px 35px rgba(0,0,0,0.35);
-    opacity: 0; visibility: hidden; transform: translateY(-0.75rem);
+    opacity: 0; visibility: hidden;
     transition: opacity 0.2s ease, visibility 0.2s ease, transform 0.2s ease;
   }
   .nav-ready .nav-links.open { opacity: 1; visibility: visible; transform: translateY(0); }
