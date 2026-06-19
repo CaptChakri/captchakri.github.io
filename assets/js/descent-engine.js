@@ -138,7 +138,7 @@
     if (h > 17.5 && h < 19) return (h - 17.5) / 1.5;
     return 1;
   }
-  const CAMP_FIRE_X = 0.58, CAMP_TENT_X = 0.36; // fireplace + tent x (fraction of W); fire is the smoke origin
+  const CAMP_FIRE_X = 0.58, CAMP_TENT_X = 0.36; // preferred fireplace + tent x (fraction of W); fire is the smoke origin
   let stars = [], shooters = [], clouds = [], fireflies = [], bubbles = [], bios = [], snow = [], fishes = [];
   let smoke = [], lastShooter = 0, lastSmoke = 0;
   /* easter eggs: catch a flagged creature and it bursts into a shower of sparks.
@@ -746,6 +746,18 @@
     return { tH, tW: tH * 1.6, rr: Math.max(10, tH * 0.26) };      // tent width (A-frame) + fire-pit radius
   }
 
+  function campCenters(dims = campDims()) {
+    const mid = W * ((CAMP_TENT_X + CAMP_FIRE_X) / 2);
+    const idealGap = W * (CAMP_FIRE_X - CAMP_TENT_X);
+    const maxGap = Math.max(112, dims.tW * 1.45 + dims.rr * 1.3);
+    const gap = Math.min(idealGap, maxGap);
+    return { tentX: mid - gap / 2, fireX: mid + gap / 2 };
+  }
+
+  function campFireY(gy, dims = campDims()) {
+    return gy + Math.max(4, dims.tH * 0.08);
+  }
+
   /* the campsite STRUCTURE — a tent + the crossed woodpile, drawn into the scenery
      sitting ON the ground line. Drawn BEFORE the framing conifers (and grass) so the
      foreground trees/blades overlap it for depth; the warm fire is a separate pass
@@ -753,17 +765,18 @@
   function drawCamp(t, a, gy) {
     ctx.save();
     const { tH, tW, rr } = campDims();
+    const { tentX, fireX } = campCenters({ tH, tW, rr });
 
     // soft ambient contact shadows so the camp reads as planted on the ground. (At
     // night the campfire throws its own long, flickering cast shadow of the tent — see
     // drawFirepit, where it's laid over the grass and night wash at full contrast.)
     ctx.globalAlpha = a;
     ctx.fillStyle = 'rgba(0,0,0,0.28)';
-    ctx.beginPath(); ctx.ellipse(W * CAMP_TENT_X, gy + 4, tW * 0.6, 8, 0, 0, 6.2832); ctx.fill();
-    ctx.beginPath(); ctx.ellipse(W * CAMP_FIRE_X, gy + 3, rr * 1.45, 6, 0, 0, 6.2832); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(tentX, gy + 4, tW * 0.6, 8, 0, 0, 6.2832); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(fireX, campFireY(gy, { tH, tW, rr }) + 3, rr * 1.45, 6, 0, 0, 6.2832); ctx.fill();
 
     // ---- tent ----
-    const tx = W * CAMP_TENT_X, by = gy;
+    const tx = tentX, by = gy;
     ctx.fillStyle = '#c39c6e';
     ctx.beginPath(); ctx.moveTo(tx, by - tH); ctx.lineTo(tx + tW / 2, by); ctx.lineTo(tx - tW / 2, by); ctx.closePath(); ctx.fill();
     ctx.fillStyle = '#9a7748';
@@ -776,7 +789,7 @@
     ctx.beginPath(); ctx.moveTo(tx + tW / 2, by); ctx.lineTo(tx + tW * 0.6, by); ctx.stroke();
 
     // ---- crossed logs (the woodpile under the fire) ----
-    const fx = W * CAMP_FIRE_X, fy = gy - 2;
+    const fx = fireX, fy = campFireY(gy, { tH, tW, rr });
     ctx.globalAlpha = a;
     ctx.strokeStyle = '#3c2a18'; ctx.lineWidth = rr * 0.22; ctx.lineCap = 'round';
     ctx.beginPath(); ctx.moveTo(fx - rr * 0.55, fy + rr * 0.1); ctx.lineTo(fx + rr * 0.55, fy - rr * 0.06); ctx.stroke();
@@ -788,25 +801,28 @@
      drawn as its OWN pass AFTER the night wash (and after the framing conifers) so the
      campfire glows against the dark while the structure stays tucked behind the
      foreground trees. Flames only after dusk; by day the pit just smoulders. */
-  function drawFirepit(t, a, gy) {
+  function drawFirepit(t, a, gy, fireAlive = 1) {
     ctx.save();
     const { tH, tW, rr } = campDims();
-    const fx = W * CAMP_FIRE_X, fy = gy - 2;
+    const { tentX, fireX } = campCenters({ tH, tW, rr });
+    const fx = fireX, fy = campFireY(gy, { tH, tW, rr });
     const lit = nightAmount();   // 0 in daylight → 1 at night (dawn/dusk fades)
+    const litFire = lit * fireAlive;
+    const active = a * fireAlive;
     const fl = reduce ? 1 : (1 + Math.sin(t * 0.013) * 0.12 + Math.sin(t * 0.031) * 0.07);
     // the campfire is the light: at night it throws a long shadow of the tent ACROSS
     // the clearing, cast away from the fire and flickering as the flame breathes. Drawn
     // first in this pass (over the grass + night wash) so it darkens the ground it falls
     // on at full contrast, then the warm fire is laid on top.
-    if (lit > 0.01) {
-      const dir = Math.sign(CAMP_TENT_X - CAMP_FIRE_X) || -1;   // away from the fire
-      const txc = W * CAMP_TENT_X;
-      const len = tW * (1.7 + (fl - 1) * 1.8) * lit;            // long & low, flickering with the flame
+    if (litFire > 0.01) {
+      const dir = Math.sign(tentX - fireX) || -1;               // away from the fire
+      const txc = tentX;
+      const len = tW * (1.7 + (fl - 1) * 1.8) * litFire;        // long & low, flickering with the flame
       const sx0 = txc + dir * tW * 0.08;                        // anchored at the tent's far foot
       const sx1 = txc + dir * len;                              // shadow tip
       const cy = gy + 5;
       const grad = ctx.createLinearGradient(sx0, cy, sx1, cy);
-      grad.addColorStop(0, `rgba(0,0,0,${0.42 * lit})`); grad.addColorStop(1, 'rgba(0,0,0,0)');
+      grad.addColorStop(0, `rgba(0,0,0,${0.42 * litFire})`); grad.addColorStop(1, 'rgba(0,0,0,0)');
       ctx.globalAlpha = a;
       ctx.fillStyle = grad;
       ctx.beginPath(); ctx.ellipse((sx0 + sx1) / 2, cy, Math.abs(sx1 - sx0) / 2, 9, 0, 0, 6.2832); ctx.fill();
@@ -822,8 +838,8 @@
       ctx.moveTo(txc, apexY); ctx.lineTo(txc + tW / 2, gy); ctx.lineTo(txc - tW / 2, gy); ctx.closePath();
       ctx.clip();
       const flit = ctx.createRadialGradient(nearFoot, gy, 0, nearFoot, gy, tW * 1.1);
-      flit.addColorStop(0, `rgba(255,172,92,${0.46 * lit * fl})`);
-      flit.addColorStop(0.5, `rgba(255,150,74,${0.15 * lit * fl})`);
+      flit.addColorStop(0, `rgba(255,172,92,${0.46 * litFire * fl})`);
+      flit.addColorStop(0.5, `rgba(255,150,74,${0.15 * litFire * fl})`);
       flit.addColorStop(1, 'rgba(255,140,60,0)');
       ctx.globalCompositeOperation = 'lighter';
       ctx.fillStyle = flit;
@@ -833,14 +849,14 @@
     // faint smouldering ember bed — always there ("lit last night, still smoking")
     ctx.globalAlpha = 1;
     const ember = ctx.createRadialGradient(fx, fy, 0, fx, fy, rr * 0.9);
-    ember.addColorStop(0, `rgba(255,120,50,${(0.16 + 0.06 * Math.sin(t * 0.004)) * a})`); ember.addColorStop(1, 'rgba(255,90,40,0)');
+    ember.addColorStop(0, `rgba(255,120,50,${(0.16 + 0.06 * Math.sin(t * 0.004)) * active})`); ember.addColorStop(1, 'rgba(255,90,40,0)');
     ctx.fillStyle = ember; ctx.beginPath(); ctx.arc(fx, fy, rr * 0.9, 0, 6.2832); ctx.fill();
     // warm glow + flames — only after dusk
-    if (lit > 0.01) {
+    if (litFire > 0.01) {
       const glow = ctx.createRadialGradient(fx, fy - rr * 0.7, 0, fx, fy - rr * 0.7, rr * 3.1);
-      glow.addColorStop(0, `rgba(255,176,86,${0.55 * a * fl * lit})`); glow.addColorStop(1, 'rgba(255,150,60,0)');
+      glow.addColorStop(0, `rgba(255,176,86,${0.55 * active * fl * litFire})`); glow.addColorStop(1, 'rgba(255,150,60,0)');
       ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(fx, fy - rr * 0.7, rr * 3.1, 0, 6.2832); ctx.fill();
-      ctx.globalAlpha = a * lit;
+      ctx.globalAlpha = active * litFire;
       const fh = rr * 1.6 * fl;
       ctx.fillStyle = '#ef8a3a'; flame(ctx, fx, fy - rr * 0.05, rr * 0.95, fh);
       ctx.fillStyle = '#ffd070'; flame(ctx, fx, fy - rr * 0.05, rr * 0.5, fh * 0.6);
@@ -1347,26 +1363,6 @@
       ctx.strokeStyle = lgr; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(s.x, s.y); ctx.stroke();
     }
 
-    // moon — the EXOSPHERE moon follows the Moon's real orbital physics (see moonAstro):
-    // its true sky position (altitude/azimuth for the device's timezone) and its real
-    // phase. It lives ONLY in the exosphere (fades out by the thermosphere) and shows
-    // only when the Moon is actually above the horizon — so it appears, and on whichever
-    // side, exactly as the real Moon does right now (rising in the east = left, setting
-    // in the west = right). The separate night-beach moon below is independent.
-    const moonR = Math.max(22, Math.min(W, H) * 0.05);
-    const exoEnv = Math.max(0, Math.min(1, (0.16 - p) / 0.06));   // confined to the exosphere
-    if (exoEnv > 0.01) {
-      const ms = moonNow(t);
-      const moonSkyA = exoEnv * Math.max(0, Math.min(1, ms.alt / 6)); // fade in over the first 6° above the horizon
-      if (moonSkyA > 0.01) {
-        // azimuth → x in a south-facing frame (E=left, S=centre, W=right); altitude → y
-        const azx = Math.max(0, Math.min(1, (ms.az - 90) / 180));
-        const mX = W * (0.1 + 0.8 * azx) + px * 0.6;
-        const mY = H * 0.42 - Math.max(0, Math.min(1, ms.alt / 70)) * H * 0.34 + py * 0.5;
-        drawMoon(mX, mY, moonR, moonSkyA, { illum: ms.illum, waxing: ms.waxing });
-      }
-    }
-
     // clouds (sky)
     const cloudA = band(p, 0.36, 0.12);
     if (cloudA > 0) for (const c of clouds) {
@@ -1397,6 +1393,13 @@
     const flood = Math.max(0, Math.min(1, (p - 0.59) / 0.07));
     const seaA = flood > 0 ? 1 : landA;            // opaque the moment it floods so the rising water fully COVERS the camp (no faded bleed-through); only fades in with the beach on entry
     const campGy = H * 0.78 + py * 0.7;            // the camp's floor on the dry sand (smoke origin rides it too)
+    const shoreY = (1 - flood) * (H * 0.84 + py * 0.85) - flood * H * 0.12;
+    const wob = (x) => Math.sin(x * 0.02 + t * 0.0016) * 5 + Math.sin(x * 0.05 + t * 0.0023) * 3;
+    const fireDims = campDims();
+    const firePos = campCenters(fireDims);
+    const fireY = campFireY(campGy, fireDims);
+    const waterAtFire = shoreY + wob(firePos.fireX);
+    const fireAlive = Math.max(0, Math.min(1, (waterAtFire - (fireY + fireDims.rr * 0.45)) / Math.max(10, fireDims.rr * 0.75)));
     const dayA = (1 - nightAmount()) * landA;      // daylight strength of the scene
     // (the sun & moon arc positions — sunPos / moonPos — are computed up top, before the
     //  space pass, so the moon can cross-fade between scenes without moving)
@@ -1468,12 +1471,10 @@
         }
         // the warm campfire laid over the night wash so it glows against the dark — and
         // on top of the conifers/grass so nothing paints across the flames or stones
-        drawFirepit(t, Math.min(1, landA * 1.3), campGy);
+        drawFirepit(t, Math.min(1, landA * 1.3), campGy, fireAlive);
       }
       // ---- the ocean, drawn ON TOP so it overtakes everything as it rises ----
       // shoreY climbs from the sand (rest) up past the top of the screen at full flood
-      const shoreY = (1 - flood) * (H * 0.84 + py * 0.85) - flood * H * 0.12;
-      const wob = (x) => Math.sin(x * 0.02 + t * 0.0016) * 5 + Math.sin(x * 0.05 + t * 0.0023) * 3;
       ctx.globalAlpha = seaA;
       const nS = nightAmount();
       const sea = ctx.createLinearGradient(0, shoreY, 0, H);
@@ -1532,19 +1533,20 @@
     }
 
     // campfire smoke (beach/camp) — rises from the fireplace, drifts and fades
-    if (landA > 0.02) {
-      if (!reduce && flood < 0.3 && t - lastSmoke > 200) {
+    if (landA > 0.02 && fireAlive > 0.01) {
+      if (!reduce && flood < 0.3 && fireAlive > 0.25 && t - lastSmoke > 200) {
         smoke.push({ life: 0, ox: rnd(-7, 7), sw: Math.random() * 6.2832, vr: rnd(0.0022, 0.0036) });
         lastSmoke = t;
         if (smoke.length > 40) smoke.shift();
       }
-      const ex = CAMP_FIRE_X * W, ey = campGy - H * 0.03;
+      const smokeDims = campDims();
+      const ex = campCenters(smokeDims).fireX, ey = campFireY(campGy, smokeDims) - H * 0.03;
       for (const sm of smoke) {
         if (!reduce) sm.life += sm.vr * dt;   // dt-scaled so it stays a slow, lazy drift (fps-independent)
         const yy = ey - sm.life * H * 0.34;
         const xx = ex + sm.ox + Math.sin(sm.sw + sm.life * 3.4) * (12 + sm.life * 34);
         const rr = 7 + sm.life * 44;
-        const a = Math.sin(Math.min(1, sm.life) * Math.PI) * 0.15 * landA * (1 - flood);
+        const a = Math.sin(Math.min(1, sm.life) * Math.PI) * 0.15 * landA * fireAlive * (1 - flood);
         const sg = ctx.createRadialGradient(xx, yy, 0, xx, yy, rr);
         sg.addColorStop(0, `rgba(214,214,220,${a})`); sg.addColorStop(1, 'rgba(214,214,220,0)');
         ctx.fillStyle = sg; ctx.beginPath(); ctx.arc(xx, yy, rr, 0, 6.2832); ctx.fill();
