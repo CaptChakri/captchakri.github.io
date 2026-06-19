@@ -159,26 +159,33 @@ nav { z-index: 100; }
    ===================================================================== */
 
 /* ----- HERO ----- */
-.dz-hero { min-height: 100vh; display: flex; align-items: center; padding-top: 9rem; padding-bottom: 6rem; }
+.dz-hero { min-height: 100vh; display: flex; align-items: center; padding-top: 6rem; padding-bottom: 5rem; }
 .hero-wrap { width: 100%; max-width: 820px; margin: 0 auto; }
-.greeting-line { font-family: 'JetBrains Mono', monospace; font-size: clamp(.85rem,1.6vw,1rem); color: var(--cyan); margin-bottom: 1.25rem; min-height: 1.7em; display: flex; align-items: center; gap: .6rem; }
+.greeting-line { font-family: 'JetBrains Mono', monospace; font-size: clamp(.85rem,1.6vw,1rem); color: var(--cyan); margin-bottom: 1rem; min-height: 1.7em; display: flex; align-items: center; gap: .6rem; }
 .wave { display: inline-block; font-size: 1.35em; animation: wave 2.2s ease-in-out infinite; transform-origin: 70% 70%; font-style: normal; }
 .greeting-line .gname { color: var(--white); font-weight: 500; }
 @keyframes wave { 0%,100%{transform:rotate(0)}20%{transform:rotate(20deg)}40%{transform:rotate(-8deg)}60%{transform:rotate(16deg)}80%{transform:rotate(-4deg)} }
-.dz-hero h1 { font-family: 'Space Grotesk', sans-serif; font-size: clamp(2.6rem,5.6vw,4.8rem); font-weight: 700; line-height: 1.08; letter-spacing: -.03em; color: var(--white); margin-bottom: 1.5rem; }
+/* Cap is sized so the designed 3 lines (set by the <br>s in the markup) fit the
+   ~560px column the journal rail leaves on wide screens — a larger cap wraps it
+   to 5 lines and overflows the hero past the viewport. */
+.dz-hero h1 { font-family: 'Space Grotesk', sans-serif; font-size: clamp(2.4rem,4.8vw,3.7rem); font-weight: 700; line-height: 1.08; letter-spacing: -.03em; color: var(--white); margin-bottom: 1.1rem; }
 .dz-hero h1 .w { display: inline-block; opacity: 0; transform: translateY(40px) rotate(2deg); filter: blur(6px); }
 .dz-hero h1 .w.show { animation: wordRise .65s cubic-bezier(.2,.8,.2,1) forwards; }
 @keyframes wordRise { to { opacity: 1; transform: translateY(0) rotate(0); filter: blur(0); } }
 .dz-hero h1 em { color: var(--cyan); font-style: normal; }
 .caret { display: inline-block; width: 8px; height: 1.1em; background: var(--cyan); vertical-align: text-bottom; animation: caretBlink .9s steps(1) infinite; }
 @keyframes caretBlink { 50% { opacity: 0; } }
-.hero-intro { font-size: 1.08rem; color: var(--text); max-width: 600px; margin-bottom: 2.2rem; line-height: 1.75; }
+.hero-intro { font-size: 1.08rem; color: var(--text); max-width: 600px; margin-bottom: 1.5rem; line-height: 1.75; }
 .hero-intro strong { color: var(--white); font-weight: 500; }
 .hero-cta { display: flex; gap: 1rem; flex-wrap: wrap; }
-.hero-status { margin-top: 2.6rem; padding-top: 1.8rem; border-top: 1px solid var(--border); display: flex; align-items: center; gap: .6rem; font-size: .85rem; color: var(--gray); }
+.hero-status { margin-top: 1.3rem; padding-top: 1rem; border-top: 1px solid var(--border); display: flex; align-items: center; gap: .6rem; font-size: .85rem; color: var(--gray); }
 .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #22d97a; box-shadow: 0 0 8px rgba(34,217,122,.6); animation: blink 2s ease-in-out infinite; }
 @keyframes blink { 50% { opacity: .4; } }
-.scroll-hint { position: absolute; bottom: 1.8rem; left: 50%; transform: translateX(-50%); font-family: 'JetBrains Mono', monospace; font-size: .68rem; color: rgba(255,255,255,.5); letter-spacing: .22em; display: flex; flex-direction: column; align-items: center; gap: .55rem; }
+/* pinned to the viewport bottom (not the hero section, which overflows past
+   100vh on shorter laptops/phones and used to push the hint off-screen); JS
+   fades it out once the visitor starts to fall. */
+.scroll-hint { position: fixed; bottom: 1.8rem; left: 50%; transform: translateX(-50%); z-index: 5; font-family: 'JetBrains Mono', monospace; font-size: .68rem; color: rgba(255,255,255,.5); letter-spacing: .22em; display: flex; flex-direction: column; align-items: center; gap: .55rem; transition: opacity .4s ease; }
+.scroll-hint.is-hidden { opacity: 0; pointer-events: none; }
 .scroll-hint::after { content: ''; width: 1px; height: 34px; background: linear-gradient(var(--cyan), transparent); animation: scrollDrip 1.8s ease infinite; }
 @keyframes scrollDrip { 0%{transform:scaleY(0);transform-origin:top}50%{transform:scaleY(1);transform-origin:top}51%{transform-origin:bottom}100%{transform:scaleY(0);transform-origin:bottom} }
 
@@ -191,6 +198,20 @@ nav { z-index: 100; }
 .hj-post-tags { display: flex; flex-wrap: wrap; gap: .3rem; }
 .hj-more { display: block; margin-top: 1rem; font-family: 'JetBrains Mono', monospace; font-size: .7rem; color: var(--cyan); letter-spacing: .04em; text-decoration: none; }
 .hj-more:hover { text-decoration: underline; }
+
+/* ----- MOBILE HERO -----
+   Compact the hero so the whole pitch AND the "scroll to fall" cue fit one phone
+   screen (the journal rail is dropped ≤600px in index.html). Tighter spacing +
+   a slimmer intro, and a shorter hint so it needs less clear space at the foot. */
+@media (max-width: 600px) {
+  .dz-hero { padding-top: 4.25rem; padding-bottom: 3rem; }
+  .greeting-line { margin-bottom: .7rem; }
+  .dz-hero h1 { margin-bottom: .85rem; }
+  .hero-intro { font-size: 1rem; line-height: 1.58; margin-bottom: 1.05rem; }
+  .hero-status { margin-top: 1rem; padding-top: .85rem; }
+  .scroll-hint { bottom: 1rem; gap: .3rem; font-size: .62rem; }
+  .scroll-hint::after { height: 16px; }
+}
 
 /* ----- ABOUT ----- */
 .about-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; align-items: start; }

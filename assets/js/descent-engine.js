@@ -3,7 +3,7 @@
    Drives, from window scroll progress p (0=space … 1=trench):
      • a full-viewport gradient that morphs through every zone
      • per-zone particle systems (stars, shooters, clouds, fireflies,
-       sun-shafts, bubbles, bioluminescence, marine snow)
+       bubbles, bioluminescence, marine snow)
      • parallax silhouettes (mountains, treeline, waterline, kelp, trench walls)
      • emoji "objects" you pass on the way down (planets, plane, tent, fish, whale…)
      • a depth/altitude gauge HUD
@@ -77,8 +77,16 @@
     { p: 0.93, a: '#04141f', b: '#020a12' }, // approaching trench
     { p: 1.00, a: '#01060a', b: '#000000' }, // the trench
   ];
+  // a clear daytime high-sky gradient. GRAD bakes a warm "dawn horizon" into the
+  // sky/biosphere approach (p≈0.33–0.49) that otherwise shows at ALL hours; by day,
+  // away from sunrise/sunset, the sky is cooled toward this so it obeys the clock —
+  // blue at midday, warm only at golden hour (see frame() / dayCoolEnv / goldenAmount).
+  const DAY_SKY = { a: '#5b86c4', b: '#bcd2e2' };
   function hx(h) { return [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)]; }
-  function mix(c1, c2, t) { const a = hx(c1), b = hx(c2); return `rgb(${Math.round(a[0] + (b[0] - a[0]) * t)},${Math.round(a[1] + (b[1] - a[1]) * t)},${Math.round(a[2] + (b[2] - a[2]) * t)})`; }
+  // accept either a #rrggbb hex or an existing rgb(r,g,b) string, so mixed/interpolated
+  // colours can be blended again (e.g. cooling the gradAt() result toward DAY_SKY)
+  function rgbOf(c) { return c[0] === '#' ? hx(c) : c.match(/\d+/g).map(Number); }
+  function mix(c1, c2, t) { const a = rgbOf(c1), b = rgbOf(c2); return `rgb(${Math.round(a[0] + (b[0] - a[0]) * t)},${Math.round(a[1] + (b[1] - a[1]) * t)},${Math.round(a[2] + (b[2] - a[2]) * t)})`; }
   function gradAt(p) {
     let i = 0; while (i < GRAD.length - 1 && p > GRAD[i + 1].p) i++;
     const lo = GRAD[i], hi = GRAD[Math.min(i + 1, GRAD.length - 1)];
@@ -138,9 +146,22 @@
     if (h > 17.5 && h < 19) return (h - 17.5) / 1.5;
     return 1;
   }
+  // the warm low-sun "golden hour" glow: ~1 around sunrise/sunset (sun near the
+  // horizon), easing to 0 by deep midday and through the night. Drives how much of
+  // the gradient's warm dawn/dusk colour survives, so the warm horizon only shows
+  // when the real sun is actually low — the high sky obeys the clock (see frame()).
+  function goldenAmount() {
+    const d = new Date(); const h = d.getHours() + d.getMinutes() / 60;
+    const dist = Math.min(Math.abs(h - 6.5), Math.abs(h - 17.5)); // hours from a horizon crossing
+    return Math.max(0, 1 - dist / 2.5);                           // glow within ~2.5h of sunrise/sunset
+  }
   const CAMP_FIRE_X = 0.58, CAMP_TENT_X = 0.36; // preferred fireplace + tent x (fraction of W); fire is the smoke origin
   let stars = [], shooters = [], clouds = [], fireflies = [], bubbles = [], bios = [], snow = [], fishes = [];
   let smoke = [], lastShooter = 0, lastSmoke = 0;
+  // the swimming tortoise, published each frame by stepTortoise as something the
+  // shoal flees: its viewport-normalised centre + how strongly it spooks nearby fish
+  // (power is 0 while it's still ashore, rising as it takes to the open water)
+  let turtleThreat = { x: 0, y: 0, power: 0 };
   /* easter eggs: catch a flagged creature and it bursts into a shower of sparks.
      Two kinds — flagged DOM sprites (the comet as it streaks past, the rare
      seahorse), and the rare golden fish in the canvas shoal (hit-tested in
@@ -205,7 +226,7 @@
   function spawnFish() {
     const sp = rnd(0.00012, 0.0011), dir = Math.random() > .5 ? 1 : -1;
     // a fish is a heading (ang) + a forward speed it eases — it only ever swims the way it faces
-    const f = { x: Math.random(), y: rnd(0.12, 0.86), size: rnd(9, 24), sp, speed: sp, ang: dir > 0 ? 0 : Math.PI, fear: 0, bob: Math.random() * 6.28, bobS: rnd(0.008, 0.022), bobA: rnd(4, 11), tail: Math.random() * 6.28, tailS: 0.12 + sp * 90, nosy: Math.random(), holdR: 30 + Math.random() * 24, pokePh: Math.random() * 6.28, curEngaged: false, hold: 0, zoneFade: 1, flee: 0, fleeAng: 0 };
+    const f = { x: Math.random(), y: rnd(0.12, 0.86), size: rnd(9, 24), sp, speed: sp, ang: dir > 0 ? 0 : Math.PI, fear: 0, bob: Math.random() * 6.28, bobS: rnd(0.008, 0.022), bobA: rnd(4, 11), tail: Math.random() * 6.28, tailS: 0.12 + sp * 90, nosy: Math.random(), holdR: 30 + Math.random() * 24, pokePh: Math.random() * 6.28, curEngaged: false, hold: 0, zoneFade: 1, flee: 0, fleeAng: 0, threatX: 0.5, threatY: 1 };
     setSpecies(f, 0);   // born in the shallows; species is re-rolled by depth on each wrap
     return f;
   }
@@ -213,6 +234,17 @@
     const want = fishTarget();
     while (fishes.length < want) fishes.push(spawnFish());
     if (fishes.length > want) fishes.length = want;
+  }
+  /* raise a fish's fright from a threat at viewport-normalised (tx, ty). Beyond
+     recording HOW scared it is (f.fear), it records WHERE the threat is (f.threatX/Y)
+     so the dart heads AWAY from it. The falloff is SQUARED so the fright stays LOCAL —
+     fish well outside `reachPx` barely register it. Shared by the cursor, the swimming
+     turtle and the erupting vents; the strongest threat in a frame wins the bearing. */
+  function scareFish(f, tx, ty, strength, reachPx) {
+    const dd = Math.hypot((f.x - tx) * W, (f.y - ty) * H) || 1;
+    if (dd >= reachPx) return;
+    const k = 1 - dd / reachPx, amt = strength * k * k;
+    if (amt > f.fear) { f.fear = amt; f.threatX = tx; f.threatY = ty; }
   }
 
   /* draw one fish — silhouette + detailing depend on its species (f.kind): reef
@@ -317,7 +349,7 @@
      (no pulsing, plume or sway) for reduced motion. =================== */
   const sfClamp = (v, lo, hi) => v < lo ? lo : (v > hi ? hi : v);
   const sfSmooth = (k) => { k = sfClamp(k, 0, 1); return k * k * (3 - 2 * k); };
-  let ventList = [], sfRocks = [], sfBucket = -1, sfLastT = 0, sfElapsed = 0, sfTrA = 1;
+  let ventList = [], sfRocks = [], sfShrimp = [], sfBucket = -1, sfLastT = 0, sfElapsed = 0, sfTrA = 1;
 
   // the floor sits this many px up from the bottom of the viewport; two gently
   // undulating surface lines (front sediment + a dimmer back dune behind it)
@@ -366,6 +398,21 @@
     sfRocks = [];
     const n = Math.round(sfClamp(W / 130, 4, 9));
     for (let i = 0; i < n; i++) sfRocks.push({ xf: (i + rnd(0.1, 0.9)) / n, rw: rnd(10, 30), rh: rnd(5, 13), tone: rnd(0.05, 0.16) });
+    // a few deep-sea (vent) shrimp foraging the front sediment line — pale,
+    // translucent scuttlers that mill toward an erupting vent's warmth the way
+    // real Rimicaris swarm a black smoker, then scatter with a tail-flick dart
+    // if the cursor swoops onto the bed. Absolute px (not xf) so they keep
+    // walking across minor resizes; the step clamps them back into frame.
+    sfShrimp = [];
+    const shN = Math.round(sfClamp(W / 240, 2, 5));
+    for (let i = 0; i < shN; i++) sfShrimp.push({
+      x: rnd(0.08, 0.92) * W, dir: Math.random() < 0.5 ? -1 : 1,
+      len: sfClamp(sfFloorH() * 0.18, 15, 26) * rnd(0.82, 1.18),
+      dim: rnd(0.72, 1), spd: rnd(20, 34),
+      vx: 0, mode: 'forage', t: rnd(0.4, 2.4), targetX: 0,
+      legPh: Math.random() * 6.28, antPh: Math.random() * 6.28,
+      flex: 0.2, dip: 0, warm: 0, walkAmt: 0, dartT: 0, gold: false,
+    });
   }
 
   function sfVentGeo(v) {
@@ -543,6 +590,176 @@
     }
   }
 
+  /* ---- deep-sea shrimp: forage walk, vent attraction, tail-flick escape ----
+     A shrimp scuttles in little bursts toward a target on the front sediment
+     line, pauses to dip its head and pick at the silt, then picks the next
+     spot — usually a short hop, sometimes the warm base of a vent that's
+     currently erupting (vent shrimp cluster on the smoker walls). A cursor
+     dropped onto the bed near one triggers the caridoid escape: it faces the
+     threat and shoots backward tail-first with a hard abdomen flick, then
+     resumes foraging away from where it bolted. */
+  const SHRIMP_GOLD_RARITY = 0.012;                   // odds a foraging shrimp turns up gold — a rare, catchable find (mirrors the gold fish)
+  function sfShrimpPickTarget(s) {
+    if (!s.gold && Math.random() < SHRIMP_GOLD_RARITY) s.gold = true;   // once gold, it stays gold until it's caught
+    let lit = null, bestD = Infinity;                 // nearest currently-erupting vent
+    for (const v of ventList) {
+      if (v.open < 0.35) continue;
+      const g = sfVentGeo(v), vx = g.x + g.baseW * v.lean, d = Math.abs(vx - s.x);
+      if (d < W * 0.42 && d < bestD) { bestD = d; lit = vx; }
+    }
+    if (lit != null && Math.random() < 0.55) s.targetX = lit + rnd(-1, 1) * sfClamp(W * 0.04, 16, 40);
+    else s.targetX = s.x + (Math.random() < 0.5 ? -1 : 1) * rnd(40, 170);
+    s.targetX = sfClamp(s.targetX, W * 0.05, W * 0.95);
+  }
+
+  function sfStepShrimp(s, dt, cxp, cyp, threatOn) {
+    let warm = 0;                                     // pick up a nearby vent's glow
+    for (const v of ventList) {
+      if (v.open <= 0.05) continue;
+      const g = sfVentGeo(v), vx = g.x + g.baseW * v.lean;
+      warm = Math.max(warm, v.open * sfClamp(1 - Math.abs(s.x - vx) / (g.baseW * 2.4), 0, 1));
+    }
+    s.warm += (warm - s.warm) * Math.min(1, dt * 4);
+
+    if (s.mode !== 'dart' && threatOn && Math.hypot(cxp - s.x, cyp - sfFrontY(s.x)) < s.len * 3.4 + 40) {
+      s.mode = 'dart';
+      s.dir = (cxp >= s.x) ? 1 : -1;                  // face the threat...
+      s.vx = -s.dir * rnd(150, 210);                  // ...and shoot backward, away from it
+      s.dartT = rnd(0.45, 0.7);
+    }
+
+    switch (s.mode) {
+      case 'forage':
+        s.vx *= Math.max(0, 1 - dt * 6);
+        s.dip += (1 - s.dip) * Math.min(1, dt * 3);   // head dips to pick at the sediment
+        s.flex += (0.16 - s.flex) * Math.min(1, dt * 3);
+        s.t -= dt;
+        if (s.t <= 0) { sfShrimpPickTarget(s); s.mode = 'walk'; }
+        break;
+      case 'walk': {
+        const dx = s.targetX - s.x;
+        s.vx += (sfClamp(dx, -1, 1) * s.spd - s.vx) * Math.min(1, dt * 4);
+        s.dir = dx >= 0 ? 1 : -1;
+        s.dip += (0 - s.dip) * Math.min(1, dt * 4);
+        s.flex += (0.26 - s.flex) * Math.min(1, dt * 3);
+        if (Math.abs(dx) < 5) { s.mode = 'forage'; s.t = rnd(0.9, 2.8); }
+        break;
+      }
+      case 'dart':
+        s.vx *= Math.max(0, 1 - dt * 3.2);
+        s.flex += (0.85 - s.flex) * Math.min(1, dt * 8);
+        s.dartT -= dt;
+        if (s.dartT <= 0 && Math.abs(s.vx) < 18) {
+          s.mode = 'walk'; s.dip = 0;
+          s.targetX = sfClamp(s.x - s.dir * rnd(60, 150), W * 0.05, W * 0.95);  // forage on, away from the threat
+        }
+        break;
+    }
+
+    s.x += s.vx * dt;
+    if (s.x < W * 0.04) { s.x = W * 0.04; s.vx = Math.abs(s.vx); }
+    if (s.x > W * 0.96) { s.x = W * 0.96; s.vx = -Math.abs(s.vx); }
+
+    s.walkAmt = Math.min(1, Math.abs(s.vx) / 26);
+    s.legPh += (0.6 + s.walkAmt * 9) * dt;            // legs ripple faster the quicker it scuttles
+    s.antPh += (1.4 + (s.mode === 'forage' ? 1.2 : 0)) * dt;
+  }
+
+  function sfDrawShrimp(s) {
+    const a = sfTrA * s.dim; if (a <= 0.01) return;
+    const baseX = s.x, baseY = sfFrontY(baseX), L = s.len, warm = s.warm;
+    const slope = Math.atan2(sfFrontY(baseX + 6) - sfFrontY(baseX - 6), 12);
+    const clear = L * (0.13 + s.dip * 0.05), lift = L * (0.16 + s.flex * 0.34);
+    const gold = s.gold;   // a rare gold one reads solid & glowing, not a translucent ghost
+    const body = gold ? 'rgba(255,206,84,' : `rgba(${Math.round(212 + warm * 34)},${Math.round(196 - warm * 66)},${Math.round(196 - warm * 92)},`;
+
+    // spine sample, tail (u=0) → head (u=1): abdomen curls up at the back, a fat
+    // cephalothorax bulge up front, head dips when foraging
+    const seg = 12, X = [], Y = [], R = [];
+    for (let i = 0; i <= seg; i++) {
+      const u = i / seg;
+      X.push(L * (-0.46 + 0.97 * u));
+      Y.push(-clear - lift * Math.pow(1 - u, 1.7) + s.dip * L * 0.12 * u);
+      R.push(L * (0.035 + 0.17 * Math.exp(-((u - 0.68) * (u - 0.68)) / 0.08)));
+    }
+    const nrm = (i) => {                               // unit normal at spine point i (for offset edges)
+      const tx = X[Math.min(seg, i + 1)] - X[Math.max(0, i - 1)], ty = Y[Math.min(seg, i + 1)] - Y[Math.max(0, i - 1)];
+      const l = Math.hypot(tx, ty) || 1; return [-ty / l, tx / l];
+    };
+
+    ctx.save();
+    ctx.translate(baseX, baseY); ctx.rotate(slope); ctx.scale(s.dir, 1);
+    ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+
+    // contact shadow grounding it on the silt
+    ctx.globalAlpha = a * 0.34; ctx.fillStyle = 'rgba(2,5,9,1)';
+    ctx.beginPath(); ctx.ellipse(L * 0.02, 0, L * 0.4, L * 0.09, 0, 0, 6.2832); ctx.fill();
+    ctx.globalAlpha = a;
+
+    const headX = X[seg], headY = Y[seg];
+    // long antennae sweeping forward, plus shorter antennules
+    ctx.strokeStyle = body + '0.42)'; ctx.lineWidth = Math.max(0.7, L * 0.022);
+    for (let k = 0; k < 2; k++) {
+      const wv = Math.sin(s.antPh + k * 1.3) * L * 0.16;
+      ctx.beginPath(); ctx.moveTo(headX, headY - L * 0.04);
+      ctx.quadraticCurveTo(headX + L * 0.5, headY - L * 0.28 + wv, headX + L * (1.0 + k * 0.18), headY - L * 0.18 + wv + k * L * 0.1); ctx.stroke();
+    }
+    ctx.lineWidth = Math.max(0.6, L * 0.016);
+    for (let k = 0; k < 2; k++) {
+      const wv = Math.sin(s.antPh * 1.4 + k * 2.0) * L * 0.1;
+      ctx.beginPath(); ctx.moveTo(headX, headY);
+      ctx.quadraticCurveTo(headX + L * 0.3, headY + L * 0.08 + wv, headX + L * 0.62, headY + L * 0.16 + wv); ctx.stroke();
+    }
+
+    // walking legs stepping under the cephalothorax (still when paused; ripple when scuttling)
+    ctx.strokeStyle = body + '0.5)'; ctx.lineWidth = Math.max(0.7, L * 0.02);
+    for (let i = 0; i < 4; i++) {
+      const sp = Math.round((0.5 + i * 0.1) * seg);
+      const hipX = X[sp], hipY = Y[sp] + R[sp] * 0.7;
+      const swing = Math.sin(s.legPh + i * 1.7) * s.walkAmt;
+      const footX = hipX + L * 0.1 + swing * L * 0.14;
+      const footY = -Math.max(0, Math.sin(s.legPh + i * 1.7)) * s.walkAmt * L * 0.12;   // 0 = sediment
+      ctx.beginPath(); ctx.moveTo(hipX, hipY); ctx.lineTo((hipX + footX) / 2 + L * 0.04, (hipY + footY) / 2); ctx.lineTo(footX, footY); ctx.stroke();
+    }
+
+    // translucent body
+    ctx.beginPath();
+    for (let i = 0; i <= seg; i++) { const [nx, ny] = nrm(i); const px = X[i] + nx * R[i], py = Y[i] + ny * R[i]; i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py); }
+    for (let i = seg; i >= 0; i--) { const [nx, ny] = nrm(i); ctx.lineTo(X[i] - nx * R[i], Y[i] - ny * R[i]); }
+    ctx.closePath();
+    const grd = ctx.createLinearGradient(0, -L * 0.5, 0, 0);
+    grd.addColorStop(0, body + (gold ? '0.96)' : '0.6)')); grd.addColorStop(1, body + (gold ? '0.82)' : '0.42)'));
+    if (gold) { ctx.shadowColor = 'rgba(255,200,70,0.9)'; ctx.shadowBlur = L * 0.85; }   // the lucky glow, like the gold fish
+    ctx.fillStyle = grd; ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.strokeStyle = gold ? 'rgba(168,106,24,0.6)' : `rgba(${Math.round(150 + warm * 80)},${Math.round(120 - warm * 30)},${Math.round(126 - warm * 40)},0.5)`;
+    ctx.lineWidth = Math.max(0.6, L * 0.018); ctx.stroke();
+
+    // abdomen segment creases
+    ctx.strokeStyle = gold ? 'rgba(150,96,20,0.45)' : 'rgba(120,96,104,0.35)'; ctx.lineWidth = Math.max(0.5, L * 0.015);
+    for (let i = 1; i <= 5; i++) {
+      const sp = i * 2; if (sp > seg) break; const [nx, ny] = nrm(sp);
+      ctx.beginPath(); ctx.moveTo(X[sp] + nx * R[sp] * 0.85, Y[sp] + ny * R[sp] * 0.85); ctx.lineTo(X[sp] - nx * R[sp] * 0.85, Y[sp] - ny * R[sp] * 0.85); ctx.stroke();
+    }
+
+    // tail fan (uropods) — spreads with the abdomen flick
+    const backAng = Math.atan2(-(Y[1] - Y[0]), -(X[1] - X[0])), fanN = 5, spread = 0.5 + s.flex * 0.5;
+    ctx.strokeStyle = body + '0.5)'; ctx.lineWidth = Math.max(0.7, L * 0.02);
+    for (let i = 0; i < fanN; i++) {
+      const fa = backAng + (i / (fanN - 1) - 0.5) * spread;
+      ctx.beginPath(); ctx.moveTo(X[0], Y[0]); ctx.lineTo(X[0] + Math.cos(fa) * L * 0.26, Y[0] + Math.sin(fa) * L * 0.26); ctx.stroke();
+    }
+
+    // rostrum + eye
+    ctx.strokeStyle = body + '0.55)'; ctx.lineWidth = Math.max(0.7, L * 0.02);
+    ctx.beginPath(); ctx.moveTo(headX, headY - L * 0.02); ctx.lineTo(headX + L * 0.2, headY - L * 0.12); ctx.stroke();
+    const e = Math.round(0.84 * seg);
+    ctx.fillStyle = 'rgba(18,14,20,0.9)'; ctx.beginPath(); ctx.arc(X[e] + L * 0.03, Y[e] - R[e] * 0.4, Math.max(1, L * 0.05), 0, 6.2832); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.5)'; ctx.beginPath(); ctx.arc(X[e] + L * 0.045, Y[e] - R[e] * 0.5, Math.max(0.5, L * 0.02), 0, 6.2832); ctx.fill();
+
+    ctx.restore(); ctx.globalAlpha = 1;
+  }
+
   /* the whole seafloor pass — gated on progress so it costs nothing until you
      near the bottom, then fades in and runs its own real-time (seconds) clock */
   function sfRender(p, t) {
@@ -564,8 +781,10 @@
     ctx.globalAlpha = 1;
 
     if (reduce) { for (const v of ventList) v.open = 0.42; }
-    else for (const v of ventList) { sfStepVent(v, dt); sfEmit(v, dt); sfUpdateParticles(v, dt); }
+    else { for (const v of ventList) { sfStepVent(v, dt); sfEmit(v, dt); sfUpdateParticles(v, dt); }
+      for (const s of sfShrimp) sfStepShrimp(s, dt, mx * W, my * H, pointerHere); }
     for (const v of ventList) { sfDrawChimney(v); sfDrawWorms(v); }
+    for (const s of sfShrimp) sfDrawShrimp(s);        // foreground foragers, over the vent base but under its glow
     for (const v of ventList) { sfDrawGlow(v); sfDrawParticles(v, cur); }
     ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
   }
@@ -615,6 +834,34 @@
     if (p < 0.605) return 0;                         // beach tableau owns the night
     if (p < 0.66) return (p - 0.605) / 0.055;        // hand off from the surface flood
     return 1;                                        // the night sea, on down
+  }
+
+  /* ---------- stratosphere sky-body envelope ----------
+     How strongly the high sky shows its sun (day) / moon (night). The stratosphere
+     obeys the same device-clock day/night rules as the biosphere, and the lit body
+     is visible from up here just as it is from the beach — so it must never blink out
+     as you fall from the sky to the shore. This fades the body IN as you drop out of
+     the thermosphere, HOLDS it across the stratosphere, then fades it OUT exactly as
+     the biosphere's own sun/moon fades in at the treeline (landA from ~0.41), so the
+     two hand off at the same screen position (sunPos/moonPos) with no gap or jump. */
+  function stratoSkyA(p) {
+    if (p < 0.23 || p > 0.50) return 0;
+    if (p < 0.30) return (p - 0.23) / 0.07;          // fade in through the high sky
+    if (p > 0.47) return (0.50 - p) / 0.03;          // dissolve once the beach body is fully up
+    return 1;                                        // hold full across the stratosphere & handoff
+  }
+
+  /* ---------- daytime sky-cooling envelope ----------
+     Where (by progress) the gradient's warm "dawn horizon" band is cooled toward a
+     clear daytime sky. Covers the high-sky→shore approach (p≈0.30–0.47) where GRAD is
+     warmest; 0 above (deep-sky palette is already cool/dark) and below (the beach owns
+     its own coastal sky). Scaled at the call site by daylight × (1 − golden hour), so
+     it only neutralises the warmth at midday and leaves it at sunrise/sunset. */
+  function dayCoolEnv(p) {
+    if (p < 0.30 || p > 0.47) return 0;
+    if (p < 0.37) return (p - 0.30) / 0.07;          // ease in as the warm band begins
+    if (p > 0.44) return (0.47 - p) / 0.03;          // ease out into the beach's own coastal sky
+    return 1;
   }
 
   /* ---------- silhouettes ---------- */
@@ -985,6 +1232,20 @@
     ctx.restore();
   }
 
+  /* the sun — a warm disc with a soft halo. Shared by the high-sky (stratosphere)
+     and the beach so the body looks identical and hands off seamlessly between them. */
+  function drawSun(cx, cy, r, a) {
+    if (a <= 0.01) return;
+    const halo = ctx.createRadialGradient(cx, cy, r * 0.4, cx, cy, r * 4.4);
+    halo.addColorStop(0, `rgba(255,228,172,${0.5 * a})`);
+    halo.addColorStop(0.5, `rgba(255,198,120,${0.15 * a})`);
+    halo.addColorStop(1, 'rgba(255,198,120,0)');
+    ctx.fillStyle = halo; ctx.beginPath(); ctx.arc(cx, cy, r * 4.4, 0, 6.2832); ctx.fill();
+    const body = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
+    body.addColorStop(0, `rgba(255,248,228,${0.96 * a})`); body.addColorStop(1, `rgba(255,212,150,${0.9 * a})`);
+    ctx.fillStyle = body; ctx.beginPath(); ctx.arc(cx, cy, r, 0, 6.2832); ctx.fill();
+  }
+
   /* ---------- emoji objects you pass ---------- */
   const SPRITES = [
     { e: '🪐', p: 0.045, x: 72, s: 96, w: 0.10, m: 'drift' },
@@ -996,21 +1257,28 @@
     { e: '🛰️', p: 0.18, x: 47, s: 46, w: 0.11, m: 'cross', phase: 'arc' },
     { e: '☄️', p: 0.18, x: 53, s: 40, w: 0.11, m: 'streak', phase: 'arc', egg: 'comet' }, // catch it → it bursts (see catchComet)
     { e: '✈️', p: 0.345, x: 50, s: 58, w: 0.085, m: 'cross', face: 'right', rot0: 0 },
-    { e: '🦅', p: 0.40, x: 70, s: 38, w: 0.065, m: 'glide' },
+    // a raptor soaring over the bay — kept down in the BIOSPHERE (sea level) rather
+    // than alone in the high sky, so birds read as part of the coast, not as traffic
+    // you pass at altitude. yb lifts it into the sky above the headland (see updateSprites).
+    { e: '🦅', p: 0.52, x: 70, s: 38, w: 0.07, m: 'glide', yb: -0.22 },
     /* the campsite (tent + stone fireplace) is drawn into the scenery on the
        ground (see drawCamp); the balloon sprite was removed */
     /* small fish are drawn as a lively, continuously-swimming canvas school
        (see the fish system below) rather than passing emoji/SVG sprites — and the
        species change with depth, from reef fish to deep-sea dwellers */
-    /* the sea turtle ambles onto the beach, plods along the sand, then slips into
-       the rising tide and swims off as we sink below the surface. Its whole
-       beach→shallows journey (position, gait, the land→water handover) is driven by
-       updateTurtle, so p/w here are only a nominal span — the real range is in there */
-    { e: '🐢', p: 0.55, x: 24, s: 60, w: 0.3, m: 'turtle' },
-    /* a rare golden seahorse hovering in the kelpy shallows — `rare` is its odds of
-       turning up at all on a given visit (rolled in buildSprites), so most descents
-       pass the spot empty and the ones that don't feel like a small lucky find */
-    { e: 'seahorse', p: 0.79, x: 80, s: 48, w: 0.075, glow: 'warm', m: 'hover', rare: 0.2, egg: 'seahorse' }, // a rare catch (see catchEgg)
+    /* the tortoise is NOT a passing sprite: it's painted straight into the beach
+       tableau (between the camp and the foreground conifer, so the tree hides where
+       it comes from) and then swims off through the open water — see stepTortoise /
+       drawTortoise below, driven entirely by depth. */
+    /* seahorses drifting through the kelpy shallows. The everyday one (natural
+       terracotta) crosses on most descents so the shallows are never empty; the
+       golden one is `rare` — its odds of turning up at all on a given visit (rolled
+       in buildSprites) — so a gold sighting stays a small lucky find. Both creep
+       slowly from one side to the other on the `seahorse` gait (see updateSprites),
+       drifting clear off the edge rather than hovering on one spot; `dir` sets which
+       way each one heads so they don't move in lockstep. */
+    { e: 'seahorse-natural', p: 0.78, x: 30, s: 44, w: 0.08, m: 'seahorse', dir: 1 },
+    { e: 'seahorse', p: 0.80, x: 76, s: 48, w: 0.075, glow: 'warm', m: 'seahorse', dir: -1, rare: 0.2, egg: 'seahorse' }, // a rare catch (see catchEgg)
     { e: '🐋', p: 0.815, x: 54, s: 132, w: 0.15, glow: 'cool', m: 'swim' },
     { e: '🦑', p: 0.875, x: 64, s: 54, w: 0.09, glow: 'cool', m: 'swim' },
     { e: '🪼', p: 0.915, x: 38, s: 72, w: 0.10, glow: 'cool', m: 'pulse' },
@@ -1115,54 +1383,330 @@
     if (!best) return false;
     const by = best.y * H + Math.sin(best.bob) * best.bobA * (1 - 0.8 * best.hold);
     burstAt(best.x * W, by, true);                           // warm/gold burst, like the seahorse
+    const caughtKind = best.kind;                            // record the species before it sheds its gold
     best.gold = false; best.col = speciesCol(best.kind);     // the gold's been caught — it swims on as an ordinary fish
     best.fear = Math.max(best.fear, 0.9);                    // and bolts, the way a grabbed-at fish would
-    window.dispatchEvent(new CustomEvent('easteregg', { detail: { id: 'goldfish' } }));
+    // each gold species is its own find — fire goldfish-<kind> (reef/silver/lantern/
+    // viper/angler), matching the eggs in easter-eggs.js. An unknown kind is a no-op.
+    window.dispatchEvent(new CustomEvent('easteregg', { detail: { id: 'goldfish-' + caughtKind } }));
     return true;
   }
-  /* ---------- the sea turtle: a beach walk that becomes a swim ----------
-     It fades in on the sand, plods along the shore (a lurching, low gait) until the
-     flooding tide reaches it (~p 0.595), then lifts off the sand into the water
-     column and glides away with a smooth swimming sway as we keep sinking past it.
-     Drives the element's transform itself (own opacity, position, gait), so it
-     ignores the generic band model. py keeps it parallaxing with the beach scene. */
-  function updateTurtle(el, p, tt, py, ph) {
-    const IN0 = 0.485, IN1 = 0.515, OUT0 = 0.80, OUT1 = 0.835;
-    if (p < IN0 || p > OUT1) { el.style.opacity = '0'; return; }
-    let op = 1;
-    if (p < IN1) op = (p - IN0) / (IN1 - IN0);            // wades into view on the sand
-    else if (p > OUT0) op = (OUT1 - p) / (OUT1 - OUT0);   // fades out into the deep
-    op *= (preview ? 0.9 : 1);
+  /* ---------- the tortoise: a shy beach-walker that takes to the sea ----------
+     A side-view tortoise painted straight INTO the beach tableau. Because it's drawn
+     between the camp and the left foreground conifer, the tree genuinely hides where
+     it comes from: it pads out from behind the trunk, ambles into the clearing and
+     lifts its head to LOOK AT YOU while you linger — then, as you scroll on and the
+     tide floods in, it slips under with a little fade and swims off toward the corner
+     after a fish, scattering the shoal as it goes. The whole journey is a pure
+     function of depth (tortoisePath), so scrolling back UP runs it in reverse: it
+     turns, swims back up and walks home behind the tree. It also WATCHES you: while
+     it pauses to look, its head tracks the cursor (the clever, nosy tortoise). The
+     rarest find on the whole page is the GOLDEN tortoise — it only ever turns up on
+     OCTOBER 30 (device-local date), and even then only now and then; catch it and
+     it's an easter egg (tortGold → catchTortoise). Any other day it's an ordinary one. */
+  const _tdNow = new Date();
+  const tortGoldDay = _tdNow.getMonth() === 9 && _tdNow.getDate() === 30;   // October 30 only (month is 0-indexed)
+  let tortGold = tortGoldDay && Math.random() < 0.5;     // and only sometimes, even then — the page's rarest creature
+  let tortCaught = !!(window.EasterEggs && window.EasterEggs.has('golden-tortoise'));
+  let tortFaceV = 1, tortWalk = 0, tortPX = null, tortPY = null;   // eased heading (±1), leg-cycle, last position
+  // free-will swim state: a simulated position that, in the water, steers after a
+  // quarry fish under a spring that keeps it loosely tethered to the scroll anchor
+  let tortSimX = null, tortSimY = null, tortVX = 0, tortVY = 0, tortQuarry = null, tortLunge = 0, tortLungeCd = 0;
+  let tortWanderX = null, tortWanderY = null, tortWanderT = 0;   // a slow roaming waypoint for empty water, when no fish are about
+  let tortTuckHold = 0;                                          // frames left holding the shell-tuck after a poke (see pokeTortoise)
+  const tort = { x: 0, y: 0, scale: 14, swim: 0, look: 0, pitch: 0, aLand: 0, aWater: 0, aimX: 0, aimY: 0, tuck: 0 };
+  const tortHit = { x: 0, y: 0, r: 0, alpha: 0 };         // live screen geometry for the gold catch
 
-    // land(0) → water(1): the tide reaches it ~0.595 and it's fully swimming by ~0.66
-    const SAND = 0.595, SWUM = 0.66;
-    let w = (p - SAND) / (SWUM - SAND); w = w < 0 ? 0 : (w > 1 ? 1 : w);
-    const ws = w * w * (3 - 2 * w);                       // smoothstep
+  /* ---------- the drowned campfire: a hidden relight ----------
+     As the tide floods in it reaches the fire and DOUSES it in a hiss of steam.
+     Once out it STAYS out — it won't relight on its own when you scroll back up
+     and the water recedes (a doused fire doesn't), it only leaves a faint wisp
+     of steam off the wet ash. Tap the cold pit while it's clear of the water and
+     it catches again in a shower of sparks — a hidden find. `fireDoused` latches
+     on the dousing; fireHit is the live tap target. */
+  let fireDoused = false;
+  const fireHit = { x: 0, y: 0, r: 0, alpha: 0 };
+  // douse it: latch it out and (motion allowed) puff a quick hiss of steam where
+  // the water meets the embers — reuses the campfire smoke system, flagged `steam`
+  function douseFire() {
+    if (fireDoused) return;
+    fireDoused = true;
+    if (reduce) return;
+    for (let i = 0; i < 9; i++) smoke.push({ life: rnd(0, 0.22), ox: rnd(-13, 13), sw: Math.random() * 6.2832, vr: rnd(0.004, 0.0075), steam: true });
+  }
+  // tap the cold pit to relight it — only when it's doused and clear of the water
+  function relightFire(cx, cy) {
+    if (!fireDoused || fireHit.alpha < 0.5) return false;
+    if (Math.hypot(cx - fireHit.x, cy - fireHit.y) > fireHit.r + 26) return false;
+    fireDoused = false;
+    burstAt(fireHit.x, fireHit.y, true);                 // a warm shower of sparks as it catches
+    window.dispatchEvent(new CustomEvent('easteregg', { detail: { id: 'relit-campfire' } }));
+    return true;
+  }
+  const sstep = (e0, e1, x) => { let u = (x - e0) / (e1 - e0); u = u < 0 ? 0 : u > 1 ? 1 : u; return u * u * (3 - 2 * u); };
 
-    // vertical: walks the shoreline (~0.80H), lifts into the water column (~0.45H) as
-    // it swims off, then drifts gently down as we descend deeper past it
-    const yLand = 0.30 * H, yWater = -0.05 * H;
-    let yBase = yLand + (yWater - yLand) * ws + Math.max(0, p - SWUM) * 1.1 * H + py * 0.7;
+  // the whole journey as a pure function of depth: screen position (W/H fractions),
+  // size, how much it has taken to the water (0 walking → 1 swimming) and whether
+  // it's looking up at you. Keyframed waypoints, smoothstepped between, so the land
+  // and water draws share ONE position and hand off seamlessly across the tide.
+  function tortoisePath(p) {
+    const KX = [[0.495, 0.05], [0.535, 0.235], [0.565, 0.255], [0.605, 0.40], [0.66, 0.57], [0.74, 0.77], [0.805, 0.95]];
+    const KY = [[0.495, 0.80], [0.535, 0.805], [0.565, 0.815], [0.605, 0.745], [0.66, 0.66], [0.74, 0.80], [0.805, 0.93]];
+    const at = (K) => {
+      if (p <= K[0][0]) return K[0][1];
+      for (let i = 1; i < K.length; i++) if (p <= K[i][0]) return K[i - 1][1] + (K[i][1] - K[i - 1][1]) * sstep(K[i - 1][0], K[i][0], p);
+      return K[K.length - 1][1];
+    };
+    const swim = sstep(0.60, 0.66, p);                    // the tide reaches it ~0.60, fully swimming ~0.66
+    const grow = sstep(0.495, 0.55, p);                   // grows a touch walking out of the tree's shadow
+    const scale = Math.max(7, Math.min(W, H) * 0.023) * (0.78 + 0.22 * grow);  // small — true to size, well under the tent
+    let look = Math.min(sstep(0.52, 0.532, p), 1 - sstep(0.563, 0.578, p));  // lifts its head while it pauses
+    look *= (1 - swim);
+    return { x: at(KX), y: at(KY), scale, swim, look };
+  }
 
-    // horizontal: a slow creep along the sand toward the water, then a swimming sway
-    const creep = p < SAND ? (p - IN0) / (SAND - IN0) : 1;
-    let xBase = (creep < 0 ? 0 : creep) * W * 0.16;
-
-    // it heads rightward the whole way (up the sand, then off into open water), so it
-    // simply faces right throughout — the SVG faces left by default, hence scale -1
-    let dx = 0, dy = 0, rot = 0;
-    if (!reduce) {
-      // gait: a plodding lurch on land easing into a smooth glide in the water
-      const lurchB = Math.sin(tt * 2.4) * 5, lurchR = Math.sin(tt * 1.2 + 0.5) * 4;
-      const glideB = Math.sin(tt * 0.9 + ph) * 10, glideR = Math.sin(tt * 0.8 + ph) * 5;
-      dy = lurchB + (glideB - lurchB) * ws;
-      rot = lurchR + (glideR - lurchR) * ws;
-      const sway = Math.sin(tt * 0.6 + ph) * W * 0.05, shuffle = Math.sin(tt * 2.4) * 4;
-      dx = shuffle + (sway - shuffle) * ws;
+  // the nearest fish the tortoise can SEE — within reach AND in front of it (inside a
+  // ~80° forward cone); it has a blind rear, so it never wheels around for a fish behind
+  // it. faceSign is its heading: +1 when it's looking right, -1 when looking left.
+  function tortPickQuarry(cx, cy, faceSign) {
+    let best = null, bestD = Infinity;
+    for (const f of fishes) {
+      if (f.zoneFade < 0.4) continue;                     // only a fish that's actually visible
+      const ddx = f.x * W - cx, ddy = f.y * H - cy, d = Math.hypot(ddx, ddy) || 1;
+      if (d > Math.min(W, H) * 0.55) continue;            // within reach
+      if ((ddx * faceSign) / d < 0.17) continue;          // and ahead of it (≈80° forward cone) — not behind or abreast
+      if (d < bestD) { best = f; bestD = d; }
     }
+    return best;
+  }
 
-    el.style.opacity = op.toFixed(3);
-    el.style.transform = `translate(-50%,-50%) translate(${(xBase + dx).toFixed(1)}px, ${(yBase + dy).toFixed(1)}px) scale(-1, 1) rotate(${rot.toFixed(2)}deg)`;
+  // the nearest visible fish in ANY direction — used only when nothing is in front, so
+  // the tortoise ambles over and turns to FACE the shoal (it doesn't chase from here;
+  // once the fish is in its forward cone, tortPickQuarry locks on and the hunt begins).
+  function tortNearestAny(cx, cy) {
+    let best = null, bestD = Infinity;
+    for (const f of fishes) {
+      if (f.zoneFade < 0.4) continue;
+      const d = Math.hypot(f.x * W - cx, f.y * H - cy);
+      if (d < bestD && d < Math.min(W, H) * 0.7) { best = f; bestD = d; }
+    }
+    return best;
+  }
+
+  // advance the tortoise one frame: SCRIPTED ashore (so the emerge → look → walk-home
+  // beats stay tight to the scroll), FREE-WILLED in the water (it picks a fish and
+  // chases it, on a spring that keeps it loosely tethered to the scroll anchor so it
+  // can't wander off and still swims home when you scroll up). Heading, leg-cycle and
+  // dive-pitch come from its ACTUAL motion; plus the fade envelopes and turtleThreat.
+  function stepTortoise(p, dt, py) {
+    const c = tortoisePath(p);
+    tort.scale = c.scale; tort.swim = c.swim; tort.look = c.look;
+    // shell-tuck: a poke (pokeTortoise) sets tortTuckHold; head, limbs and tail snap IN
+    // quickly and then ease cautiously back OUT once the hold runs down. tg ≈ 0 while
+    // tucked so a tucked tortoise coasts to a near-stop instead of gliding on.
+    tortTuckHold = Math.max(0, tortTuckHold - dt);
+    const tuckTarget = tortTuckHold > 0 ? 1 : 0;
+    tort.tuck += (tuckTarget - tort.tuck) * Math.min(1, (tuckTarget > tort.tuck ? 0.3 : 0.05) * dt);
+    const tg = 1 - 0.92 * tort.tuck;
+    const pathX = c.x * W, pathY = c.y * H;
+    if (tortSimX == null) { tortSimX = pathX; tortSimY = pathY; }
+    if (c.swim < 0.05) {
+      tortSimX = pathX; tortSimY = pathY; tortVX = 0; tortVY = 0; tortQuarry = null; tortWanderX = null;   // ashore: follow the scripted walk exactly
+    } else {
+      // LOCK ON and follow ONE fish it can SEE AHEAD: it keeps the same quarry — it does
+      // NOT switch to a nearer one partway — until that fish DISAPPEARS: it fades out of
+      // its depth band (zoneFade), swims off the screen edge (x past the rim), or slips
+      // clearly BEHIND the tortoise (out of its forward sight). Only then does it turn to
+      // the nearest fish it can see ahead. A committed, forward-looking pursuit.
+      const faceSign = tortFaceV >= 0 ? 1 : -1;
+      const q = tortQuarry;
+      let gone = !q || fishes.indexOf(q) === -1 || q.zoneFade < 0.2 || q.x < 0.0 || q.x > 1.0;
+      if (!gone) { const bx = q.x * W - tortSimX, bd = Math.hypot(bx, q.y * H - tortSimY) || 1; if ((bx * faceSign) / bd < -0.34) gone = true; } // lost once it's well behind (~110°)
+      if (gone) { tortQuarry = tortPickQuarry(tortSimX, tortSimY, faceSign); tortLunge = 0; tortLungeCd = 30; }
+
+      // THE LUNGE-AND-MISS: as it draws near it LUNGES (a burst of speed + pull) to snap
+      // at the fish — but at point-blank range the fish bolts on its C-start escape, and
+      // the tortoise must then RECOVER (a cooldown beat) before it can lunge again, so the
+      // prey's head start always carries it just out of reach: forever almost-caught.
+      const qx = tortQuarry ? tortQuarry.x * W : pathX, qy = tortQuarry ? tortQuarry.y * H : pathY;
+      const gap = tortQuarry ? Math.hypot(qx - tortSimX, qy - tortSimY) : Infinity;
+      tortLungeCd -= dt;
+      if (tortQuarry && gap < Math.min(W, H) * 0.16 && tortLunge <= 0 && tortLungeCd <= 0) { tortLunge = 1; tortLungeCd = 80 + Math.random() * 50; }
+      tortLunge = Math.max(0, tortLunge - dt / 22);        // a lunge lasts ~0.4s, then it has to recover
+      if (tortQuarry && gap < Math.min(W, H) * 0.06) { tortQuarry.fear = 1; tortQuarry.threatX = tortSimX / W; tortQuarry.threatY = tortSimY / H; } // point-blank → it bolts away: the "just missed"
+
+      // while it's locked on a fish the scroll-tether goes nearly slack so it can trail
+      // the fish clear across the water; with no quarry the tether firms up and reels it
+      // back toward the scroll anchor. Either way the (1-swim) term wins near the surface,
+      // so scrolling up still hands cleanly back to the scripted walk home.
+      const mosey = tortQuarry ? null : tortNearestAny(tortSimX, tortSimY);   // nothing ahead → drift toward the shoal to turn and face it
+      // EMPTY WATER: no quarry AND no shoal in reach (it's slipped under ahead of the school,
+      // or every fish has faded out of its depth band). Rather than hang limply on the home
+      // spring looking lost, it POTTERS — ambling between slow roaming waypoints around the
+      // scroll anchor and turning to face each one, like a curious tortoise nosing about.
+      const wander = !tortQuarry && !mosey;
+      if (wander) {
+        tortWanderT -= dt;
+        const reached = tortWanderX != null && Math.hypot(tortWanderX - tortSimX, tortWanderY - tortSimY) < Math.min(W, H) * 0.05;
+        if (tortWanderX == null || tortWanderT <= 0 || reached) {     // pick a fresh spot to amble toward
+          const r = Math.min(W, H) * (0.12 + Math.random() * 0.16), ang = Math.random() * 6.2832;
+          tortWanderX = Math.max(W * 0.1, Math.min(W * 0.9, pathX + Math.cos(ang) * r));
+          tortWanderY = Math.max(H * 0.2, Math.min(H * 0.92, pathY + Math.sin(ang) * r * 0.6));   // a flatter roam (the sea's wider than it is tall here)
+          tortWanderT = 90 + Math.random() * 120;                     // hold each leg ~1.5–3.5s before re-picking
+        }
+      } else tortWanderX = null;                                      // drop the waypoint the moment there's a fish to mind
+      const kHome = (tortQuarry ? 0.0006 : (mosey ? 0.001 : 0.0012)) + 0.1 * (1 - c.swim);  // wander on a loose tether so it can actually roam
+      let ax = (pathX - tortSimX) * kHome, ay = (pathY - tortSimY) * kHome;
+      if (tortQuarry) { const kc = (0.0022 + 0.007 * tortLunge) * c.swim; ax += (qx - tortSimX) * kc; ay += (qy - tortSimY) * kc; }  // chase pull surges during a lunge
+      else if (mosey) { const kc = 0.0018 * c.swim; ax += (mosey.x * W - tortSimX) * kc; ay += (mosey.y * H - tortSimY) * kc; }       // amble toward the shoal (turns to face them, then locks on)
+      else { const kc = 0.0016 * c.swim; ax += (tortWanderX - tortSimX) * kc; ay += (tortWanderY - tortSimY) * kc; }                  // potter toward the roaming waypoint
+      tortVX = (tortVX + ax * dt) * Math.pow(0.86, dt);   // a damped pursuit (fps-aware)
+      tortVY = (tortVY + ay * dt) * Math.pow(0.86, dt);
+      const spd = Math.hypot(tortVX, tortVY), maxSpd = Math.min(W, H) * (0.0032 + 0.004 * tortLunge);   // calm cruise, a brief surge on a lunge
+      if (spd > maxSpd) { tortVX = tortVX / spd * maxSpd; tortVY = tortVY / spd * maxSpd; }
+      tortSimX += tortVX * dt * tg; tortSimY += tortVY * dt * tg;   // a tucked tortoise coasts to a stop rather than gliding on
+
+      tortSimX = Math.max(W * 0.04, Math.min(W * 0.96, tortSimX));   // stay on screen (the home spring, not a hard leash, keeps it near the anchor)
+      tortSimY = Math.max(H * 0.12, Math.min(H * 0.98, tortSimY));
+    }
+    // motion this frame (excluding mouse parallax); guarded against scroll/resize jumps
+    let dx = 0, dy = 0;
+    if (tortPX != null) { dx = tortSimX - tortPX; dy = tortSimY - tortPY; }
+    if (Math.abs(dx) > W * 0.2) { dx = 0; dy = 0; }
+    tortPX = tortSimX; tortPY = tortSimY;
+    if (Math.abs(dx) > 0.3) { const tgt = dx > 0 ? 1 : -1; tortFaceV += (tgt - tortFaceV) * Math.min(1, 0.16 * dt); } // turn toward travel
+    if (!reduce) tortWalk += dx * 0.05;                   // legs pace with the ground covered (freeze when paused)
+    tort.pitch = Math.max(-0.6, Math.min(0.6, Math.atan2(dy, Math.abs(dx) + 0.001))) * c.swim;  // nose along the dive/chase
+    tort.x = tortSimX; tort.y = tortSimY + py * 0.55;     // parallax with the beach scene
+    // while it pauses to look, its head tracks the cursor (the clever, nosy tortoise);
+    // eases back to neutral the moment it stops looking or the pointer leaves
+    const wantAim = (tort.look > 0.05 && pointerHere) ? 1 : 0;
+    const taX = wantAim * Math.max(-1, Math.min(1, (mx - tort.x / W) * 3.2));
+    const taY = wantAim * Math.max(-1, Math.min(1, (my - tort.y / H) * 3.2));
+    tort.aimX += (taX - tort.aimX) * Math.min(1, 0.12 * dt);
+    tort.aimY += (taY - tort.aimY) * Math.min(1, 0.12 * dt);
+    // the land form dissolves as it submerges; the swimmer fades in from the tide and out at the corner
+    tort.aLand = sstep(0.49, 0.505, p) * (1 - sstep(0.595, 0.625, p));
+    tort.aWater = sstep(0.59, 0.635, p) * (1 - sstep(0.775, 0.81, p));
+    tortHit.alpha = 0;                                    // recomputed by this frame's draws
+    if (tort.aWater > 0.05 && c.swim > 0.2) { turtleThreat.x = tort.x / W; turtleThreat.y = tort.y / H; turtleThreat.power = tort.aWater * c.swim; }
+    else turtleThreat.power = 0;
+  }
+
+  // draw the side-view tortoise at its current pose with opacity `a`. The art faces
+  // RIGHT; the eased heading (tortFaceV) mirrors it. Hands its live screen geometry
+  // to the gold catch hit-test. tt = seconds, for the swimming flipper stroke.
+  function drawTortoise(a, tt) {
+    if (a <= 0.01) return;
+    const s = tort.scale, L = tort.look, sw = tort.swim, land = 1 - sw, gold = tortGold, tk = tort.tuck || 0;  // tk: how far it's withdrawn into its shell
+    const shell = gold ? '#f0b24e' : '#5f7a3e', shade = gold ? '#cf9a3e' : '#46602c';
+    const rim = gold ? '#a86a18' : '#374d22', line = gold ? 'rgba(168,106,24,.55)' : 'rgba(40,55,25,.5)';
+    const skin = gold ? '#ffce54' : '#8a9b63', skinSh = gold ? '#e0992f' : '#6d7e4a', eyeC = '#0a140a';
+    const sx = Math.abs(tortFaceV) < 0.14 ? (tortFaceV < 0 ? -0.14 : 0.14) : tortFaceV;  // never collapse to 0 mid-turn
+    if (a >= tortHit.alpha) { tortHit.x = tort.x; tortHit.y = tort.y; tortHit.r = s * 1.25; tortHit.alpha = a; }
+    ctx.save();
+    ctx.globalAlpha = a;
+    ctx.translate(tort.x, tort.y);
+    ctx.scale(sx, 1);
+    ctx.rotate(tort.pitch);
+    const limb = (ax, ay, ang, len, wid, col) => {       // an angled stubby limb, pivoting at its attach point
+      ctx.save(); ctx.translate(ax, ay); ctx.rotate(ang);
+      ctx.fillStyle = col; ctx.beginPath(); ctx.ellipse(0, len * 0.5, wid * 0.5, len * 0.5, 0, 0, 6.2832); ctx.fill();
+      ctx.restore();
+    };
+    if (land > 0.02) {                                    // soft contact shadow while ashore (grounds it in the clearing)
+      ctx.fillStyle = `rgba(0,0,0,${0.2 * land})`; ctx.beginPath(); ctx.ellipse(0, s * 0.46, s * 0.95, s * 0.15, 0, 0, 6.2832); ctx.fill();
+    }
+    // leg pose: a fore-aft walking swing ashore → a rowing flipper stroke in the water
+    const sw1 = reduce ? 0 : Math.sin(tortWalk), sw2 = reduce ? 0 : Math.sin(tortWalk + Math.PI);
+    const rF = reduce ? -0.1 : Math.sin(tt * 1.9) * 0.8 - 0.15, rB = reduce ? 0.1 : Math.sin(tt * 1.9 + 1.5) * 0.5;
+    const lpull = 1 - 0.78 * tk;                          // limbs draw IN toward the shell as it tucks
+    const len = s * (0.5 + 0.28 * sw) * lpull, wid = s * (0.22 + 0.07 * sw);
+    const angF = (sw1 * 0.5 * land + rF * sw) * (1 - tk), angB = (sw2 * 0.5 * land + rB * sw) * (1 - tk);  // paddling stops while withdrawn
+    limb(s * 0.40, s * 0.06, -angF * 0.7, len * 0.92, wid * 0.9, skinSh);   // far pair, behind the shell
+    limb(-s * 0.6, s * 0.06, -angB * 0.7, len * 0.92, wid * 0.9, skinSh);
+    ctx.fillStyle = skinSh; ctx.beginPath();             // tail — retracts under the shell as it tucks
+    ctx.moveTo(-s * 0.98, 0); ctx.lineTo(s * (-1.22 + 0.26 * tk), s * 0.12); ctx.lineTo(-s * 0.92, s * 0.18); ctx.closePath(); ctx.fill();
+    // ---- carapace ----
+    if (gold) { ctx.shadowColor = 'rgba(255,185,95,.6)'; ctx.shadowBlur = s * 0.7; }
+    ctx.fillStyle = shell; ctx.beginPath();
+    ctx.moveTo(-s, s * 0.16);
+    ctx.quadraticCurveTo(-s * 1.0, -s * 0.66, 0, -s * 0.78);
+    ctx.quadraticCurveTo(s * 1.0, -s * 0.66, s, s * 0.16);
+    ctx.quadraticCurveTo(0, s * 0.34, -s, s * 0.16);
+    ctx.closePath(); ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = shade; ctx.beginPath();              // belly/plastron rim (darker underside)
+    ctx.moveTo(-s, s * 0.16); ctx.quadraticCurveTo(0, s * 0.34, s, s * 0.16); ctx.quadraticCurveTo(0, s * 0.2, -s, s * 0.16); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = rim; ctx.lineWidth = s * 0.05; ctx.lineJoin = 'round';   // shell edge
+    ctx.beginPath(); ctx.moveTo(-s, s * 0.16); ctx.quadraticCurveTo(-s * 1.0, -s * 0.66, 0, -s * 0.78); ctx.quadraticCurveTo(s * 1.0, -s * 0.66, s, s * 0.16); ctx.stroke();
+    ctx.strokeStyle = line; ctx.lineWidth = s * 0.045;   // scute lines
+    ctx.beginPath(); ctx.moveTo(-s * 0.82, -s * 0.18); ctx.quadraticCurveTo(0, -s * 0.56, s * 0.82, -s * 0.18); ctx.stroke();
+    for (const k of [-0.5, -0.16, 0.18, 0.52]) { ctx.beginPath(); ctx.moveTo(k * s, s * 0.12); ctx.quadraticCurveTo(k * s * 0.72, -s * 0.36, k * s * 0.4, -s * 0.68); ctx.stroke(); }
+    limb(s * 0.5, s * 0.16, angF, len, wid, skin);       // near pair, in front of the shell
+    limb(-s * 0.55, s * 0.16, angB, len, wid, skin);
+    // ---- neck + head: morphs from a forward profile to facing you as it looks up — and
+    //      withdraws into the shell when poked (slides back to the front lip, shrinks, fades) ----
+    const sgnx = sx < 0 ? -1 : 1;                         // local +x maps to this screen direction
+    const hax = (tort.aimX || 0) * sgnx * s * 0.14 * L, hay = (tort.aimY || 0) * s * 0.12 * L;  // lean the head toward the cursor while watching
+    let hx = (1.12 - 0.2 * L) * s + hax, hy = (-0.02 + 0.2 * L) * s + hay;
+    let hrx = (0.3 + 0.03 * L) * s, hry = (0.22 + 0.09 * L) * s;
+    hx += (s * 0.7 - hx) * tk; hy += (s * 0.06 - hy) * tk;   // pull the head back to the shell's front lip
+    hrx *= 1 - 0.7 * tk; hry *= 1 - 0.7 * tk;                // and shrink it as it withdraws
+    ctx.globalAlpha = a * (1 - 0.85 * tk);                   // the last of the head disappears inside the shell
+    ctx.strokeStyle = skin; ctx.lineWidth = s * 0.34 * (1 - 0.55 * tk); ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(s * 0.5, s * 0.02); ctx.lineTo(hx, hy); ctx.stroke();
+    ctx.fillStyle = skin; ctx.beginPath(); ctx.ellipse(hx, hy, hrx, hry, 0, 0, 6.2832); ctx.fill();
+    ctx.fillStyle = eyeC; ctx.beginPath(); ctx.arc(hx + s * 0.1 * (1 - tk), hy - s * 0.05, s * 0.06 * (1 - 0.6 * tk), 0, 6.2832); ctx.fill();  // near eye, always
+    if (L > 0.02) {                                       // far eye fades in as it turns to face you
+      const ga = ctx.globalAlpha; ctx.globalAlpha = ga * L;
+      ctx.beginPath(); ctx.arc(hx - s * 0.1 * (1 - tk), hy - s * 0.04, s * 0.06 * (1 - 0.6 * tk), 0, 6.2832); ctx.fill();
+      ctx.globalAlpha = ga;
+    }
+    ctx.restore();
+  }
+
+  // catch the rare golden tortoise: a tap on (or near) it while it's clearly visible
+  // bursts it in warm sparks and registers the find (canvas-drawn, so hit-tested here
+  // like the gold fish rather than wired as a DOM target).
+  function catchTortoise(cx, cy) {
+    if (!tortGold || tortCaught || tortHit.alpha < 0.3) return false;
+    if (Math.hypot(cx - tortHit.x, cy - tortHit.y) > tortHit.r + 26) return false;
+    tortCaught = true;
+    burstAt(tortHit.x, tortHit.y, true);                 // warm/gold burst, like the seahorse
+    window.dispatchEvent(new CustomEvent('easteregg', { detail: { id: 'golden-tortoise' } }));
+    return true;
+  }
+
+  // poke the tortoise: a tap on (or near) any tortoise — ashore or swimming — makes it
+  // startle and pull its head, legs and tail INTO its shell for a beat before easing
+  // back out (drawTortoise reads tort.tuck). The gold catch takes priority on Oct 30.
+  function pokeTortoise(cx, cy) {
+    if (tortHit.alpha < 0.3) return false;               // only when it's clearly drawn this frame
+    if (Math.hypot(cx - tortHit.x, cy - tortHit.y) > tortHit.r + 16) return false;
+    tortTuckHold = 78;                                    // ~1.3s tucked, then it cautiously comes back out
+    return true;
+  }
+
+  /* the golden vent shrimp is catchable too: tap a rare gold one foraging the
+     trench floor and it bursts in warm sparks, then scuttles on having shed its
+     gold — the same lucky grab as the gold fish (~1% per forage, see the roll in
+     sfShrimpPickTarget). Canvas-drawn, so hit-tested here on pointerdown. */
+  function catchShrimp(cx, cy) {
+    if (sfTrA < 0.3 || !sfShrimp.length) return false;   // only once the trench floor is clearly in view
+    let best = null, bestD = Infinity;
+    for (const s of sfShrimp) {
+      if (!s.gold) continue;
+      const sx = s.x, sy = sfFrontY(s.x) - s.len * 0.35; // body rides just above the sediment line
+      const d = Math.hypot(cx - sx, cy - sy);
+      if (d < s.len * 1.7 + 22 && d < bestD) { best = s; bestD = d; }   // generous ring on a small, moving target
+    }
+    if (!best) return false;
+    burstAt(best.x, sfFrontY(best.x) - best.len * 0.35, true);   // warm/gold burst, like the seahorse
+    best.gold = false;                                   // caught — it forages on as an ordinary shrimp
+    best.mode = 'dart'; best.dir = (cx >= best.x) ? 1 : -1; best.vx = -best.dir * rnd(150, 210); best.dartT = rnd(0.45, 0.7);  // and bolts, the way a grabbed-at shrimp would
+    window.dispatchEvent(new CustomEvent('easteregg', { detail: { id: 'golden-shrimp' } }));
+    return true;
   }
 
   function updateSprites(p, t) {
@@ -1172,11 +1716,10 @@
     for (let i = 0; i < SPRITES.length; i++) {
       const sp = SPRITES[i], el = spriteEls[i];
       if (sp._present === false) { el.style.opacity = '0'; continue; } // rare sprite that didn't roll in this load
-      if (sp.m === 'turtle') { updateTurtle(el, p, tt, py, sp._ph || 0); continue; }
       const d = p - sp.p;
       if (Math.abs(d) > sp.w) { el.style.opacity = '0'; if (sp.egg) { el.style.pointerEvents = 'none'; sp._suppress = false; } continue; }
       const k = d / sp.w;                         // -1 (below, approaching) … +1 (above, passed)
-      let yPx = -k * 0.78 * H;                     // descend → object rises up the screen
+      let yPx = -k * 0.78 * H + (sp.yb || 0) * H;  // descend → object rises; yb fixes its resting height in the frame (− = higher)
       let op = (1 - Math.abs(k)) * (preview ? 0.9 : 1);
       let sc = 0.7 + (1 - Math.abs(k)) * 0.5;
       if (sp.ground) {
@@ -1197,15 +1740,22 @@
         case 'swim': { const a = tt * sp._sp + ph; dx = Math.sin(a) * sp._amp; sx = facing(Math.cos(a)); dy = Math.sin(tt * sp._sp * 1.7 + ph) * 12; rot = Math.sin(tt * sp._sp * 2 + ph) * 5; break; }
         case 'cross': { const span = (tt * 0.045 + ph) % 1; dx = (span - 0.5) * W * 1.3; dy = Math.sin(tt * 0.6 + ph) * 9; break; }
         case 'streak': { const span = (tt * 0.09 + ph) % 1; dx = (0.5 - span) * W * 0.9; dy = (span - 0.5) * W * 0.833; lifeOp = Math.max(0, Math.min(1, span / 0.1, (1 - span) / 0.18)); break; }   // dives down-left at ~43\u00b0 to match the \u2604\ufe0f tail; dy scales with W (not H) so the angle stays constant on tall phone viewports instead of going near-vertical
-        case 'hover': {
-          // a hovering seahorse: instead of bobbing on one spot it wanders the spot in
-          // a slow, looping drift (two out-of-step sines → an organic, non-repeating path),
-          // bobs gently, and leans into whichever way it's drifting — the lean follows the
-          // drift's velocity (cos of the same phase), the way a real one tips as its dorsal
-          // fin nudges it along. Amplitudes scale with W so the wander reads the same on phones.
-          dx = Math.sin(tt * 0.23 + ph) * W * 0.05 + Math.sin(tt * 0.41 + ph * 1.7) * W * 0.022;
-          dy = Math.sin(tt * 1.1 + ph) * 9 + Math.cos(tt * 0.19 + ph) * 12;
-          rot = Math.cos(tt * 0.23 + ph) * 7 + Math.sin(tt * 0.9 + ph) * 2;
+        case 'seahorse': {
+          // A seahorse is the slowest fish in the sea: it holds itself upright and
+          // creeps along on a blur-fast dorsal fin (animated in the SVG), steering
+          // with the tiny pectoral fins behind its head and tipping forward into the
+          // direction it's headed. So rather than hovering on one spot it drifts
+          // slowly and deliberately right across the shallows — `dir` is which way —
+          // bobbing as it goes, then fades out at the far edge (lifeOp) so it crosses
+          // and is gone, never parked in the same place. Speeds scale with W so the
+          // unhurried crossing reads the same on a phone as on a wide screen.
+          const dir = sp.dir || 1;
+          const span = (tt * 0.024 + ph) % 1;                 // one slow crossing, ~every 40s
+          dx = (span - 0.5) * dir * W * 1.25;                 // glides clear across and off the edge
+          sx = facing(dir);                                   // faces the way it drifts
+          dy = Math.sin(tt * 0.9 + ph) * 6 + Math.cos(tt * 0.3 + ph) * 6;   // a gentle upright bob
+          rot = Math.sin(tt * 0.5 + ph) * 3 + dir * 3;        // tipped forward into the drift, the way it tilts to steer
+          lifeOp = Math.max(0, Math.min(1, span / 0.14, (1 - span) / 0.14)); // fades in/out at the edges → drifts off, doesn't loop in place
           break;
         }
         case 'pulse': { lifeScale = 1 + Math.sin(tt * 1.7 + ph) * 0.09; dy = Math.sin(tt * 0.5 + ph) * 18; break; }
@@ -1289,11 +1839,11 @@
   }
 
   /* ---------- render ---------- */
-  let mx = 0.5, my = 0.5, clickPulse = 0, lastT = 0, idleT = 0, curious = 0, pointerHere = false;
+  let mx = 0.5, my = 0.5, clickPulse = 0, lastT = 0, idleT = 0, curious = 0, pointerHere = false, schoolForgotten = false;
   window.addEventListener('mousemove', e => { mx = e.clientX / W; my = e.clientY / H; idleT = 0; pointerHere = true; });
   // fish are click-shy: a tap/click scatters the ones nearby (clickPulse fuels the flee burst);
   // with no click they cruise past the cursor — and if it sits still a while, the nosy ones drift over
-  window.addEventListener('pointerdown', e => { mx = e.clientX / W; my = e.clientY / H; clickPulse = 1; idleT = 0; pointerHere = true; catchGoldFish(e.clientX, e.clientY); });
+  window.addEventListener('pointerdown', e => { mx = e.clientX / W; my = e.clientY / H; clickPulse = 1; idleT = 0; pointerHere = true; catchGoldFish(e.clientX, e.clientY); if (!catchTortoise(e.clientX, e.clientY)) pokeTortoise(e.clientX, e.clientY); catchShrimp(e.clientX, e.clientY); relightFire(e.clientX, e.clientY); });
   window.addEventListener('mouseout', e => { if (!e.relatedTarget && !e.toElement) pointerHere = false; });
   window.addEventListener('blur', () => { pointerHere = false; });
 
@@ -1303,7 +1853,12 @@
     const dt = lastT ? Math.min(3, (t - lastT) / 16.667) : 1;
     lastT = t;
     const p = prog();
-    const g = gradAt(p);
+    let g = gradAt(p);
+    // by day, away from sunrise/sunset, cool the warm "dawn horizon" band toward a clear
+    // daytime sky so the high sky obeys the clock — blue at midday, warm only at golden
+    // hour. (No-op at night — nightBg darkens the sky there instead.)
+    const cool = (1 - nightAmount()) * (1 - goldenAmount()) * dayCoolEnv(p);
+    if (cool > 0.001) g = { a: mix(g.a, DAY_SKY.a, cool), b: mix(g.b, DAY_SKY.b, cool) };
     const lg = ctx.createLinearGradient(0, 0, 0, H);
     lg.addColorStop(0, g.a); lg.addColorStop(1, g.b);
     ctx.fillStyle = lg; ctx.fillRect(0, 0, W, H);
@@ -1317,6 +1872,11 @@
     if (nightBg > 0.001) { ctx.fillStyle = `rgba(6,12,30,${0.6 * nightBg})`; ctx.fillRect(0, 0, W, H); }
 
     const px = (mx - 0.5) * 24, py = (my - 0.5) * 16;
+
+    // advance the tortoise (position, heading, fades, the shoal-scaring threat) once
+    // per frame, before the beach and the shoal are drawn — both its land and water
+    // draws read this shared state, so they hand off cleanly across the tide.
+    stepTortoise(p, dt, py);
 
     // ── celestial arc: a natural east→west sky path set by the device's local time.
     //    Drives the daytime SUN and the night-BEACH moon (a gentle hand-tuned arc). The
@@ -1339,8 +1899,10 @@
       ctx.fillStyle = rg; ctx.fillRect(0, 0, W, H);
     }
 
-    // stars
-    const starA = Math.max(0, 1 - p / 0.34);
+    // stars — fade as the daytime sky brightens; at night the high sky stays dark, so
+    // they linger down through the stratosphere (gone by ~0.39, before the beach ground
+    // appears) instead of vanishing mid-sky, so the night sky reads continuously
+    const starA = Math.max(0, 1 - p / (0.34 + 0.055 * nightAmount()));
     if (starA > 0) for (const s of stars) {
       s.a += s.ts * s.td; if (s.a > 0.9 || s.a < 0.1) s.td *= -1;
       ctx.beginPath();
@@ -1363,6 +1925,30 @@
       ctx.strokeStyle = lgr; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(s.x, s.y); ctx.stroke();
     }
 
+    // ── STRATOSPHERE sky-body: the same sun (day) / moon (night) the biosphere shows,
+    //    seen from high altitude. The high sky obeys the same device-clock day/night
+    //    rules, and the lit body rides the SAME arc (sunPos/moonPos) as the beach body,
+    //    so as you fall from the stratosphere to the shore it stays put and hands off
+    //    without moving (stratoSkyA fades out exactly as the beach body fades in). At
+    //    twilight both show — the sun setting, the moon rising — like the beach. Drawn
+    //    BEFORE the clouds so they drift in front of it, and over the night wash.
+    const skyBodyA = stratoSkyA(p);
+    if (skyBodyA > 0.01) {
+      const bodyR = Math.max(22, Math.min(W, H) * 0.05);
+      drawSun(sunPos.x, sunPos.y, bodyR, skyBodyA * (1 - nightAmount()));
+      // the moon GLIDES into place on ONE clean diagonal as you fall through the high sky: it
+      // enters from off the upper-left and eases straight DOWN-and-right to moonPos — a single
+      // ↘ slide, not a right-then-down dogleg. Both offsets shrink on the SAME ease, so the
+      // path is a straight line. SETTLES by ~p0.38 — before the beach body takes over at ~0.42,
+      // so the handoff still doesn't move. Only the stratosphere body slides (it's the only
+      // moon up during the entrance band); the beach moon already sits at moonPos. Sun is left
+      // alone. Stilled for reduced-motion.
+      const me = (p - 0.23) / 0.15;                              // 0 at first appearance → 1 by p≈0.38
+      const ease = reduce || me >= 1 ? 1 : me <= 0 ? 0 : 1 - Math.pow(1 - me, 3); // ease-out cubic
+      const slide = 1 - ease;                                    // 1 = off the upper-left … 0 = settled
+      drawMoon(moonPos.x - 0.5 * W * slide, moonPos.y - 0.4 * H * slide, bodyR, skyBodyA * nightAmount());
+    }
+
     // clouds (sky)
     const cloudA = band(p, 0.36, 0.12);
     if (cloudA > 0) for (const c of clouds) {
@@ -1382,7 +1968,7 @@
     // little mouse parallax for life), until we leave. The sea sits
     // at the foreground bottom so that, as we scroll on down the beach, the tide
     // climbs (flood) and overtakes the scene — and the underwater systems
-    // (sun-shafts, bubbles, fish, the deep) take over from there.
+    // (bubbles, fish, the deep) take over from there.
     const landA = bioVis(p);
     // flood = the ocean overtaking the beach on the way out: 0 (tide at rest,
     // lapping the sand) → 1 (water risen clear over the top of the screen). It
@@ -1391,7 +1977,12 @@
     // also fade with landA, so they're submerged and dissolve at once. Past the
     // flood the underwater world (fish, bubbles, the deep) takes over.
     const flood = Math.max(0, Math.min(1, (p - 0.59) / 0.07));
-    const seaA = flood > 0 ? 1 : landA;            // opaque the moment it floods so the rising water fully COVERS the camp (no faded bleed-through); only fades in with the beach on entry
+    // Once the tide has fully covered the screen, the surface-sea overlay DISSOLVES
+    // into the open-water gradient over the next stretch of the fall instead of being
+    // cut off at a hard edge — so sinking into the open water is a gradual colour fade,
+    // not a snap. (seaOut: 0 at full flood → 1 once we're clear into the open water.)
+    const seaOut = Math.max(0, Math.min(1, (p - 0.66) / 0.09));
+    const seaA = flood > 0 ? (1 - seaOut) : landA; // opaque while the tide rises (covers the camp), then fades out into the open water; fades IN with the beach on entry
     const campGy = H * 0.78 + py * 0.7;            // the camp's floor on the dry sand (smoke origin rides it too)
     const shoreY = (1 - flood) * (H * 0.84 + py * 0.85) - flood * H * 0.12;
     const wob = (x) => Math.sin(x * 0.02 + t * 0.0016) * 5 + Math.sin(x * 0.05 + t * 0.0023) * 3;
@@ -1399,27 +1990,26 @@
     const firePos = campCenters(fireDims);
     const fireY = campFireY(campGy, fireDims);
     const waterAtFire = shoreY + wob(firePos.fireX);
-    const fireAlive = Math.max(0, Math.min(1, (waterAtFire - (fireY + fireDims.rr * 0.45)) / Math.max(10, fireDims.rr * 0.75)));
+    // how clear of the rising water the fire is: 1 dry → 0 the moment the tide reaches the embers
+    const fireSubmerge = Math.max(0, Math.min(1, (waterAtFire - (fireY + fireDims.rr * 0.45)) / Math.max(10, fireDims.rr * 0.75)));
+    if (fireSubmerge < 0.02) douseFire();                 // the tide has reached it — put it out, and latch it out
+    const fireAlive = fireDoused ? 0 : fireSubmerge;      // a doused fire stays dark until it's tapped back alight
+    // live tap target for the relight — only offered once it's out AND scrolled clear of the water
+    fireHit.x = firePos.fireX; fireHit.y = fireY; fireHit.r = fireDims.rr * 1.6;
+    fireHit.alpha = (fireDoused && fireSubmerge > 0.85 && landA > 0.6) ? 1 : 0;
     const dayA = (1 - nightAmount()) * landA;      // daylight strength of the scene
     // (the sun & moon arc positions — sunPos / moonPos — are computed up top, before the
     //  space pass, so the moon can cross-fade between scenes without moving)
-    if (landA > 0.02 || (flood > 0.001 && p < 0.67)) {
+    if (landA > 0.02 || (flood > 0.001 && seaA > 0.001)) {
       // ---- the beach (fades with landA, covered from below by the rising sea) ----
       if (landA > 0.02) {
         // ── the daytime sun low over the bay (the moon takes its place at night) ──
-        if (dayA > 0.01) {
-          const sr = Math.max(22, Math.min(W, H) * 0.05), sX = sunPos.x, sY = sunPos.y;
-          const halo = ctx.createRadialGradient(sX, sY, sr * 0.4, sX, sY, sr * 4.4);
-          halo.addColorStop(0, `rgba(255,228,172,${0.5 * dayA})`);
-          halo.addColorStop(0.5, `rgba(255,198,120,${0.15 * dayA})`);
-          halo.addColorStop(1, 'rgba(255,198,120,0)');
-          ctx.fillStyle = halo; ctx.beginPath(); ctx.arc(sX, sY, sr * 4.4, 0, 6.2832); ctx.fill();
-          const sBody = ctx.createRadialGradient(sX, sY, 0, sX, sY, sr);
-          sBody.addColorStop(0, `rgba(255,248,228,${0.96 * dayA})`); sBody.addColorStop(1, `rgba(255,212,150,${0.9 * dayA})`);
-          ctx.fillStyle = sBody; ctx.beginPath(); ctx.arc(sX, sY, sr, 0, 6.2832); ctx.fill();
-        }
-        // a loose flock of birds drifting across the daytime sky
-        drawBirds(dayA * 0.8, t, px, py);
+        drawSun(sunPos.x, sunPos.y, Math.max(22, Math.min(W, H) * 0.05), dayA);
+        // a loose flock of birds drifting across the daytime sky — held back until the
+        // beach has actually landed (full tableau) so birds belong to the coast, not
+        // something you pass while still falling through the high sky toward it
+        const settled = Math.max(0, Math.min(1, (landA - 0.5) / 0.4));
+        drawBirds(dayA * 0.8 * settled, t, px, py);
         // distant mountains across the bay — hazier/higher behind, darker/lower in front
         drawRidge(H * 0.50 + py * 0.3, 70, 3.1, `rgba(54,66,92,${0.5 * landA})`, 22);   // far range
         drawRidge(H * 0.58 + py * 0.5, 96, 6.7, `rgba(30,40,62,${0.62 * landA})`, 18);  // near range
@@ -1441,6 +2031,10 @@
         // the camp tucked in the clearing — drawn BEFORE the framing conifers and grass
         // so the foreground trees/blades overlap it for depth (the fire is a later pass)
         drawCamp(t, Math.min(1, landA * 1.3), campGy);
+        // the tortoise padding through the clearing — drawn AFTER the camp but BEFORE
+        // the framing conifers, so the left tree genuinely hides where it emerges from
+        // (and fades with the scene as the tide floods over it)
+        drawTortoise(tort.aLand * landA, t * 0.001);
         // big conifers framing the scene from the foreground edges (swaying in the wind),
         // IN FRONT of the camp so the nearest trees overlap it instead of it looming over them
         drawConifer(W * 0.05, H * 0.96, H * 0.46, 'rgba(16,42,26,0.96)', t, 0);
@@ -1532,10 +2126,19 @@
       ctx.fill(); ctx.shadowBlur = 0;
     }
 
-    // campfire smoke (beach/camp) — rises from the fireplace, drifts and fades
-    if (landA > 0.02 && fireAlive > 0.01) {
-      if (!reduce && flood < 0.3 && fireAlive > 0.25 && t - lastSmoke > 200) {
-        smoke.push({ life: 0, ox: rnd(-7, 7), sw: Math.random() * 6.2832, vr: rnd(0.0022, 0.0036) });
+    // campfire smoke (beach/camp) — grey smoke rises from the lit fire; once the
+    // tide has doused it, a cooler curl of STEAM lingers off the wet ash instead
+    // (the hiss puff from douseFire plus a faint wisp), a quiet hint to tap it alight
+    const steaming = fireDoused && flood < 0.6 && landA > 0.02;   // out, but still in view above the water
+    if (landA > 0.02 && (fireAlive > 0.01 || steaming)) {
+      if (fireAlive > 0.01) {
+        if (!reduce && flood < 0.3 && fireAlive > 0.25 && t - lastSmoke > 200) {
+          smoke.push({ life: 0, ox: rnd(-7, 7), sw: Math.random() * 6.2832, vr: rnd(0.0022, 0.0036) });
+          lastSmoke = t;
+          if (smoke.length > 40) smoke.shift();
+        }
+      } else if (steaming && fireSubmerge > 0.5 && !reduce && t - lastSmoke > 480) {
+        smoke.push({ life: 0, ox: rnd(-6, 6), sw: Math.random() * 6.2832, vr: rnd(0.0026, 0.004), steam: true });
         lastSmoke = t;
         if (smoke.length > 40) smoke.shift();
       }
@@ -1546,23 +2149,15 @@
         const yy = ey - sm.life * H * 0.34;
         const xx = ex + sm.ox + Math.sin(sm.sw + sm.life * 3.4) * (12 + sm.life * 34);
         const rr = 7 + sm.life * 44;
-        const a = Math.sin(Math.min(1, sm.life) * Math.PI) * 0.15 * landA * fireAlive * (1 - flood);
+        // steam fades with the scene as you sink under; smoke also tracks the flame
+        const a = Math.sin(Math.min(1, sm.life) * Math.PI) * landA * (1 - flood) * (sm.steam ? 0.12 : 0.15 * fireAlive);
+        const col = sm.steam ? '224,232,238' : '214,214,220';   // steam reads a touch cooler than smoke
         const sg = ctx.createRadialGradient(xx, yy, 0, xx, yy, rr);
-        sg.addColorStop(0, `rgba(214,214,220,${a})`); sg.addColorStop(1, 'rgba(214,214,220,0)');
+        sg.addColorStop(0, `rgba(${col},${a})`); sg.addColorStop(1, `rgba(${col},0)`);
         ctx.fillStyle = sg; ctx.beginPath(); ctx.arc(xx, yy, rr, 0, 6.2832); ctx.fill();
       }
       smoke = smoke.filter(sm => sm.life < 1);
     } else if (smoke.length) { smoke.length = 0; }
-
-    // waterline shimmer + sun shafts (surface) — the sun's shafts fade out at night
-    const surfA = band(p, 0.66, 0.07) * (1 - nightAmount() * 0.85);
-    if (surfA > 0) {
-      ctx.fillStyle = `rgba(180,235,255,${0.10 * surfA})`;
-      for (let i = 0; i < 6; i++) {
-        const x = (i / 6) * W + Math.sin(t * 0.0005 + i) * 30;
-        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x + 60, 0); ctx.lineTo(x + 130, H); ctx.lineTo(x + 30, H); ctx.closePath(); ctx.fill();
-      }
-    }
 
     // kelp (shallows)
     const kelpA = band(p, 0.76, 0.08);
@@ -1585,14 +2180,42 @@
       ctx.strokeStyle = `rgba(180,235,255,${0.25 * waterA})`; ctx.lineWidth = 1; ctx.stroke();
     }
 
+    // the tortoise gliding off into the open water after a fish — drawn just BEFORE
+    // the shoal so the scattering fish read as being in front of the big shadow they
+    // flee (its swim threat is published by stepTortoise above)
+    drawTortoise(tort.aWater, t * 0.001);
+
     // fish school (water → trench) — a lively, continuously-swimming shoal:
     // each fish glides across, bobs, and flicks its tail; faces its direction
     const fishA = Math.max(0, Math.min(1, (p - 0.66) / 0.06)); // hold the school back until we're submerged
     clickPulse *= Math.pow(0.85, dt);             // click scatter fades over ~⅓ second (fps-independent)
-    // a cursor that holds still for ~4s makes the nosy fish curious; eases back the moment it moves
-    idleT += dt;
-    const curTarget = (pointerHere && clickPulse < 0.05 && idleT > 240) ? 1 : 0;
+    // a cursor that holds still for ~4s makes the nosy fish curious; eases back the moment it moves.
+    // ── FORGET ON LEAVING THE WATER: while the shoal is faded out (scrolled up above the surface, so
+    //    fishA == 0) it lets go of the cursor entirely — curiosity is zeroed, the idle timer is held at
+    //    0 so re-entry needs a fresh 4s of stillness, and every fish's engage/flee/fright state is
+    //    cleared once (latched on schoolForgotten). Without this a fish frozen mid-investigation thaws
+    //    still circling a point the cursor left long ago, so scrolling back down looks like the shoal
+    //    *remembered* where the cursor used to be. Returning to the water, fish only re-notice a cursor
+    //    they can currently see — they re-discover it, they don't resume an old chase.
+    const inWater = fishA > 0;
+    if (inWater) { idleT += dt; schoolForgotten = false; }
+    else {
+      idleT = 0;
+      if (!schoolForgotten) { curious = 0; schoolForgotten = true; for (const f of fishes) { f.curEngaged = false; f.flee = 0; f.fear = 0; } }
+    }
+    const curTarget = (inWater && pointerHere && clickPulse < 0.05 && idleT > 240) ? 1 : 0;
     curious += (curTarget - curious) * Math.min(1, 0.02 * dt);
+    // gather any erupting vents once — their scalding, billowing mouths spook the shoal.
+    // Gated on the seafloor being visible (floorA): elsewhere sfRender doesn't step the
+    // vents, so `open` is frozen — without this gate, scrolling up out of the trench would
+    // leave fish fleeing vents that aren't on screen. The fright ramps in with the floor.
+    const ventThreats = [];
+    const floorA = Math.max(0, Math.min(1, (p - 0.88) / 0.10));
+    if (fishA > 0 && !reduce && floorA > 0.02) for (const v of ventList) {
+      if (v.open < 0.12) continue;
+      const g = sfVentGeo(v);
+      ventThreats.push({ x: (g.x + g.baseW * v.lean) / W, y: g.mouthY / H, power: Math.min(1, v.open) * floorA, reach: Math.max(120, g.topW * 5) });
+    }
     if (fishA > 0) for (const f of fishes) {
       // ── SPHERE-AWARE: a fish keeps to its species' depth band and won't cross out of it.
       //    When the descent carries it past the boundary it fades into the gloom, and once
@@ -1610,14 +2233,14 @@
         let turn = 0.05;                              // base turn rate (rad per 60fps-frame)
         let hold = 0;
 
-        // SCARE — a nearby click is felt (the lateral line), seen or not: fear spikes with proximity.
-        // The reach is tight and the falloff is SQUARED, so the fright stays LOCAL — fish well away from
-        // the click barely register it instead of the whole shoal bolting at once.
-        if (clickPulse > 0.02) {
-          const dxp = (f.x - mx) * W, dyp = (f.y - my) * H, dd = Math.hypot(dxp, dyp) || 1;
-          const reach = 80 + clickPulse * 60;            // ≤140px — only the genuinely-near fish feel it
-          if (dd < reach) { const t = 1 - dd / reach; f.fear = Math.max(f.fear, clickPulse * t * t); }
-        }
+        // SCARE — three things spook a fish, each via scareFish (proximity, squared falloff,
+        // and it remembers WHERE the threat was so the dart heads away from it):
+        //   • a nearby click, felt by the lateral line whether seen or not (≤140px reach)
+        //   • the swimming sea turtle — a big moving shadow the shoal scatters out of
+        //   • an erupting hydrothermal vent — fish bolt from the scalding, billowing mouth
+        if (clickPulse > 0.02) scareFish(f, mx, my, clickPulse, 80 + clickPulse * 60);
+        if (turtleThreat.power > 0.05) scareFish(f, turtleThreat.x, turtleThreat.y, 0.85 * turtleThreat.power, W * 0.14);
+        for (const vt of ventThreats) scareFish(f, vt.x, vt.y, vt.power, vt.reach);
         f.fear *= Math.pow(0.94, dt);                    // the fright DECAYS every frame → it calms in ~1s
 
         // can this fish actually SEE the cursor? fish have a ~300° field of view (≈150° to each side) with a
@@ -1629,9 +2252,9 @@
         if (curious < 0.05) f.curEngaged = false;     // cursor moved → let go of the investigation
 
         if (f.fear > 0.03) {                          // STARTLED → it darts away, then RECOVERS as the fright fades
-          if (!f.flee) {                              // lock the bearing on the first fright — away from the cursor, but
-            const hx = (f.x >= mx) ? 1 : -1;          // biased to the nearer side so it heads for open water
-            const vy = Math.max(-0.7, Math.min(0.7, (f.y - my) * 1.2)); // a shallow vertical tilt
+          if (!f.flee) {                              // lock the bearing on the first fright — away from the threat
+            const hx = (f.x >= f.threatX) ? 1 : -1;   // (cursor, turtle or vent), biased to the nearer side for open water
+            const vy = Math.max(-0.7, Math.min(0.7, (f.y - f.threatY) * 1.2)); // a shallow vertical tilt (vents below → flee up)
             f.fleeAng = Math.atan2(vy, hx);
           }
           f.flee = 1;

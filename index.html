@@ -40,6 +40,13 @@
   }
   .dir-fieldnotes #hero-journal { margin-top: 0; max-width: none; align-self: center; }
 }
+/* On phones the journal rail stacks under the hero and (with real posts) makes
+   the section overflow well past the screen, burying the "scroll to fall" cue.
+   Drop it on small screens — the journal is one tap away via the Blog nav link.
+   (Kept here, after descent.css, so it beats the #id display:block above.) */
+@media (max-width: 600px) {
+  .dir-fieldnotes #hero-journal { display: none; }
+}
 
 /* warm the accents (cyan stays the brand spine; warmth signals the journey) */
 .dir-fieldnotes .dz-tag { color: var(--warm); }
@@ -74,6 +81,8 @@
   #intro { display: none !important; }
   .rise, .dz-hero h1 .w { opacity: 1 !important; transform: none !important; filter: none !important; }
   .hero-intro, .hero-cta, .hero-status, #hero-journal { opacity: 1 !important; }
+  /* no JS to fade it, so keep the hint tied to the hero instead of floating over every section */
+  .scroll-hint { position: absolute !important; }
   #descent-canvas, #descent-sprites, #descent-gauge { display: none !important; }
   body { background: var(--navy) !important; }
 </style></noscript>
@@ -199,7 +208,7 @@
     </div>
   </section>
 
-  <div class="spacer" data-zone="forest"><div class="cap"><b>Touchdown</b>ground level · woodsmoke, and the hush of no signal<span class="jp">숲 · అడవి</span></div></div>
+  <div class="spacer" data-zone="forest"><div class="cap"><b>Touch some grass</b>ground level · woodsmoke, and the hush of no signal<span class="jp">숲 · అడవి</span></div></div>
 
   <!-- ============ CAMPING CENTREPIECE · FOREST ============ -->
   <section class="dz dz-camp" data-zone="forest" id="camping">

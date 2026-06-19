@@ -51,6 +51,20 @@
     });
     const navLinks = [...document.querySelectorAll('nav .nav-links a[href^="#"]')];
     const navMap = navLinks.map(a => ({ a, sec: document.querySelector(a.getAttribute('href')) })).filter(x => x.sec);
+    // the "scroll to fall" hint is pinned to the viewport bottom. It only has a
+    // home when the hero content clears the bottom of the screen; on shorter
+    // laptops/phones the hero overflows past 100vh, so there's no empty space —
+    // hide it there (the cut-off content already signals "scroll") rather than
+    // letting it float over the headline/paragraph. Once visible, it fades the
+    // moment the visitor starts to fall.
+    const hint = document.querySelector('.scroll-hint');
+    const heroWrap = document.querySelector('.dz-hero .hero-wrap');
+    let hintHasRoom = true;
+    function gaugeHintRoom() {
+      if (!hint || !heroWrap || window.scrollY > 4) return; // only meaningful at the top
+      const h = hint.getBoundingClientRect(), w = heroWrap.getBoundingClientRect();
+      hintHasRoom = w.bottom <= h.top - 6;
+    }
     function check() {
       const vh = window.innerHeight;
       for (const el of items) {
@@ -58,6 +72,8 @@
         const r = el.getBoundingClientRect();
         if (r.top < vh * 0.9 && r.bottom > 0) el.classList.add('show');
       }
+      gaugeHintRoom();
+      if (hint) hint.classList.toggle('is-hidden', !hintHasRoom || window.scrollY > vh * 0.15);
       let cur = null;
       for (const m of navMap) { if (m.sec.getBoundingClientRect().top <= vh * 0.45) cur = m.a; }
       navLinks.forEach(l => l.classList.remove('active'));
