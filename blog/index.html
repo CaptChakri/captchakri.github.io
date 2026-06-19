@@ -31,6 +31,18 @@ body > footer { margin-top: auto; }
 .blog-list-wrap { width: 100%; }
 .blog-empty { color: var(--gray); font-size: 0.9rem; padding: 2rem 0; }
 @media (max-width: 768px) { .blog-hero { padding: 7rem 1.25rem 2rem; } }
+
+/* each card is tinted by the descent sphere its post adopts (posts.json "sphere",
+   set as --sphere on the card by the script below) — a left edge-stripe, a faint
+   wash, and a matching date/arrow/hover accent */
+.blog-card[data-sphere] {
+  box-shadow: inset 3px 0 0 var(--sphere, var(--cyan));
+  background-image: linear-gradient(90deg,
+    color-mix(in srgb, var(--sphere, var(--cyan)) 13%, transparent), transparent 42%);
+}
+.blog-card[data-sphere] .blog-date,
+.blog-card[data-sphere] .blog-arrow { color: var(--sphere, var(--cyan)); }
+.blog-card[data-sphere]:hover { border-color: var(--sphere, var(--cyan)); }
 </style>
 </head>
 <body>
@@ -87,7 +99,16 @@ body > footer { margin-top: auto; }
   let posts = [];
   let activeTag = 'all';
 
+  // each post adopts one descent sphere (posts.json "sphere"); its accent colour
+  // tints the post's card. Keys mirror the engine's spheres; falls back to biosphere.
+  const SPHERE_TINT = {
+    exosphere: '#8fb4f0', thermosphere: '#ef5a2a', stratosphere: '#4f8fe0',
+    biosphere: '#86c64e', hydrosphere: '#2bb6e0', bathysphere: '#3f7be8',
+    lithosphere: '#e8412a',
+  };
+
   function postUrl(post) {
+    if (post.status === 'coming-soon') return post.comingSoonUrl || '/blog/coming-soon.html';
     const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(post.date);
     if (!match) throw new Error(`Invalid publication date for ${post.slug}`);
     const [, year, month, day] = match;
@@ -103,8 +124,11 @@ body > footer { margin-top: auto; }
     filtered.forEach((post, i) => {
       const card = document.createElement('a');
       card.href = postUrl(post);
-      card.className = 'blog-card rv show';
+      card.className = 'blog-card rv show' + (post.status === 'coming-soon' ? ' blog-soon' : '');
       card.style.animationDelay = `${i * 0.06}s`;
+      const sphere = (post.sphere || 'biosphere').toLowerCase();
+      card.dataset.sphere = sphere;
+      card.style.setProperty('--sphere', SPHERE_TINT[sphere] || SPHERE_TINT.biosphere);
 
       const meta = document.createElement('div');
       const date = document.createElement('time');
@@ -116,7 +140,7 @@ body > footer { margin-top: auto; }
       if (post.readMins) {
         const readTime = document.createElement('div');
         readTime.className = 'blog-read';
-        readTime.textContent = `${post.readMins} min read`;
+        readTime.textContent = post.status === 'coming-soon' ? 'Coming soon' : `${post.readMins} min read`;
         meta.appendChild(readTime);
       }
 
@@ -186,6 +210,20 @@ body > footer { margin-top: auto; }
       empty.textContent = 'Could not load posts right now.';
     });
 })();
+
+/* hand the clicked card's title to the post page so it morphs into the post
+   hero during the cross-page view transition (no-op where unsupported) */
+if ('startViewTransition' in document) {
+  window.addEventListener('pageswap', e => {
+    if (!e.viewTransition || !e.activation || !e.activation.entry) return;
+    let destPath;
+    try { destPath = new URL(e.activation.entry.url).pathname; } catch (_) { return; }
+    const card = [...document.querySelectorAll('.blog-card')]
+      .find(a => { try { return new URL(a.href).pathname === destPath; } catch (_) { return false; } });
+    const title = card && card.querySelector('.blog-title');
+    if (title) title.style.viewTransitionName = 'post-title';
+  });
+}
 </script>
 
 </body>

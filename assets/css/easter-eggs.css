@@ -1,0 +1,117 @@
+/* =====================================================================
+   EASTER EGGS — the discovery toast + the catchable-comet target.
+   Site-wide; pairs with assets/js/easter-eggs.js. Reuses theme.css tokens
+   (--cyan / --white / --gray / --gray2), so it works on any page.
+   ===================================================================== */
+
+/* A catchable egg sprite (the comet, the seahorse) is only a target while it's
+   actually on screen — the descent engine flips its pointer-events on/off as it
+   moves. A generous invisible hit-ring (::after) makes a small, moving target
+   catchable without changing how it looks. */
+.egg-catch { cursor: pointer; }
+.egg-catch::after {
+  content: ''; position: absolute; inset: -22px; border-radius: 50%;
+}
+
+/* The eggs are lifted out of the (behind-content) sprite layer into this thin
+   layer ABOVE the page content, so a click on a visible egg actually lands on it
+   instead of the section in front. The layer ignores pointer events; only an
+   armed egg inside it re-enables them. Kept below the gauge/nav/cursor chrome. */
+#egg-layer { position: fixed; inset: 0; z-index: 3; pointer-events: none; }
+#egg-layer .d-sprite { position: absolute; top: 50%; }
+
+/* ----- discovery toast ----- */
+#egg-toast {
+  position: fixed; left: 50%; bottom: 1.6rem; z-index: 200;
+  width: min(92vw, 380px);
+  transform: translate(-50%, 150%);
+  opacity: 0; pointer-events: none;
+  transition: transform .55s cubic-bezier(.2,.9,.2,1), opacity .45s ease;
+}
+#egg-toast.show { transform: translate(-50%, 0); opacity: 1; }
+
+.egg-toast-card {
+  display: flex; align-items: center; gap: .95rem;
+  padding: .9rem 1.05rem;
+  background: rgba(8,14,30,0.82);
+  border: 1px solid rgba(0,200,240,0.35);
+  border-radius: .8rem;
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 18px 50px rgba(0,0,0,0.5), 0 0 30px rgba(0,200,240,0.12);
+}
+.egg-toast-icon {
+  font-size: 1.7rem; line-height: 1; flex-shrink: 0;
+  width: 2rem; display: flex; align-items: center; justify-content: center;
+  filter: drop-shadow(0 0 10px rgba(0,200,240,0.6));
+}
+.egg-toast-icon svg { display: block; width: auto; height: 2rem; overflow: visible; }
+.egg-toast-body { flex: 1 1 auto; min-width: 0; }
+.egg-toast-eyebrow {
+  font-family: 'JetBrains Mono', monospace; font-size: .6rem;
+  letter-spacing: .2em; text-transform: uppercase; color: var(--cyan);
+  margin-bottom: .22rem;
+}
+.egg-toast-title {
+  font-family: 'Space Grotesk', sans-serif; font-weight: 600;
+  font-size: .98rem; color: var(--white); line-height: 1.2;
+}
+.egg-toast-sub {
+  font-size: .76rem; color: var(--gray); margin-top: .2rem; line-height: 1.4;
+}
+.egg-toast-count {
+  font-family: 'Space Grotesk', sans-serif; font-weight: 700;
+  font-size: 1.35rem; color: var(--cyan); line-height: 1; flex-shrink: 0;
+}
+.egg-toast-count span { font-size: .8rem; color: var(--gray2); font-weight: 500; }
+
+/* the toast is itself a link to the collection — make the whole card tappable */
+.egg-toast-card { text-decoration: none; color: inherit; cursor: pointer;
+  transition: transform .25s ease, border-color .25s ease, box-shadow .25s ease; }
+#egg-toast.show .egg-toast-card { pointer-events: auto; }
+.egg-toast-card:hover {
+  transform: translateY(-3px); border-color: rgba(0,200,240,0.6);
+  box-shadow: 0 22px 60px rgba(0,0,0,0.55), 0 0 36px rgba(0,200,240,0.2);
+}
+.egg-toast-card:focus-visible { outline: 2px solid var(--pink); outline-offset: 4px; }
+
+/* ----- persistent collection badge (site-wide, appears after the first find) ----- */
+#egg-vault-link {
+  position: fixed; z-index: 150;
+  left: calc(0.9rem + env(safe-area-inset-left));
+  bottom: calc(0.9rem + env(safe-area-inset-bottom));
+  max-width: calc(100vw - 1.8rem);
+  display: inline-flex; align-items: center; gap: .5rem;
+  padding: clamp(.42rem, 1.4vw, .5rem) clamp(.7rem, 2.6vw, .9rem)
+           clamp(.42rem, 1.4vw, .5rem) clamp(.5rem, 2vw, .65rem);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: clamp(.66rem, 2.6vw, .74rem); letter-spacing: .04em; white-space: nowrap;
+  color: var(--text); text-decoration: none;
+  background: rgba(8,14,30,0.72);
+  border: 1px solid rgba(0,200,240,0.28); border-radius: 999px;
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  opacity: 0; transform: translateY(8px) scale(.96);
+  transition: opacity .5s ease, transform .5s cubic-bezier(.2,.9,.2,1),
+              border-color .25s ease, background .25s ease;
+}
+#egg-vault-link.show { opacity: .55; transform: none; }
+#egg-vault-link:hover, #egg-vault-link:focus-visible {
+  opacity: 1; border-color: var(--cyan); background: rgba(8,14,30,0.92);
+}
+#egg-vault-link:focus-visible { outline: 2px solid var(--pink); outline-offset: 3px; }
+.evl-egg { font-size: 1.05em; line-height: 1; filter: drop-shadow(0 0 6px rgba(0,200,240,0.5)); }
+.evl-text b.evl-count { color: var(--cyan); font-weight: 700; margin-left: .15rem; }
+
+/* touch devices: comfortable tap target, and no hover to brighten it, so
+   it stays a little more legible at rest */
+@media (pointer: coarse) { #egg-vault-link { min-height: 40px; } }
+@media (hover: none) { #egg-vault-link.show { opacity: .82; } }
+/* very small screens: collapse to just the egg + tally */
+@media (max-width: 480px) {
+  .evl-label { display: none; }
+  .evl-text b.evl-count { margin-left: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #egg-toast { transition: opacity .3s ease; transform: translate(-50%, 0); }
+  #egg-vault-link { transition: opacity .3s ease; transform: none; }
+}

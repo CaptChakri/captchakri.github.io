@@ -1,0 +1,63 @@
+/* =====================================================================
+   DESCENT BACKDROP — lets a blog post adopt the look of ONE descent sphere.
+   The post includes the descent canvas + sprite layer and pins the engine to a
+   single zone (set window.DESCENT_CONFIG = { pin: 'biosphere', … } before
+   descent-engine.js), so that sphere holds as a living, FIXED backdrop while the
+   article scrolls over a translucent reading panel.
+
+   Pairs with descent-engine.js + descent-sprites.js. Everything here is scoped
+   to body.sphere-post so it only affects themed posts — load it AFTER theme.css.
+   Sphere keys: exosphere · thermosphere · stratosphere · biosphere ·
+   hydrosphere · bathysphere · lithosphere.
+   ===================================================================== */
+
+.sphere-post { background: #02030a; }
+/* the engine replaces the shared starfield with its own scene */
+.sphere-post #starfield { display: none !important; }
+
+/* the fixed full-viewport scene + the emoji "objects" you'd pass in that zone */
+.sphere-post #descent-canvas { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+.sphere-post #descent-sprites { position: fixed; inset: 0; z-index: 1; pointer-events: none; overflow: hidden; }
+.sphere-post .d-sprite {
+  position: absolute; top: 50%; transform: translate(-50%, -50%);
+  line-height: 1; opacity: 0; will-change: transform, opacity; user-select: none;
+}
+.sphere-post .d-sprite svg { display: block; width: 100%; height: auto; overflow: visible; }
+
+/* a soft full-scene scrim so text always has contrast, kept light enough that the
+   scene still reads through it (a touch darker at the very top/bottom edges) */
+.sphere-post #descent-scrim {
+  position: fixed; inset: 0; z-index: 1; pointer-events: none;
+  background: linear-gradient(180deg,
+    rgba(3,6,16,0.46) 0%, rgba(3,6,16,0.22) 26%,
+    rgba(3,6,16,0.26) 72%, rgba(3,6,16,0.58) 100%);
+}
+
+/* content rides above the scene */
+.sphere-post nav { z-index: 100; }
+.sphere-post #main-content,
+.sphere-post > footer { position: relative; z-index: 2; }
+
+/* the article sits on a translucent reading panel for legibility over the scene */
+.sphere-post .post-main {
+  background: rgba(7,12,28,0.62);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 14px;
+  padding: clamp(1.4rem, 3vw, 2.6rem);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+@supports not ((backdrop-filter: blur(8px)) or (-webkit-backdrop-filter: blur(8px))) {
+  .sphere-post .post-main { background: rgba(7,12,28,0.86); }
+}
+
+/* the sticky side rail (back link + TOC) floats over the open scene — give it a
+   little text-shadow so it stays readable without a panel of its own */
+.sphere-post .post-side { text-shadow: 0 1px 8px rgba(2,5,14,0.85); }
+
+/* margin notes hang in the right gutter over the scene on wide screens — shadow
+   them for the same reason (they get their own card below 1260px, untouched here) */
+@media (min-width: 1261px) {
+  .sphere-post .mnote,
+  .sphere-post .mstat { text-shadow: 0 1px 8px rgba(2,5,14,0.85); }
+}

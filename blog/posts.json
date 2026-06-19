@@ -1,5 +1,21 @@
 [
   {
+    "slug": "first-camping-trip-wicklow-way",
+    "title": "The Wicklow Way: Part - 1",
+    "date": "2026-06-18",
+    "dateLabel": "Jun 18, 2026",
+    "readMins": 8,
+    "tags": [
+      "camping",
+      "hiking",
+      "ireland"
+    ],
+    "sphere": "biosphere",
+    "status": "coming-soon",
+    "comingSoonUrl": "/blog/coming-soon.html",
+    "excerpt": "A year of sneaking camping gear into Amazon orders, a bus that never came, 20 kg on my back, and the camp shoes I left at home. My first-ever multi-day hike — Marlay Park to Glendalough."
+  },
+  {
     "slug": "welcome-to-the-blog",
     "title": "Welcome to the blog",
     "date": "2026-06-10",
@@ -8,6 +24,7 @@
     "tags": [
       "meta"
     ],
+    "sphere": "exosphere",
     "excerpt": "Why I'm starting this thing, and what to expect — distributed systems, Rust, language learning, and dispatches from the campsite."
   }
 ]

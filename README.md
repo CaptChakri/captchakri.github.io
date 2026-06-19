@@ -15,11 +15,14 @@ Personal portfolio and blog for [Chakri](https://captchakri.github.io/), hosted 
 
 ## Preview before creating a pull request
 
-Run the blog validator from the repository root:
+Run the fast test suite and blog validator from the repository root:
 
 ```powershell
+python -m unittest discover -s tests
 python scripts/validate_blog.py
 ```
+
+The full testing approach lives in `docs/test-strategy.md`.
 
 Then open `index.html` with the VS Code Live Server extension. With Live Server's
 default port, review:
@@ -31,7 +34,7 @@ If Live Server chooses another port, use the URL shown in the VS Code status bar
 
 For a final pre-PR check, review the diff too:
 
-```bash
+```powershell
 git diff --check
 git diff
 ```

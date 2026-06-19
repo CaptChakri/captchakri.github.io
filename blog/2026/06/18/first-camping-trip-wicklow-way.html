@@ -1,0 +1,1043 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="refresh" content="0; url=/blog/coming-soon.html">
+<meta name="robots" content="noindex">
+<script>window.location.replace('/blog/coming-soon.html');</script>
+<title>Coming Soon - Chakri's World</title>
+<meta name="description" content="The Wicklow Way post is still being finished. Check back soon.">
+<meta name="theme-color" content="#060B1C">
+<script>
+/* Shape the hero from the visitor's local clock, before first paint:
+   daytime (06:00–18:59) shows the sun + blue sky, otherwise moon + stars,
+   and the active body is placed along an east→zenith→west arc by the hour. */
+(function () {
+  var now = new Date();
+  var hf = now.getHours() + now.getMinutes() / 60;      // hours as a decimal
+  var isDay = hf >= 6 && hf < 19;
+  var de = document.documentElement;
+  de.dataset.tod = isDay ? 'day' : 'night';
+
+  // progress 0→1 across the body's time in the sky (day = 06→19, night = 19→06)
+  var p = isDay ? (hf - 6) / 13 : (hf >= 19 ? hf - 19 : hf + 5) / 11;
+  // x sweeps left→right; y dips low at the horizon, peaks overhead at the middle
+  var x = 150 + p * 900;
+  var y = 230 - Math.sin(p * Math.PI) * 170;
+  de.style.setProperty('--cb-x', x.toFixed(1) + 'px');
+  de.style.setProperty('--cb-y', y.toFixed(1) + 'px');
+})();
+</script>
+<link rel="canonical" href="https://captchakri.github.io/blog/coming-soon.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Coming Soon - Chakri's World">
+<meta property="og:description" content="The Wicklow Way post is still being finished. Check back soon.">
+<meta property="og:url" content="https://captchakri.github.io/blog/coming-soon.html">
+<meta property="og:site_name" content="Chakri's World">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Coming Soon - Chakri's World">
+<meta name="twitter:description" content="The Wicklow Way post is still being finished. Check back soon.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Spectral:ital,wght@0,400;0,500;0,600;1,400;1,500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+<style>
+/* =====================================================================
+   FIELD NOTES — a self-contained camping journal theme.
+   Deliberately independent of the site's shared theme.css / theme.js so
+   the post is robust (no scroll-reveal machinery, no starfield) and
+   reads beautifully on a phone first.
+   ===================================================================== */
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  /* Night-sky palette — cool navy + cyan, matched to the portfolio home */
+  --night:   #060B1C;   /* page base, deep navy */
+  --panel:   #0C1428;   /* reading surface */
+  --panel2:  #16223f;   /* raised chips / cards */
+  --ink:     #F0F5FF;   /* primary text */
+  --ink-dim: #CDD8EE;   /* secondary text */
+  --muted:   #7A88A8;   /* meta / captions */
+  --line:    rgba(0,200,240,0.15);
+  --line2:   rgba(0,200,240,0.28);
+  --ember:   #00C8F0;   /* cyan — primary accent */
+  --ember-d: #00A6C8;
+  --moss:    #FF8FB8;   /* pink — secondary accent */
+  --sky-top: #060B1C;
+  --sky-mid: #16223f;
+  --sky-low: #25406e;
+}
+
+html { -webkit-text-size-adjust: 100%; }
+body {
+  font-family: 'Spectral', Georgia, serif;
+  color: var(--ink);
+  background: var(--night);
+  line-height: 1.8;
+  font-size: 19px;
+  overflow-x: hidden;
+}
+/* warm ambient glow over the base, no starfield */
+body::before {
+  content: ''; position: fixed; inset: 0; z-index: -2; pointer-events: none;
+  background:
+    radial-gradient(80% 50% at 78% 0%, rgba(0,200,240,0.10), transparent 60%),
+    radial-gradient(70% 45% at 0% 80%, rgba(255,143,184,0.05), transparent 60%),
+    var(--night);
+}
+::selection { background: rgba(0,200,240,0.28); color: #fff; }
+img { max-width: 100%; display: block; }
+a { color: var(--ember); }
+
+/* ===================== TOP BAR ===================== */
+.topbar {
+  position: sticky; top: 0; z-index: 50;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0.85rem 1.25rem;
+  background: rgba(6,11,28,0.78);
+  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--line);
+}
+.brand {
+  font-family: 'Space Grotesk', sans-serif; font-weight: 700;
+  font-size: 1.1rem; color: var(--ink); text-decoration: none; letter-spacing: -0.02em;
+}
+.brand span { color: var(--ember); }
+.topbar .back {
+  font-family: 'JetBrains Mono', monospace; font-size: 0.78rem;
+  color: var(--ink-dim); text-decoration: none;
+  display: inline-flex; align-items: center; gap: 0.45rem;
+  min-height: 44px; padding: 0 0.2rem;
+}
+.topbar .back:hover { color: var(--ember); }
+
+/* ===================== HERO ===================== */
+.hero { position: relative; }
+.hero-art { position: relative; width: 100%; height: clamp(260px, 46vw, 460px); overflow: hidden; }
+.hero-art svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+/* fade the illustration into the page base at the bottom */
+.hero-art::after {
+  content: ''; position: absolute; left: 0; right: 0; bottom: -1px; height: 42%;
+  background: linear-gradient(to bottom, transparent, var(--night));
+}
+@keyframes flicker { 0%,100% { opacity: 0.85; } 50% { opacity: 1; } }
+.fire-glow { transform-origin: center; animation: flicker 2.8s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .fire-glow { animation: none; } }
+
+/* time-of-day: moon + stars by night, sun + blue sky by day.
+   `data-tod` is set on <html> from the visitor's local clock (see head
+   script); with no JS we fall through to the night scene below. */
+.hero-art .sky-day,
+.hero-art .sun { opacity: 0; }
+/* sun + moon ride the same arc; the head script sets --cb-x/--cb-y from the
+   clock. Falls back to the static top-right spot (matching the SVG attr). */
+.hero-art .sun,
+.hero-art .moon {
+  transform-box: view-box; transform-origin: 0 0;
+  transform: translate(var(--cb-x, 940px), var(--cb-y, 120px));
+}
+html[data-tod="day"] .hero-art .sky-day,
+html[data-tod="day"] .hero-art .sun { opacity: 1; }
+html[data-tod="day"] .hero-art .moon,
+html[data-tod="day"] .hero-art .stars { opacity: 0; }
+/* daylight repaints the ranges with atmospheric haze (distant = palest)
+   so they read as layered hills, not a dark shore against water. */
+html[data-tod="day"] .hero-art .range-far  { fill: #8fb0d2; }
+html[data-tod="day"] .hero-art .range-mid  { fill: #5d83aa; }
+html[data-tod="day"] .hero-art .range-near { fill: #3c5a4f; }
+html[data-tod="day"] .hero-art .ground     { fill: #2b4133; }
+html[data-tod="day"] .hero-art .pines      { fill: #1b2e23; }
+@media (prefers-reduced-motion: no-preference) {
+  .hero-art .sky-day,
+  .hero-art .sun,
+  .hero-art .moon,
+  .hero-art .stars { transition: opacity 1.1s ease; }
+  .hero-art .range-far,
+  .hero-art .range-mid,
+  .hero-art .range-near,
+  .hero-art .ground,
+  .hero-art .pines { transition: fill 1.1s ease; }
+}
+
+.hero-head {
+  max-width: 760px; margin: 0 auto; padding: 0 1.25rem;
+  position: relative; margin-top: -2.4rem; z-index: 2;
+}
+.eyebrow {
+  font-family: 'JetBrains Mono', monospace; font-size: 0.74rem;
+  letter-spacing: 0.16em; text-transform: uppercase; color: var(--ember);
+  display: flex; align-items: center; gap: 0.6rem;
+}
+.eyebrow::before {
+  content: ''; width: 22px; height: 1px; background: var(--ember); display: inline-block;
+}
+.title {
+  font-family: 'Space Grotesk', sans-serif; font-weight: 700;
+  font-size: clamp(2rem, 7.5vw, 3.3rem); line-height: 1.08; letter-spacing: -0.025em;
+  color: var(--ink); margin: 0.7rem 0 0.9rem; text-wrap: balance;
+}
+.meta {
+  font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; color: var(--muted);
+  display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem 0.8rem;
+}
+.meta .dot-sep { color: var(--line2); }
+.meta .when { color: var(--ember); }
+.tags { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1rem; }
+.tag {
+  font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; color: var(--moss);
+  border: 1px solid var(--line); border-radius: 999px; padding: 0.28rem 0.7rem;
+}
+
+/* trip-at-a-glance facts */
+.facts {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  margin: 1.4rem 0 0; border: 1px solid var(--line); border-radius: 0.7rem;
+  background: var(--panel); overflow: hidden;
+}
+.fact { padding: 0.85rem 0.9rem; }
+.fact + .fact { border-left: 1px solid var(--line); }
+.fact .n { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 1.5rem; color: var(--ember); line-height: 1.1; }
+.fact .l { font-family: 'JetBrains Mono', monospace; font-size: 0.64rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-top: 0.2rem; }
+
+/* ===================== LAYOUT ===================== */
+.wrap { max-width: 760px; margin: 0 auto; padding: 2.4rem 1.25rem 4rem; }
+
+/* mobile contents card */
+.toc-card {
+  border: 1px solid var(--line); border-radius: 0.7rem; background: var(--panel);
+  padding: 0.4rem 0.6rem; margin: 0 0 2.2rem;
+}
+.toc-card summary {
+  list-style: none; cursor: pointer; display: flex; align-items: center; gap: 0.6rem;
+  font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--ember); padding: 0.6rem 0.5rem; min-height: 44px;
+}
+.toc-card summary::-webkit-details-marker { display: none; }
+.toc-card summary .chev { margin-left: auto; transition: transform 0.2s ease; }
+.toc-card[open] summary .chev { transform: rotate(90deg); }
+.toc-card ol { list-style: none; padding: 0 0 0.4rem; margin: 0; counter-reset: t; }
+.toc-card li { counter-increment: t; }
+.toc-card a {
+  display: flex; align-items: center; gap: 0.7rem; min-height: 44px; padding: 0 0.5rem;
+  color: var(--ink-dim); text-decoration: none; font-family: 'Spectral', serif; font-size: 0.98rem;
+}
+.toc-card a::before {
+  content: counter(t, decimal-leading-zero); font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem; color: var(--ember); flex: none;
+}
+.toc-card a:hover { color: var(--ink); }
+
+/* desktop sticky sidebar TOC */
+.side-toc { display: none; }
+
+/* ===================== ARTICLE TYPE ===================== */
+.lead { font-size: 1.18rem; color: var(--ink); }
+.lead .drop {
+  float: left; font-family: 'Space Grotesk', sans-serif; font-weight: 700;
+  font-size: 3.3rem; line-height: 0.82; color: var(--ember);
+  margin: 0.32rem 0.6rem 0 0;
+}
+article p { margin: 0 0 1.3rem; color: var(--ink-dim); }
+article p strong { color: var(--ink); font-weight: 600; }
+article em { color: var(--muted); }
+article a { text-decoration-color: rgba(0,200,240,0.4); text-underline-offset: 3px; }
+
+h2 {
+  font-family: 'Space Grotesk', sans-serif; font-weight: 600; color: var(--ink);
+  font-size: clamp(1.45rem, 4.5vw, 1.85rem); line-height: 1.2; letter-spacing: -0.015em;
+  margin: 2.8rem 0 1rem; padding-left: 0.95rem; position: relative; scroll-margin-top: 80px;
+}
+h2::before {
+  content: ''; position: absolute; left: 0; top: 0.18em; bottom: 0.18em; width: 3px;
+  border-radius: 2px; background: linear-gradient(var(--ember), var(--moss));
+}
+
+blockquote {
+  margin: 1.8rem 0; padding: 0.2rem 0 0.2rem 1.4rem;
+  border-left: 3px solid var(--ember);
+  font-size: 1.3rem; line-height: 1.5; font-style: italic; color: var(--ink);
+  font-weight: 500;
+}
+
+/* author prompt — visible note marking content still to be written */
+.todo {
+  display: block; margin: 1.2rem 0; padding: 0.7rem 1rem;
+  border: 1px dashed var(--line2); border-radius: 0.6rem; background: rgba(255,143,184,0.05);
+  font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; line-height: 1.6;
+  color: var(--moss); font-style: normal;
+}
+.todo b { color: var(--ink); }
+
+/* photo placeholders */
+figure { margin: 1.8rem 0; }
+.photo-ph {
+  width: 100%; aspect-ratio: 3 / 2; border-radius: 0.7rem;
+  border: 1px dashed var(--line2);
+  background:
+    repeating-linear-gradient(45deg, rgba(0,200,240,0.045) 0 14px, transparent 14px 28px),
+    var(--panel);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 0.55rem; color: var(--muted);
+}
+.photo-ph svg { width: 30px; height: 30px; stroke: var(--muted); fill: none; stroke-width: 1.5; }
+.photo-ph .lbl { font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; letter-spacing: 0.06em; }
+figcaption { font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; color: var(--muted); margin-top: 0.6rem; text-align: center; }
+
+/* day meta chips */
+.day-meta {
+  display: flex; flex-wrap: wrap; gap: 0.55rem 0.7rem; margin: 0 0 0.4rem;
+}
+.day-meta span {
+  display: inline-flex; align-items: center; gap: 0.45rem;
+  font-family: 'JetBrains Mono', monospace; font-size: 0.74rem; color: var(--ink-dim);
+  background: var(--panel2); border: 1px solid var(--line); border-radius: 999px;
+  padding: 0.32rem 0.75rem;
+}
+.day-meta svg { width: 14px; height: 14px; stroke: var(--ember); fill: none; stroke-width: 1.6; }
+
+/* ===================== TIMELINE ===================== */
+.timeline { list-style: none; padding: 0; margin: 1.4rem 0 0; position: relative; }
+.timeline::before {
+  content: ''; position: absolute; left: 7px; top: 8px; bottom: 8px; width: 2px;
+  background: linear-gradient(var(--ember), var(--line) 12%, var(--line) 88%, var(--moss));
+}
+.tl-item { position: relative; padding: 0 0 1.8rem 2rem; }
+.tl-item:last-child { padding-bottom: 0; }
+.tl-item::before {
+  content: ''; position: absolute; left: 1px; top: 6px; width: 14px; height: 14px;
+  border-radius: 50%; background: var(--night); border: 2px solid var(--ember);
+}
+.tl-time {
+  font-family: 'JetBrains Mono', monospace; font-size: 0.74rem; color: var(--ember);
+  letter-spacing: 0.04em; margin-bottom: 0.25rem;
+}
+.tl-item h4 {
+  font-family: 'Space Grotesk', sans-serif; font-weight: 600; color: var(--ink);
+  font-size: 1.08rem; margin: 0 0 0.35rem;
+}
+.tl-item p { margin: 0; color: var(--ink-dim); font-size: 0.98rem; line-height: 1.7; }
+.tl-res {
+  display: inline-flex; align-items: center; gap: 0.45rem; margin-top: 0.7rem; min-height: 38px;
+  font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; color: var(--ember);
+  text-decoration: none; border: 1px solid var(--line); border-radius: 0.5rem; padding: 0.3rem 0.7rem;
+}
+.tl-res:hover { background: var(--panel2); border-color: var(--ember); }
+.tl-res svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 1.6; }
+
+/* ===================== GEAR CHECKLIST ===================== */
+.gear { margin: 1.6rem 0; border: 1px solid var(--line); border-radius: 0.8rem; background: var(--panel); overflow: hidden; }
+.gear-head {
+  display: flex; align-items: center; gap: 0.6rem; padding: 0.9rem 1.1rem;
+  border-bottom: 1px solid var(--line);
+  font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--ember);
+}
+.gear-head .cnt { margin-left: auto; color: var(--muted); }
+.gear ul { list-style: none; padding: 0.5rem 0.5rem; margin: 0; display: grid; grid-template-columns: 1fr; gap: 0.1rem 0.8rem; }
+.gear li { margin: 0; }
+.gear label {
+  display: flex; align-items: center; gap: 0.7rem; cursor: pointer; min-height: 46px;
+  padding: 0.3rem 0.55rem; border-radius: 0.5rem; color: var(--ink); font-size: 0.98rem;
+}
+.gear label:active { background: var(--panel2); }
+.gear input { position: absolute; opacity: 0; pointer-events: none; }
+.gear .box { flex: none; width: 20px; height: 20px; border-radius: 0.4rem; border: 1.5px solid var(--line2); display: grid; place-items: center; transition: all 0.16s ease; }
+.gear .box svg { width: 13px; height: 13px; stroke: var(--night); stroke-width: 3; fill: none; opacity: 0; transition: opacity 0.16s ease; }
+.gear input:checked + .box { background: var(--ember); border-color: var(--ember); }
+.gear input:checked + .box svg { opacity: 1; }
+.gear input:checked ~ .txt { color: var(--muted); text-decoration: line-through; text-decoration-color: var(--line2); }
+.gear .mvp { color: var(--ember); font-family: 'JetBrains Mono', monospace; font-size: 0.62rem; letter-spacing: 0.08em; border: 1px solid var(--line2); border-radius: 999px; padding: 0.05rem 0.45rem; margin-left: auto; }
+
+/* ===================== TIPS ===================== */
+.tips { list-style: none; padding: 0; margin: 1.4rem 0; counter-reset: tip; }
+.tips li { position: relative; padding: 0 0 0 2.8rem; margin: 0 0 1.2rem; counter-increment: tip; color: var(--ink-dim); }
+.tips li::before {
+  content: counter(tip, decimal-leading-zero); position: absolute; left: 0; top: 0.15rem;
+  font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; color: var(--ember);
+  border: 1px solid var(--line); border-radius: 0.4rem; padding: 0.1rem 0.45rem; line-height: 1.4;
+}
+.tips strong { color: var(--ink); font-weight: 600; }
+
+.post-foot { margin-top: 2.6rem; padding-top: 1.6rem; border-top: 1px solid var(--line); }
+.post-foot a { font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; color: var(--ember); text-decoration: none; display: inline-flex; align-items: center; gap: 0.5rem; min-height: 44px; }
+
+footer { text-align: center; padding: 2rem 1.25rem; font-family: 'JetBrains Mono', monospace; font-size: 0.76rem; color: var(--muted); border-top: 1px solid var(--line); }
+footer a { color: var(--muted); }
+footer a:hover { color: var(--ember); }
+
+/* gentle, one-shot entrance — content is visible by default if anything fails */
+@media (prefers-reduced-motion: no-preference) {
+  .fade { animation: fadeUp 0.7s ease both; }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+}
+
+/* ===================== DESKTOP ===================== */
+@media (min-width: 1080px) {
+  .layout { display: grid; grid-template-columns: 200px 1fr; gap: 3.5rem; max-width: 1040px; margin: 0 auto; padding: 2.8rem 1.5rem 5rem; align-items: start; }
+  .wrap { max-width: none; margin: 0; padding: 0; }
+  .toc-card { display: none; }
+  .side-toc { display: block; position: sticky; top: 96px; }
+  .side-toc .h { font-family: 'JetBrains Mono', monospace; font-size: 0.64rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted); margin-bottom: 0.9rem; }
+  .side-toc ol { list-style: none; padding: 0; margin: 0; counter-reset: s; display: flex; flex-direction: column; }
+  .side-toc li { counter-increment: s; }
+  .side-toc a { display: flex; gap: 0.6rem; padding: 0.4rem 0; color: var(--muted); text-decoration: none; font-family: 'JetBrains Mono', monospace; font-size: 0.76rem; line-height: 1.4; transition: color 0.18s ease; }
+  .side-toc a::before { content: counter(s, decimal-leading-zero); color: var(--line2); }
+  .side-toc a:hover, .side-toc a.active { color: var(--ember); }
+  .side-toc a.active::before { color: var(--ember); }
+  .article-max { max-width: 680px; }
+}
+
+@media (min-width: 600px) {
+  .gear ul { grid-template-columns: 1fr 1fr; }
+}
+
+/* =====================================================================
+   BLENDED SITE DNA — signature elements from the portfolio home,
+   recoloured to the campfire palette and gated on `body.motion` so
+   no-JS and reduced-motion always render the finished, visible state.
+   ===================================================================== */
+
+/* ambient canvas: faint warm stars + embers drifting up, behind content */
+#emberfield { position: fixed; inset: 0; z-index: -1; pointer-events: none; }
+
+/* scroll progress — ember→moss (home uses cyan→pink) */
+#post-progress {
+  position: fixed; top: 0; left: 0; height: 2px; width: 0%;
+  background: linear-gradient(90deg, var(--ember), var(--moss));
+  box-shadow: 0 0 10px rgba(0,200,240,0.5); z-index: 60;
+}
+
+/* trailing custom cursor (desktop, fine pointer only) */
+#cursor-dot, #cursor-ring { display: none; }
+@media (hover: hover) and (pointer: fine) {
+  #cursor-dot {
+    display: block; position: fixed; z-index: 999; pointer-events: none;
+    width: 6px; height: 6px; border-radius: 50%; background: var(--ember);
+    transform: translate(-50%, -50%);
+  }
+  #cursor-ring {
+    display: block; position: fixed; z-index: 999; pointer-events: none;
+    width: 32px; height: 32px; border-radius: 50%;
+    border: 1px solid rgba(0,200,240,0.45);
+    transform: translate(-50%, -50%);
+    transition: width .25s, height .25s, border-color .25s, background .25s;
+  }
+  body.cursor-hover #cursor-ring {
+    width: 54px; height: 54px;
+    border-color: rgba(255,143,184,0.6);
+    background: rgba(0,200,240,0.06);
+  }
+}
+
+/* fluid scroll-reveal */
+body.motion .reveal { opacity: 0; transform: translateY(26px); filter: blur(5px); will-change: opacity, transform; }
+body.motion .reveal.in {
+  opacity: 1; transform: translateY(0); filter: blur(0);
+  transition: opacity .8s cubic-bezier(.2,.8,.2,1),
+              transform .8s cubic-bezier(.2,.8,.2,1),
+              filter .8s cubic-bezier(.2,.8,.2,1);
+}
+
+/* title rises word-by-word (mirrors the home hero headline) */
+body.motion .title .w { display: inline-block; opacity: 0; transform: translateY(38px) rotate(2deg); filter: blur(6px); }
+body.motion .title .w.show { animation: wordRise .7s cubic-bezier(.2,.8,.2,1) forwards; }
+@keyframes wordRise { to { opacity: 1; transform: translateY(0) rotate(0); filter: blur(0); } }
+
+/* timelines draw their spine and pop their dots when scrolled into view */
+body.motion .timeline::before { transform: scaleY(0); transform-origin: top; }
+body.motion .timeline.draw::before { animation: tlDraw 1.3s cubic-bezier(.65,0,.35,1) forwards; }
+@keyframes tlDraw { to { transform: scaleY(1); } }
+body.motion .timeline .tl-item::before { transform: scale(0); }
+body.motion .timeline.draw .tl-item::before { animation: dotPop .55s cubic-bezier(.34,1.56,.64,1) var(--d, 0s) forwards; }
+@keyframes dotPop { to { transform: scale(1); } }
+
+/* ===================== CROSS-PAGE TRANSITIONS =====================
+   Opt in to cross-document view transitions (must match the rest of the
+   site). Background + chrome crossfade; the hero title gets a named
+   morph so it flies up out of the blog card it was clicked from. */
+@view-transition { navigation: auto; }
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 0.42s;
+  animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+::view-transition-old(root) { animation-name: vtFadeOut; }
+::view-transition-new(root) { animation-name: vtFadeIn; }
+@keyframes vtFadeOut { to { opacity: 0; } }
+@keyframes vtFadeIn { from { opacity: 0; } }
+::view-transition-group(post-title) {
+  animation-duration: 0.55s;
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+/* in-page TOC jumps glide instead of snapping */
+@media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+/* arrived via a cross-page transition: render fully-formed so the morph
+   lands on a finished hero instead of a cold, empty one */
+html.vt-in .title .w { opacity: 1 !important; transform: none !important; filter: none !important; animation: none !important; }
+html.vt-in .hero-head.fade { animation: none !important; }
+html.vt-in .reveal { opacity: 1 !important; transform: none !important; filter: none !important; }
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root), ::view-transition-new(root) { animation: none; }
+}
+</style>
+</head>
+<body>
+
+<canvas id="emberfield" aria-hidden="true"></canvas>
+<div id="post-progress" aria-hidden="true"></div>
+<div id="cursor-ring" aria-hidden="true"></div>
+<div id="cursor-dot" aria-hidden="true"></div>
+
+<header class="topbar">
+  <a href="/" class="brand">CK<span>.</span></a>
+  <a href="/blog/" class="back">← all posts</a>
+</header>
+
+<div class="hero">
+  <div class="hero-art" aria-hidden="true">
+    <svg viewBox="0 0 1200 460" preserveAspectRatio="xMidYMid slice">
+      <defs>
+        <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#060B1C"/>
+          <stop offset="45%" stop-color="#0c1430"/>
+          <stop offset="75%" stop-color="#16223f"/>
+          <stop offset="100%" stop-color="#25406e"/>
+        </linearGradient>
+        <radialGradient id="moonglow" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="rgba(210,235,255,0.5)"/>
+          <stop offset="100%" stop-color="rgba(210,235,255,0)"/>
+        </radialGradient>
+        <!-- daytime sky + sun, revealed when html[data-tod="day"] -->
+        <linearGradient id="skyDay" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#3f7cb6"/>
+          <stop offset="48%" stop-color="#6ea2cf"/>
+          <stop offset="80%" stop-color="#a6cae4"/>
+          <stop offset="100%" stop-color="#d7e8f3"/>
+        </linearGradient>
+        <radialGradient id="sunglow" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="rgba(255,223,140,0.9)"/>
+          <stop offset="55%" stop-color="rgba(255,201,110,0.28)"/>
+          <stop offset="100%" stop-color="rgba(255,201,110,0)"/>
+        </radialGradient>
+        <radialGradient id="fire" cx="50%" cy="60%" r="50%">
+          <stop offset="0%" stop-color="rgba(0,200,240,0.85)"/>
+          <stop offset="45%" stop-color="rgba(0,200,240,0.32)"/>
+          <stop offset="100%" stop-color="rgba(0,200,240,0)"/>
+        </radialGradient>
+      </defs>
+      <rect width="1200" height="460" fill="url(#sky)"/>
+      <!-- daytime sky overlay (hidden at night) -->
+      <rect class="sky-day" width="1200" height="460" fill="url(#skyDay)"/>
+      <!-- sun (day) — JS positions it along the daytime arc -->
+      <g class="sun" transform="translate(940 120)">
+        <circle r="135" fill="url(#sunglow)"/>
+        <circle r="44" fill="#FFD66B"/>
+      </g>
+      <!-- moon (night) — JS positions it along the nighttime arc -->
+      <g class="moon" transform="translate(940 120)">
+        <circle r="120" fill="url(#moonglow)"/>
+        <circle r="46" fill="#DCEBFF"/>
+      </g>
+      <!-- stars (night) -->
+      <g class="stars" fill="#DCEBFF" opacity="0.7">
+        <circle cx="180" cy="80" r="1.6"/><circle cx="320" cy="140" r="1.2"/>
+        <circle cx="520" cy="70" r="1.4"/><circle cx="680" cy="150" r="1.1"/>
+        <circle cx="1080" cy="60" r="1.5"/><circle cx="1140" cy="180" r="1.2"/>
+        <circle cx="60" cy="160" r="1.3"/><circle cx="420" cy="40" r="1.1"/>
+      </g>
+      <!-- far range -->
+      <path class="range-far" fill="#2c2f4d" d="M0 300 L160 210 L320 290 L470 200 L640 285 L820 195 L980 280 L1130 215 L1200 265 L1200 460 L0 460 Z"/>
+      <!-- mid range -->
+      <path class="range-mid" fill="#242540" d="M0 340 L180 250 L360 330 L540 245 L720 325 L900 250 L1080 335 L1200 285 L1200 460 L0 460 Z"/>
+      <!-- near hills -->
+      <path class="range-near" fill="#1a1b30" d="M0 390 L220 320 L430 385 L640 315 L860 388 L1060 330 L1200 380 L1200 460 L0 460 Z"/>
+      <!-- foreground with pines -->
+      <path class="ground" fill="#12121f" d="M0 420 L1200 420 L1200 460 L0 460 Z"/>
+      <g class="pines" fill="#12121f">
+        <path d="M120 420 L135 372 L150 420 Z"/><path d="M150 420 L165 360 L180 420 Z"/>
+        <path d="M1010 420 L1025 366 L1040 420 Z"/><path d="M1040 420 L1058 352 L1076 420 Z"/>
+        <path d="M1080 420 L1092 380 L1104 420 Z"/>
+      </g>
+      <!-- campfire glow + flame + tent, centred -->
+      <ellipse class="fire-glow" cx="600" cy="418" rx="120" ry="60" fill="url(#fire)"/>
+      <path d="M590 422 Q600 398 610 422 Q604 410 600 422 Q596 410 590 422 Z" fill="#7FE6FF"/>
+      <!-- tent -->
+      <g transform="translate(470 372)">
+        <path d="M0 50 L34 0 L68 50 Z" fill="#15151f"/>
+        <path d="M34 0 L40 50 L28 50 Z" fill="#0d0d16"/>
+        <path d="M30 50 L34 28 L38 50 Z" fill="url(#fire)"/>
+      </g>
+    </svg>
+  </div>
+
+  <div class="hero-head fade">
+    <div class="eyebrow">The Wicklow Way · Marlay Park → Glendalough</div>
+    <h1 class="title">The Wicklow Way: Part - 1</h1>
+    <div class="meta">
+      <span class="when">Jun 18, 2026</span>
+      <span class="dot-sep">·</span>
+      <span>8 min read</span>
+      <span class="dot-sep">·</span>
+      <span>Dublin → Co. Wicklow, Ireland</span>
+    </div>
+    <div class="tags">
+      <span class="tag">camping</span>
+      <span class="tag">hiking</span>
+      <span class="tag">ireland</span>
+      <span class="tag">gear</span>
+    </div>
+
+    <div class="facts">
+      <div class="fact"><div class="n">~50<span style="font-size:0.9rem"> km</span></div><div class="l">walked</div></div>
+      <div class="fact"><div class="n">2</div><div class="l">days on trail</div></div>
+      <div class="fact"><div class="n">~20<span style="font-size:0.9rem"> kg</span></div><div class="l">on my back</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="layout">
+
+  <nav class="side-toc" aria-label="Contents">
+    <div class="h">On this trail</div>
+    <ol>
+      <li><a href="#prep">A year in the making</a></li>
+      <li><a href="#day1">Day 1 — the chaotic start</a></li>
+      <li><a href="#day2">Day 2 — the perfect pitch</a></li>
+      <li><a href="#gear">What was on my back</a></li>
+      <li><a href="#tips">What I'd do differently</a></li>
+      <li><a href="#next">What's next</a></li>
+    </ol>
+  </nav>
+
+  <div class="wrap">
+   <div class="article-max">
+
+    <details class="toc-card">
+      <summary>On this trail <span class="chev">›</span></summary>
+      <ol>
+        <li><a href="#prep">A year in the making</a></li>
+        <li><a href="#day1">Day 1 — the chaotic start</a></li>
+        <li><a href="#day2">Day 2 — the perfect pitch</a></li>
+        <li><a href="#gear">What was on my back</a></li>
+        <li><a href="#tips">What I'd do differently</a></li>
+        <li><a href="#next">What's next</a></li>
+      </ol>
+    </details>
+
+    <article>
+      <p class="lead"><span class="drop">W</span>e started at <strong>12:16</strong>.
+      Not 10:00, the way it said in the plan I'd been refining for the better part
+      of a year — 12:16, after my friend's bus simply never showed up, and after
+      we admitted there was no dignified way to wrestle two roughly 20 kg packs
+      onto public transport and just called a cab to the trailhead. That's how my
+      first-ever multi-day hike began last August: two hours behind schedule,
+      slightly embarrassed, and buzzing anyway, at the edge of
+      <strong>Marlay Park</strong> with everything I'd need for three days strapped
+      to my back. We'd planned for three days. We did it in two.</p>
+
+      <h2 id="prep">A year in the making</h2>
+      <p>This trip was a year in the planning, and you could see it in my Amazon
+      order history. Tucked into an order for phone chargers and dish soap, there'd
+      be a <strong>camping trowel</strong>. After that, I started judging every
+      purchase by a single question: <em>is this camping-compatible?</em> A year of
+      buying the trip one small, justifiable item at a time — and then, with all
+      that patience, I left the big three until the very last minute.</p>
+
+      <ol class="timeline">
+        <li class="tl-item">
+          <div class="tl-time">All year</div>
+          <h4>Sneaking gear into Amazon orders</h4>
+          <p>The trowel was the first sneak-in — the moment camping went from
+          "someday" to a thing I was quietly assembling, one order at a time.</p>
+        </li>
+        <li class="tl-item">
+          <div class="tl-time">The week before</div>
+          <h4>Panic-buying the big three</h4>
+          <p>A year of trowels, and the tent, sleeping bag, and pad — the things
+          I'd actually sleep in — came down to a last-week scramble. I also paid
+          for an AllTrails subscription just for this trip.</p>
+          <a class="tl-res" href="https://www.alltrails.com/" target="_blank" rel="noopener"><svg viewBox="0 0 24 24"><path d="M9 20l-5.5 2.5v-15L9 5m0 15l6-2.5M9 20V5m6 12.5L20.5 20v-15L15 7.5m0 10V7.5m0 0L9 5"/></svg> AllTrails · worth it</a>
+        </li>
+        <li class="tl-item">
+          <div class="tl-time">The night before</div>
+          <h4>Test-pitching the tent in my living room</h4>
+          <p>The night I bought the NEMO, I pitched it on my living-room floor just
+          to see how it went together. Best ten minutes I spent on the whole trip —
+          more on why later.</p>
+          <a class="tl-res" href="#gear"><svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg> Jump to the full kit</a>
+        </li>
+      </ol>
+
+      <h2 id="day1">Day 1 — the chaotic start</h2>
+      <div class="day-meta">
+        <span><svg viewBox="0 0 24 24"><path d="M3 17l5-6 4 4 3-4 6 6"/><circle cx="8" cy="8" r="1.6"/></svg> Marlay Park → Glencree</span>
+        <span><svg viewBox="0 0 24 24"><path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7z"/><circle cx="12" cy="9" r="2.4"/></svg> ~20 km before dark</span>
+        <span><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg> started 12:16</span>
+      </div>
+
+      <ol class="timeline">
+        <li class="tl-item">
+          <div class="tl-time">10:00 (the plan)</div>
+          <h4>The start that wasn't</h4>
+          <p>We were supposed to be moving by 10:00. Instead I watched a bus-tracker
+          insist a bus was "due" while my friend stood at a stop where no bus came.</p>
+        </li>
+        <li class="tl-item">
+          <div class="tl-time">12:16</div>
+          <h4>Marlay Park, finally</h4>
+          <p>Fully loaded, the packs made the decision for us — too heavy to haul
+          across the city by transit, so a cab to the trailhead it was. Not the
+          rugged opening montage I'd pictured. The mood didn't dip for a second.</p>
+        </li>
+        <li class="tl-item">
+          <div class="tl-time">Afternoon</div>
+          <h4>Into Glencree — and out of water</h4>
+          <p>I'd carried <strong>3 litres</strong> each in Decathlon bladders. I
+          drank all of it, by midday. We refilled on the shore of the Glencree
+          river and filtered with a <strong>Sawyer Mini</strong> — a great filter
+          with a maddening workflow: squeezing water into a wide-mouth bladder was
+          slow, fiddly, and left my hands wet and my patience thin.</p>
+        </li>
+        <li class="tl-item">
+          <div class="tl-time">Evening</div>
+          <h4>Making camp, the hard way</h4>
+          <p>We pitched in the woods near the river. The ground was weeds, cones,
+          and sharp sticks, and finding a patch flat and dry enough to sleep on was
+          real graft. The tent, at least, went up without drama — that living-room
+          practice run paid for itself in fading light.</p>
+        </li>
+        <li class="tl-item">
+          <div class="tl-time">~21:30</div>
+          <h4>Wet-wood fire and 9:30 Maggi</h4>
+          <p>My friend gathered the dampest wood in Wicklow; it took many tries to
+          light. Dinner was <strong>Maggi</strong> on the stove at around 9:30 pm,
+          possibly the best Maggi of my life — the bar for camp food is gloriously
+          low. Then I crawled into the bag and slept like a baby.</p>
+        </li>
+      </ol>
+
+      <blockquote>Three litres each, gone by midday. The hills don't care how
+      confident you felt at the trailhead.</blockquote>
+
+      <figure>
+        <div class="photo-ph">
+          <svg viewBox="0 0 24 24"><path d="M3 17l5-6 4 4 3-4 6 6"/><circle cx="8" cy="8" r="2"/><rect x="2" y="3" width="20" height="18" rx="2"/></svg>
+          <span class="lbl">PHOTO — first camp near the Glencree river</span>
+        </div>
+        <figcaption>A wide shot of the pitched tent or the river refill works well here.</figcaption>
+      </figure>
+
+      <h2 id="day2">Day 2 — the perfect pitch</h2>
+      <div class="day-meta">
+        <span><svg viewBox="0 0 24 24"><path d="M3 17l5-6 4 4 3-4 6 6"/><circle cx="8" cy="8" r="1.6"/></svg> Glencree → Glendalough</span>
+        <span><svg viewBox="0 0 24 24"><path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7z"/><circle cx="12" cy="9" r="2.4"/></svg> scenic high routes</span>
+        <span><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg> tired legs, 20 kg</span>
+      </div>
+
+      <ol class="timeline">
+        <li class="tl-item">
+          <div class="tl-time">Early</div>
+          <h4>Two dogs and a revelation</h4>
+          <p>I woke to two dogs playing right outside the tent — lovely, until you
+          realise dogs mean people, and people mean a proper pitch was nearby all
+          along. A few steps away: flat, clear ground and a real fire ring someone
+          had already built. Everything we'd fought for the night before, sitting
+          there ready.</p>
+        </li>
+        <li class="tl-item">
+          <div class="tl-time">Morning</div>
+          <h4>The plan: just double it</h4>
+          <p>We'd knocked out around 20 km in <em>half</em> a day on day one, so we
+          figured we'd simply double it — reach Glendalough by evening and catch
+          the first bus back to Dublin. Energy bars for breakfast, off as early as
+          we could.</p>
+        </li>
+        <li class="tl-item">
+          <div class="tl-time">Midday</div>
+          <h4>Chasing the scenic routes</h4>
+          <p>Then AllTrails started whispering. Every scenic alternative — a high
+          route with a better view — we took. More distance, more elevation, more
+          climbing on legs no longer running on adrenaline. And every single time,
+          it was worth it.</p>
+        </li>
+        <li class="tl-item">
+          <div class="tl-time">— to write —</div>
+          <h4>The people</h4>
+          <p class="todo"><b>Section to write (the heart of the post):</b> you said
+          the warmth of the people you met on the trail was the best part of the
+          whole trip. Give me one specific person or encounter — who they were,
+          what was said, why it stuck — and I'll write it in here.</p>
+        </li>
+        <li class="tl-item">
+          <div class="tl-time">— to write —</div>
+          <h4>Reaching Glendalough</h4>
+          <p class="todo"><b>Section to write:</b> arriving at Glendalough — the
+          finish, the feeling, the payoff — plus why three planned days became two,
+          and whether the early-bus-back plan actually worked.</p>
+        </li>
+      </ol>
+
+      <h2 id="gear">What was on my back</h2>
+      <p>Roughly 20 kg each, before food and water (and a litre of water is a kilo,
+      which adds up fast). Here's the kit that went in — tick along as you pack
+      your own. Note the one line at the bottom I drew in the wrong place.</p>
+
+      <div class="gear">
+        <div class="gear-head"><span>The loadout</span><span class="cnt" data-gear-count>0 / 12 packed</span></div>
+        <ul>
+          <li><label><input type="checkbox" data-gear><span class="box"><svg viewBox="0 0 24 24" stroke="currentColor"><path d="M5 13l4 4L19 7"/></svg></span><span class="txt">NEMO 2-person tent</span></label></li>
+          <li><label><input type="checkbox" data-gear><span class="box"><svg viewBox="0 0 24 24" stroke="currentColor"><path d="M5 13l4 4L19 7"/></svg></span><span class="txt">Outwell Contour Lux sleeping bag</span></label></li>
+          <li><label><input type="checkbox" data-gear><span class="box"><svg viewBox="0 0 24 24" stroke="currentColor"><path d="M5 13l4 4L19 7"/></svg></span><span class="txt">NEMO Tensor insulated pad</span></label></li>
+          <li><label><input type="checkbox" data-gear><span class="box"><svg viewBox="0 0 24 24" stroke="currentColor"><path d="M5 13l4 4L19 7"/></svg></span><span class="txt">Salomon Quest 4 GTX boots</span></label></li>
+          <li><label><input type="checkbox" data-gear><span class="box"><svg viewBox="0 0 24 24" stroke="currentColor"><path d="M5 13l4 4L19 7"/></svg></span><span class="txt">Merino wool socks</span><span class="mvp">MVP</span></label></li>
+          <li><label><input type="checkbox" data-gear><span class="box"><svg viewBox="0 0 24 24" stroke="currentColor"><path d="M5 13l4 4L19 7"/></svg></span><span class="txt">Vango stove + gas</span></label></li>
+          <li><label><input type="checkbox" data-gear><span class="box"><svg viewBox="0 0 24 24" stroke="currentColor"><path d="M5 13l4 4L19 7"/></svg></span><span class="txt">Sawyer Mini water filter</span></label></li>
+          <li><label><input type="checkbox" data-gear><span class="box"><svg viewBox="0 0 24 24" stroke="currentColor"><path d="M5 13l4 4L19 7"/></svg></span><span class="txt">Decathlon 3 L water bladders</span></label></li>
+          <li><label><input type="checkbox" data-gear><span class="box"><svg viewBox="0 0 24 24" stroke="currentColor"><path d="M5 13l4 4L19 7"/></svg></span><span class="txt">Food (Maggi + a heavy Subway)</span></label></li>
+          <li><label><input type="checkbox" data-gear><span class="box"><svg viewBox="0 0 24 24" stroke="currentColor"><path d="M5 13l4 4L19 7"/></svg></span><span class="txt">Highlander first-aid kit</span></label></li>
+          <li><label><input type="checkbox" data-gear><span class="box"><svg viewBox="0 0 24 24" stroke="currentColor"><path d="M5 13l4 4L19 7"/></svg></span><span class="txt">Headlamp, knife, compass, trowel</span></label></li>
+          <li><label><input type="checkbox" data-gear><span class="box"><svg viewBox="0 0 24 24" stroke="currentColor"><path d="M5 13l4 4L19 7"/></svg></span><span class="txt">Beats Pill speaker + power bank</span></label></li>
+        </ul>
+      </div>
+
+      <p>The merino socks were the single best decision of the trip — dry, warm, no
+      hotspots, two long days in. And then the regret: I left my
+      <strong>Crocs / camp shoes</strong> at home to save ~350 g, deciding they'd
+      be "too much." Reader, they would not have been too much. They're even in the
+      photo I took of all my gear laid out before I left — they just never made it
+      into the pack.</p>
+
+      <figure>
+        <div class="photo-ph">
+          <svg viewBox="0 0 24 24"><path d="M3 17l5-6 4 4 3-4 6 6"/><circle cx="8" cy="8" r="2"/><rect x="2" y="3" width="20" height="18" rx="2"/></svg>
+          <span class="lbl">PHOTO — the gear flat-lay (Crocs included, ironically)</span>
+        </div>
+        <figcaption>The pre-trip flat-lay is perfect here — point out the Crocs that didn't make the cut.</figcaption>
+      </figure>
+
+      <h2 id="tips">What I'd do differently</h2>
+      <p>If I could pack a note into the top of that 20 kg bag before 12:16, here's
+      what it would say.</p>
+      <ol class="tips">
+        <li><strong>Bring the camp shoes.</strong> Always. The weight you save isn't worth the feet you punish at the end of a 20 km day.</li>
+        <li><strong>Merino socks are non-negotiable.</strong> Cheapest happiness per gram on the whole trip.</li>
+        <li><strong>Pitch early.</strong> Daylight buys you the good ground and the fire ring someone already built. Roll in at dusk and you get weeds and a humbling view in the morning.</li>
+        <li><strong>Sort out water.</strong> Carry more than you think, and find a filter workflow that doesn't fight you when you're refilling a bladder.</li>
+        <li><strong>Test-pitch the tent at home.</strong> Ten minutes on the living-room floor saves thirty in a dark, uneven field.</li>
+        <li><strong>Pay for AllTrails. Take the scenic route.</strong> The views you earn with an extra climb are the ones that stay with you.</li>
+      </ol>
+
+      <h2 id="next">What's next</h2>
+      <p>This was my first real night out, and it won't be the last.</p>
+      <p class="todo"><b>Closing to write:</b> once the people + Glendalough
+      sections are in, a short, honest final paragraph — what the trip actually
+      meant, and whether you'd do it again.</p>
+      <p>If you've been meaning to try a first multi-day hike, consider this your
+      nudge. <a href="/#contact">Say hello</a> if you want the exact route we took.</p>
+
+      <div class="post-foot">
+        <a href="/blog/">← Back to all posts</a>
+      </div>
+    </article>
+
+   </div>
+  </div>
+</div>
+
+<footer>© <span data-year>2026</span> Chakri · All rights reserved · <a href="/">Home</a></footer>
+
+<script>
+/* =====================================================================
+   CROSS-PAGE VIEW TRANSITION — morph the hero title to/from the blog card
+   and arrive fully-formed (skip the cold entrance) when navigated via VT.
+   Progressive enhancement: no-ops where the API is unavailable.
+   ===================================================================== */
+(function () {
+  if (!('startViewTransition' in document)) return;
+  function nameTitle() {
+    var t = document.querySelector('.title');
+    if (t) t.style.viewTransitionName = 'post-title';
+    return t;
+  }
+  window.addEventListener('pagereveal', function (e) {
+    if (!e.viewTransition) return;
+    document.documentElement.classList.add('vt-in');
+    var t = nameTitle();
+    e.viewTransition.finished.then(function () { if (t) t.style.viewTransitionName = ''; }).catch(function () {});
+  });
+  window.addEventListener('pageswap', function (e) {
+    if (e.viewTransition) nameTitle();
+  });
+})();
+
+/* gear tally */
+(function () {
+  var boxes = Array.prototype.slice.call(document.querySelectorAll('[data-gear]'));
+  var out = document.querySelector('[data-gear-count]');
+  if (!boxes.length || !out) return;
+  function update() {
+    var n = boxes.filter(function (b) { return b.checked; }).length;
+    out.textContent = n + ' / ' + boxes.length + ' packed';
+  }
+  boxes.forEach(function (b) { b.addEventListener('change', update); });
+  update();
+})();
+
+/* year */
+(function () {
+  var y = document.querySelector('[data-year]');
+  if (y) y.textContent = new Date().getFullYear();
+})();
+
+/* desktop TOC active-section highlight (progressive enhancement, no-op if unsupported) */
+(function () {
+  if (!('IntersectionObserver' in window)) return;
+  var links = Array.prototype.slice.call(document.querySelectorAll('.side-toc a'));
+  if (!links.length) return;
+  var map = {};
+  links.forEach(function (a) { map[a.getAttribute('href').slice(1)] = a; });
+  var io = new IntersectionObserver(function (entries) {
+    entries.forEach(function (e) {
+      if (e.isIntersecting) {
+        links.forEach(function (l) { l.classList.remove('active'); });
+        if (map[e.target.id]) map[e.target.id].classList.add('active');
+      }
+    });
+  }, { rootMargin: '-20% 0px -70% 0px' });
+  ['prep', 'day1', 'day2', 'gear', 'tips', 'next'].forEach(function (id) {
+    var el = document.getElementById(id);
+    if (el) io.observe(el);
+  });
+})();
+/* =====================================================================
+   BLENDED SITE DNA — motion, gated so reduced-motion / no-JS stay visible
+   ===================================================================== */
+(function () {
+  var REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* split the title into words (kept visible without .motion) */
+  var title = document.querySelector('.title');
+  if (title) {
+    var words = title.textContent.trim().split(/\s+/);
+    title.innerHTML = words.map(function (w) { return '<span class="w">' + w + '</span>'; }).join(' ');
+  }
+
+  if (REDUCED) return;
+  document.body.classList.add('motion');
+
+  /* title words rise after first paint */
+  requestAnimationFrame(function () {
+    document.querySelectorAll('.title .w').forEach(function (w, i) {
+      setTimeout(function () { w.classList.add('show'); }, 150 + i * 70);
+    });
+  });
+
+  /* scroll-reveal for article blocks */
+  var revealIO = new IntersectionObserver(function (entries) {
+    entries.forEach(function (e) {
+      if (!e.isIntersecting) return;
+      revealIO.unobserve(e.target);
+      e.target.classList.add('in');
+    });
+  }, { threshold: 0.12, rootMargin: '0px 0px -7% 0px' });
+
+  document.querySelectorAll(
+    'article > h2, article > p, article > blockquote, article > figure, article > .gear, article > .day-meta, article > .tips, article > .post-foot, .toc-card'
+  ).forEach(function (el) { el.classList.add('reveal'); revealIO.observe(el); });
+
+  document.querySelectorAll('.tips li').forEach(function (li, i) {
+    li.classList.add('reveal'); li.style.transitionDelay = (i * 0.06) + 's'; revealIO.observe(li);
+  });
+
+  /* timelines: draw the spine, stagger items + dot pops */
+  var tlIO = new IntersectionObserver(function (entries) {
+    entries.forEach(function (e) {
+      if (!e.isIntersecting) return;
+      tlIO.unobserve(e.target);
+      var tl = e.target;
+      tl.classList.add('draw');
+      tl.querySelectorAll('.tl-item').forEach(function (item, i) {
+        var d = 0.22 + i * 0.13;
+        item.style.setProperty('--d', d + 's');
+        item.classList.add('reveal');
+        item.style.transitionDelay = d + 's';
+        requestAnimationFrame(function () { item.classList.add('in'); });
+      });
+    });
+  }, { threshold: 0.12 });
+  document.querySelectorAll('.timeline').forEach(function (tl) { tlIO.observe(tl); });
+
+  /* scroll progress bar */
+  var bar = document.getElementById('post-progress');
+  if (bar) addEventListener('scroll', function () {
+    var max = document.documentElement.scrollHeight - innerHeight;
+    bar.style.width = (max > 0 ? scrollY / max * 100 : 0) + '%';
+  }, { passive: true });
+
+  /* trailing cursor */
+  (function () {
+    var dot = document.getElementById('cursor-dot'), ring = document.getElementById('cursor-ring');
+    if (!dot || !ring || !matchMedia('(hover: hover) and (pointer: fine)').matches) return;
+    var mx = -100, my = -100, rx = -100, ry = -100;
+    addEventListener('mousemove', function (e) { mx = e.clientX; my = e.clientY; });
+    (function loop() {
+      rx += (mx - rx) * 0.18; ry += (my - ry) * 0.18;
+      dot.style.left = mx + 'px'; dot.style.top = my + 'px';
+      ring.style.left = rx + 'px'; ring.style.top = ry + 'px';
+      requestAnimationFrame(loop);
+    })();
+    document.querySelectorAll('a, button, label, summary').forEach(function (el) {
+      el.addEventListener('mouseenter', function () { document.body.classList.add('cursor-hover'); });
+      el.addEventListener('mouseleave', function () { document.body.classList.remove('cursor-hover'); });
+    });
+  })();
+
+  /* ambient emberfield — warm twinkling stars + embers drifting upward */
+  (function () {
+    var c = document.getElementById('emberfield'); if (!c) return;
+    var ctx = c.getContext('2d'), W, H, stars = [], embers = [], mx = 0, my = 0, sY = 0;
+    function resize() { W = c.width = innerWidth; H = c.height = innerHeight; }
+    function star() {
+      return { x: Math.random() * W, y: Math.random() * H, r: Math.random() * 1.2 + 0.3,
+        a: Math.random() * 0.55 + 0.12, ts: Math.random() * 0.006 + 0.002,
+        td: Math.random() > 0.5 ? 1 : -1, par: Math.random() * 0.25 + 0.05 };
+    }
+    function ember(init) {
+      return { x: Math.random() * W, y: init ? Math.random() * H : H + 12,
+        vy: 0.3 + Math.random() * 0.7, drift: Math.random() * Math.PI * 2,
+        ds: 0.006 + Math.random() * 0.014, da: 0.3 + Math.random() * 0.8,
+        size: 1 + Math.random() * 1.7, a: 0.28 + Math.random() * 0.4 };
+    }
+    resize();
+    for (var i = 0; i < 130; i++) stars.push(star());
+    for (var j = 0; j < 24; j++) embers.push(ember(true));
+    addEventListener('resize', resize);
+    addEventListener('mousemove', function (e) { mx = (e.clientX / innerWidth - 0.5) * 10; my = (e.clientY / innerHeight - 0.5) * 10; });
+    addEventListener('scroll', function () { sY = scrollY; }, { passive: true });
+    (function draw() {
+      ctx.clearRect(0, 0, W, H);
+      var sy = sY * 0.05;
+      for (var s of stars) {
+        s.a += s.ts * s.td; if (s.a > 0.7 || s.a < 0.07) s.td *= -1;
+        ctx.beginPath();
+        ctx.arc(s.x + mx * s.par, s.y + my * s.par - sy * s.par, s.r, 0, 6.283);
+        ctx.fillStyle = 'rgba(245,232,200,' + s.a + ')'; ctx.fill();
+      }
+      for (var p of embers) {
+        p.drift += p.ds; p.x += Math.sin(p.drift) * p.da; p.y -= p.vy;
+        if (p.y < -12) Object.assign(p, ember(false));
+        var fl = p.a * (0.6 + 0.4 * Math.sin(p.drift * 3));
+        ctx.beginPath();
+        ctx.arc(p.x + mx * 0.3, p.y, p.size, 0, 6.283);
+        ctx.fillStyle = 'rgba(0,200,240,' + fl + ')'; ctx.fill();
+      }
+      requestAnimationFrame(draw);
+    })();
+  })();
+})();
+</script>
+
+</body>
+</html>

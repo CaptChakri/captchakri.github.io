@@ -7,6 +7,54 @@
 const REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 window.REDUCED = REDUCED;
 
+/* ===== CROSS-PAGE VIEW TRANSITIONS ====================================
+   Mark a page reached via cross-document VT so the CSS skips the cold
+   intro/nav-drop/reveal sequence, and name the post hero title so it morphs
+   from the blog card it was opened from. No-ops where unsupported. */
+if ('startViewTransition' in document) {
+  const namePostTitle = () => {
+    const t = document.querySelector('.post-title');
+    if (t) t.style.viewTransitionName = 'post-title';
+    return t;
+  };
+
+  /* Classify a path so home ⇄ blog navigations can get a bespoke, directional
+     transition (an "ascent" up to the journal / a "dive" back home) instead of
+     the flat crossfade every other navigation uses. The type is read by the
+     ::view-transition CSS in theme.css; unsupported browsers just crossfade. */
+  const pageKind = path => {
+    path = path.replace(/index\.html$/, '');
+    if (path === '/') return 'home';
+    if (path === '/blog/') return 'blog';
+    if (path.startsWith('/blog/')) return 'post';
+    return 'other';
+  };
+  const pathOf = url => { try { return new URL(url, location.href).pathname; } catch (e) { return null; } };
+  const journeyType = (fromPath, toPath) => {
+    if (REDUCED || !fromPath || !toPath) return null;
+    const from = pageKind(fromPath), to = pageKind(toPath);
+    if (from === 'home' && to === 'blog') return 'to-blog';
+    if (from === 'blog' && to === 'home') return 'to-home';
+    return null;
+  };
+  const addType = (vt, type) => { if (type && vt.types && vt.types.add) vt.types.add(type); };
+
+  window.addEventListener('pagereveal', e => {
+    if (!e.viewTransition) return;
+    document.documentElement.classList.add('vt-in');
+    const from = window.navigation && navigation.activation && navigation.activation.from;
+    addType(e.viewTransition, journeyType(from ? pathOf(from.url) : null, location.pathname));
+    const t = namePostTitle();
+    if (t) e.viewTransition.finished.then(() => { t.style.viewTransitionName = ''; }).catch(() => {});
+  });
+  window.addEventListener('pageswap', e => {
+    if (!e.viewTransition) return;
+    const to = e.activation && e.activation.entry;
+    addType(e.viewTransition, journeyType(location.pathname, to ? pathOf(to.url) : null));
+    namePostTitle();
+  });
+}
+
 /* ===== INTRO — real loading screen ====================================
    Stays up until the page has actually loaded (window load + fonts), with
    a minimum hold so the animation reads and a hard cap so a stalled asset
@@ -85,11 +133,82 @@ window.INTRO_DONE = new Promise(r => { introResolve = r; });
   });
 })();
 
+/* ===== SUPPRESS NAV HOVER WHILE SCROLLING =============================
+   Clicking a fixed-nav link leaves the cursor parked on it. A wheel/trackpad
+   scroll then moves the page under a stationary cursor, so the clicked link
+   keeps :hover — which is styled identically to the .active scroll-spy
+   highlight, making two nav items look selected at once. Lock hover on scroll
+   and release it the moment the pointer actually moves (real hover intent). */
+(function() {
+  const root = document.documentElement;
+  let locked = false;
+  addEventListener('scroll', () => {
+    if (!locked) { locked = true; root.classList.add('nav-hover-lock'); }
+  }, { passive: true });
+  addEventListener('pointermove', () => {
+    if (locked) { locked = false; root.classList.remove('nav-hover-lock'); }
+  }, { passive: true });
+})();
+
+/* ===== NAV DUBLIN CLOCK (injected; pairs with .nav-meta) ===== */
+(function() {
+  const nav = document.querySelector('nav');
+  if (!nav) return;
+  const meta = document.createElement('div');
+  meta.className = 'nav-meta';
+  meta.setAttribute('aria-hidden', 'true');
+  meta.innerHTML = 'DUBLIN, IE · <span class="nav-clock">--:--</span>';
+  nav.appendChild(meta);
+  const clock = meta.querySelector('.nav-clock');
+  let fmt;
+  try {
+    fmt = new Intl.DateTimeFormat('en-IE', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Europe/Dublin' });
+  } catch (e) {
+    fmt = { format: d => d.toTimeString().slice(0, 5) };
+  }
+  function tick() { clock.textContent = fmt.format(new Date()); }
+  tick();
+  setInterval(tick, 15000);
+})();
+
 /* ===== FOOTER YEAR ===== */
 (function() {
   document.querySelectorAll('[data-year]').forEach(el => {
     el.textContent = new Date().getFullYear();
   });
+})();
+
+/* ===== POST TOC + SCROLLSPY (annotated layout) =====
+   Builds the sticky table of contents from the article's h2[data-type]
+   headings and highlights the in-view section. No-op without #post-toc. */
+(function() {
+  const art = document.querySelector('.post-article');
+  const tocBox = document.getElementById('post-toc');
+  if (!art || !tocBox) return;
+  const hs = [...art.querySelectorAll('h2')];
+  if (!hs.length) {
+    tocBox.style.display = 'none';
+    const head = document.querySelector('.toc-head');
+    if (head) head.style.display = 'none';
+    return;
+  }
+  hs.forEach(h => {
+    const label = h.dataset.type || h.textContent.trim();
+    const id = h.id || ('sec-' + label.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''));
+    h.id = id;
+    const a = document.createElement('a');
+    a.href = '#' + id;
+    a.textContent = label;
+    tocBox.appendChild(a);
+  });
+  const tocLinks = [...tocBox.querySelectorAll('a')];
+  const spy = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (!e.isIntersecting) return;
+      tocLinks.forEach(l => l.classList.toggle('active', l.getAttribute('href') === '#' + e.target.id));
+    });
+  }, { rootMargin: '-15% 0px -65% 0px' });
+  hs.forEach(h => spy.observe(h));
 })();
 
 /* ===== CURSOR ===== */

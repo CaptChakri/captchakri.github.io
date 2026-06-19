@@ -3,335 +3,84 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="Chakri is a software engineer at AWS CloudFront building reliable, low-latency distributed systems at global scale.">
-<meta name="theme-color" content="#060B1C">
+<meta name="description" content="Chakri — a software engineer in Dublin who loves hard problems and the outdoors: distributed systems by day, and a tent somewhere with no signal on the weekend.">
+<meta name="theme-color" content="#02030a">
 <link rel="canonical" href="https://captchakri.github.io/">
 <meta property="og:type" content="website">
-<meta property="og:title" content="Chakri's World · Distributed Systems Engineer">
-<meta property="og:description" content="Chakri is a software engineer at AWS CloudFront building reliable, low-latency distributed systems at global scale.">
+<meta property="og:title" content="Chakri's World · The Descent">
+<meta property="og:description" content="Chakri — a software engineer in Dublin who loves hard problems and the outdoors: distributed systems by day, and a tent somewhere with no signal on the weekend.">
 <meta property="og:url" content="https://captchakri.github.io/">
 <meta property="og:site_name" content="Chakri's World">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="Chakri's World · Distributed Systems Engineer">
-<meta name="twitter:description" content="Chakri is a software engineer at AWS CloudFront building reliable, low-latency distributed systems at global scale.">
+<meta name="twitter:title" content="Chakri's World · The Descent">
+<meta name="twitter:description" content="Chakri — a software engineer in Dublin who loves hard problems and the outdoors: distributed systems by day, and a tent somewhere with no signal on the weekend.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<title>Chakri's World · Distributed Systems Engineer</title>
+<title>Chakri's World · The Descent</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
 <link rel="stylesheet" href="assets/css/theme.css">
+<link rel="stylesheet" href="assets/css/descent.css">
+<link rel="stylesheet" href="assets/css/easter-eggs.css">
 <style>
-/* ===== HERO ===== */
-.hero {
-  min-height: 100vh;
-  display: flex; align-items: center;
-  padding: 8rem 2.5rem 4rem;
-  position: relative; z-index: 1;
-}
-.hero-inner { max-width: 1100px; margin: 0 auto; width: 100%; }
-.hero-content { max-width: 760px; }
+/* ===== DIRECTION B — FIELD NOTES : warm, journal-like, camping-forward ===== */
+.dir-fieldnotes .hero-wrap { max-width: 760px; margin: 0 auto; }
+.dir-fieldnotes .dz { max-width: 1000px; }
 
-.greeting-line {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: clamp(0.85rem, 1.6vw, 1rem); color: var(--cyan);
-  margin-bottom: 1.25rem; min-height: 1.7em;
-  display: flex; align-items: center; gap: 0.6rem;
-}
-.wave { display: inline-block; font-size: 1.35em; animation: wave 2.2s ease-in-out infinite; transform-origin: 70% 70%; font-style: normal; }
-#typed-greeting { display: inline-block; transition: opacity 0.5s ease; }
-.greeting-name { color: var(--white); }
-@keyframes wave {
-  0%,100% { transform: rotate(0); } 20% { transform: rotate(20deg); }
-  40% { transform: rotate(-8deg); } 60% { transform: rotate(16deg); } 80% { transform: rotate(-4deg); }
-}
-
-h1 {
-  font-family: 'Space Grotesk', sans-serif;
-  font-size: clamp(2.6rem, 5.5vw, 4.6rem);
-  font-weight: 700; line-height: 1.08; letter-spacing: -0.03em;
-  color: var(--white); margin-bottom: 1.4rem;
-}
-h1 .w {
-  display: inline-block; opacity: 0; transform: translateY(40px) rotate(2deg);
-  filter: blur(6px);
-}
-h1 .w.show { animation: wordRise 0.65s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
-@keyframes wordRise {
-  to { opacity: 1; transform: translateY(0) rotate(0); filter: blur(0); }
-}
-h1 em { color: var(--cyan); font-style: normal; }
-h1 a { color: inherit; text-decoration: none; }
-h1 a:hover em { animation: glitch 0.4s steps(2) infinite; }
-h1 a::after {
-  content: ' ⧉'; font-size: 0.35em; vertical-align: super;
-  color: var(--gray2); opacity: 0; transition: opacity 0.25s;
-}
-h1 a:hover::after { opacity: 1; }
-h1 em:hover { animation: glitch 0.4s steps(2) infinite; }
-@keyframes glitch {
-  0% { text-shadow: 2px 0 var(--pink), -2px 0 var(--cyan); }
-  25% { transform: translate(-2px, 1px); text-shadow: -2px 0 var(--pink), 2px 0 var(--cyan); }
-  50% { transform: translate(2px, -1px); text-shadow: 2px 2px var(--pink), -2px -2px var(--cyan); }
-  75% { transform: translate(-1px, -1px); text-shadow: -1px 0 var(--pink), 1px 0 var(--cyan); }
-  100% { transform: translate(0); text-shadow: 2px 0 var(--pink), -2px 0 var(--cyan); }
-}
-
-.hero-intro, .hero-cta, .hero-status { opacity: 0; }
-.hero-intro.show, .hero-cta.show, .hero-status.show { animation: fadeUp 0.7s ease forwards; }
-.hero-intro {
-  font-size: 1.05rem; color: var(--text); max-width: 580px;
-  margin-bottom: 2.25rem; line-height: 1.75;
-}
-.hero-intro strong { color: var(--white); font-weight: 500; }
-
-.hero-cta { display: flex; gap: 1rem; flex-wrap: wrap; }
-
-.hero-status {
-  margin-top: 3rem; padding-top: 2rem;
-  border-top: 1px solid var(--border);
-  display: flex; align-items: center; gap: 0.6rem;
-  font-size: 0.85rem; color: var(--gray);
-}
-.status-dot {
-  width: 8px; height: 8px; border-radius: 50%;
-  background: #22d97a; box-shadow: 0 0 8px rgba(34,217,122,0.6);
-  animation: blink 2s ease-in-out infinite;
-}
-@keyframes blink { 50% { opacity: 0.4; } }
-
-.scroll-hint {
-  position: absolute; bottom: 2rem; left: 50%; transform: translateX(-50%);
-  font-family: 'JetBrains Mono', monospace; font-size: 0.7rem;
-  color: var(--gray2); letter-spacing: 0.2em;
-  display: flex; flex-direction: column; align-items: center; gap: 0.6rem;
-  opacity: 0; animation: scrollHintIn 0.7s ease 3.2s forwards;
-}
-@keyframes scrollHintIn {
-  from { opacity: 0; transform: translate(-50%, 20px); }
-  to { opacity: 1; transform: translate(-50%, 0); }
-}
-.scroll-hint::after {
-  content: ''; width: 1px; height: 36px;
-  background: linear-gradient(var(--cyan), transparent);
-  animation: scrollDrip 1.8s ease infinite;
-}
-@keyframes scrollDrip {
-  0% { transform: scaleY(0); transform-origin: top; }
-  50% { transform: scaleY(1); transform-origin: top; }
-  51% { transform-origin: bottom; }
-  100% { transform: scaleY(0); transform-origin: bottom; }
-}
-
-/* ===== TICKER ===== */
-.ticker-wrap {
-  position: relative; z-index: 5;
-  border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
-  background: rgba(6,11,28,0.6); backdrop-filter: blur(8px);
-  overflow: hidden; padding: 0.9rem 0;
-}
-.ticker {
-  display: flex; gap: 3rem; width: max-content;
-  animation: tick 30s linear infinite;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.78rem; color: var(--gray); letter-spacing: 0.1em;
-  white-space: nowrap;
-}
-.ticker span em { color: var(--cyan); font-style: normal; margin-right: 0.6rem; }
-.ticker-wrap:hover .ticker { animation-play-state: paused; }
-@keyframes tick { to { transform: translateX(-50%); } }
-
-/* ===== ABOUT ===== */
-.about-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; align-items: start; }
-.about-text p { font-size: 0.95rem; color: var(--text); margin-bottom: 1.1rem; line-height: 1.8; }
-.about-text p strong { color: var(--white); font-weight: 500; }
-.about-facts { display: flex; flex-direction: column; gap: 1rem; }
-.fact-card {
-  background: var(--navy2); border: 1px solid var(--border);
-  border-radius: 0.5rem; padding: 1.25rem 1.5rem;
-  transition: border-color 0.25s, transform 0.25s;
-}
-.fact-card:hover { border-color: rgba(0,200,240,0.45); transform: translateX(6px); }
-.fact-label { font-size: 0.75rem; color: var(--cyan); font-family: 'JetBrains Mono', monospace; letter-spacing: 0.06em; margin-bottom: 0.3rem; }
-.fact-val { font-size: 0.95rem; color: var(--white); font-weight: 500; }
-
-/* ===== EXPERIENCE ===== */
-.exp-item {
-  display: grid; grid-template-columns: 200px 1fr;
-  gap: 0 3rem; padding: 2.5rem 0;
-  border-bottom: 1px solid var(--border);
-}
-.exp-date { font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: var(--cyan); letter-spacing: 0.04em; margin-bottom: 0.35rem; }
-.exp-company { font-family: 'Space Grotesk', sans-serif; font-size: 0.95rem; font-weight: 600; color: var(--white); margin-bottom: 0.2rem; }
-.exp-loc { font-size: 0.8rem; color: var(--gray); }
-.exp-title { font-family: 'Space Grotesk', sans-serif; font-size: 1.1rem; font-weight: 600; color: var(--white); margin-bottom: 1rem; }
-.exp-bullets { list-style: none; display: flex; flex-direction: column; gap: 0.55rem; }
-.exp-bullets li {
-  font-size: 0.875rem; color: var(--text); opacity: 0;
-  padding-left: 1.2rem; position: relative;
-  transform: translateX(-14px);
-}
-.exp-bullets li.show { animation: bulletIn 0.5s ease forwards; }
-@keyframes bulletIn { to { opacity: 0.85; transform: translateX(0); } }
-.exp-bullets li::before { content: '›'; position: absolute; left: 0; color: var(--cyan); font-weight: 600; }
-.exp-stack { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 1.1rem; }
-.resume-cta {
-  margin-top: 2.5rem; display: flex; align-items: center; justify-content: space-between;
-  gap: 1.5rem; flex-wrap: wrap;
-  background: linear-gradient(135deg, rgba(0,200,240,0.06), rgba(255,143,184,0.04));
-  border: 1px solid var(--border); border-radius: 0.6rem; padding: 1.6rem 1.9rem;
-}
-.resume-cta-title { font-family: 'Space Grotesk', sans-serif; font-size: 1.05rem; font-weight: 600; color: var(--white); margin-bottom: 0.3rem; }
-.resume-cta-sub { font-size: 0.875rem; color: var(--gray); }
-
-/* ===== PROJECTS ===== */
-.projects-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; }
-.project-card {
-  background: var(--navy2); border: 1px solid var(--border);
-  border-radius: 0.5rem; padding: 1.75rem;
-  transition: border-color 0.25s, transform 0.15s ease-out, box-shadow 0.25s;
-  transform-style: preserve-3d; will-change: transform;
-}
-.project-card:hover {
-  border-color: rgba(0,200,240,0.45);
-  box-shadow: 0 18px 40px rgba(0,0,0,0.45), 0 0 24px rgba(0,200,240,0.07);
-}
-.project-num { font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; color: var(--cyan); letter-spacing: 0.08em; margin-bottom: 0.75rem; }
-.project-title { font-family: 'Space Grotesk', sans-serif; font-size: 1rem; font-weight: 600; color: var(--white); margin-bottom: 0.6rem; }
-.project-desc { font-size: 0.875rem; color: var(--text); opacity: 0.8; margin-bottom: 1rem; }
-.project-highlight { font-size: 0.78rem; color: var(--cyan); font-family: 'JetBrains Mono', monospace; }
-
-/* ===== EDUCATION ===== */
-.edu-card {
-  background: var(--navy2); border: 1px solid var(--border);
-  border-radius: 0.5rem; padding: 2rem 2.25rem;
-  display: flex; gap: 2rem; align-items: flex-start;
-}
-.edu-badge {
-  width: 48px; height: 48px; flex-shrink: 0;
-  background: rgba(0,200,240,0.12); border: 1px solid rgba(0,200,240,0.3);
-  border-radius: 0.375rem;
-  display: flex; align-items: center; justify-content: center;
-  font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 1rem; color: var(--cyan);
-}
-.edu-degree { font-family: 'Space Grotesk', sans-serif; font-size: 1.1rem; font-weight: 600; color: var(--white); margin-bottom: 0.25rem; }
-.edu-school { font-size: 0.9rem; color: var(--gray); margin-bottom: 0.75rem; }
-.edu-details { font-size: 0.875rem; color: var(--text); opacity: 0.8; }
-.cert-list { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.75rem; }
-
-/* ===== CONTACT ===== */
-.contact-section {
-  --contact-x: 50%;
-  --contact-y: 50%;
-  position: relative; z-index: 1;
-  min-height: 100svh;
-  display: grid; place-items: center;
-  padding: 6rem 2.5rem;
-  overflow: hidden;
-  background: rgba(6,11,28,0.55);
-}
-.contact-section::before {
-  content: ''; position: absolute; inset: 0; pointer-events: none;
-  background: radial-gradient(circle at var(--contact-x) var(--contact-y), rgba(0,200,240,0.07), transparent 22rem);
-}
-.contact-inner {
-  position: relative;
-  width: min(1100px, 100%);
-}
-.contact-copy { max-width: 680px; margin-bottom: 3rem; }
-.contact-section .section-tag { margin-bottom: 0.75rem; }
-.contact-section h2 {
-  margin-bottom: 1.25rem;
-  font-size: clamp(1.8rem, 3.5vw, 2.5rem);
-  line-height: 1.15;
-}
-.contact-desc { color: var(--text); max-width: 590px; margin-bottom: 1.5rem; font-size: 0.95rem; }
-.contact-availability {
-  display: inline-flex; align-items: center; gap: 0.7rem;
-  padding-top: 1.25rem; border-top: 1px solid var(--border);
-  color: var(--gray);
-  font-family: 'JetBrains Mono', monospace; font-size: 0.75rem;
-}
-.contact-links { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; }
-.contact-link {
-  position: relative; min-height: 145px;
-  display: flex; flex-direction: column; align-items: flex-start; justify-content: space-between;
-  gap: 1.25rem; padding: 1.4rem;
-  border: 1px solid var(--border); border-radius: 0.5rem;
-  color: var(--text); text-decoration: none; overflow: hidden;
-  background: var(--navy2);
-  transition: border-color 0.25s, color 0.25s, transform 0.25s, box-shadow 0.25s;
-}
-.contact-link::after {
-  content: '↗'; position: absolute; top: 1.15rem; right: 1.2rem;
-  color: var(--gray2); font-size: 1.1rem; transition: color 0.25s, transform 0.25s;
-}
-.contact-link:hover {
-  border-color: rgba(0,200,240,0.45); color: var(--white);
-  box-shadow: 0 16px 35px rgba(0,0,0,0.25);
-}
-.contact-link:hover::after { color: var(--cyan); transform: translate(3px, -3px); }
-.contact-link svg { width: 24px; height: 24px; flex-shrink: 0; color: var(--cyan); }
-.contact-link-label {
-  display: block; color: var(--white);
-  font-family: 'Space Grotesk', sans-serif; font-size: 1rem; font-weight: 600;
-}
-.contact-link-detail {
-  display: block; margin-top: 0.15rem; color: var(--gray);
-  font-family: 'JetBrains Mono', monospace; font-size: 0.68rem;
-}
-.contact-link.resume-link {
-  grid-column: 1 / -1; min-height: 100px;
-  flex-direction: row; align-items: center; justify-content: flex-start;
-  background: linear-gradient(135deg, rgba(0,200,240,0.06), rgba(255,143,184,0.04));
-}
-.contact-link.resume-link .contact-link-text { margin-right: 2rem; }
-.big-jp {
-  font-family: 'Space Grotesk', sans-serif;
-  font-size: clamp(3rem, 9vw, 6rem); font-weight: 700;
-  color: rgba(0,200,240,0.05);
-  position: absolute; bottom: 1rem; left: 50%; transform: translateX(-50%);
-  letter-spacing: 0.1em; user-select: none; pointer-events: none;
-  white-space: nowrap;
-}
-
-@media (max-width: 1000px) {
-  .contact-links { grid-template-columns: 1fr 1fr; }
-}
-
-/* ===== RESPONSIVE ===== */
-@media (max-width: 768px) {
-  .hero { padding: 7rem 1.25rem 3rem; }
-  .about-grid { grid-template-columns: 1fr; gap: 2rem; }
-  .exp-item { grid-template-columns: 1fr; gap: 0.5rem; }
-  .edu-card { flex-direction: column; gap: 1rem; }
-  .contact-section { min-height: 100svh; padding: 5.5rem 1.25rem 4rem; }
-  .contact-copy { margin-bottom: 2rem; }
-  .contact-inner { min-width: 0; }
-  .contact-links {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-    gap: 0.6rem;
+/* hero with the journal as a right-hand rail on wide screens; below 1000px it
+   falls back to a single column and the journal stacks under the hero text.
+   (theme.css hides .hero-journal ≤1100px for the old hero-grid layout we don't
+   use here — the #id override keeps it visible at every width.) */
+.dir-fieldnotes #hero-journal { display: block; }
+@media (min-width: 1000px) {
+  .dir-fieldnotes .dz-hero .hero-wrap {
+    max-width: none; display: grid;
+    grid-template-columns: minmax(0, 1fr) 300px;
+    gap: 3.5rem; align-items: center;
   }
-  .contact-link, .contact-link.resume-link {
-    grid-column: auto;
-    min-width: 0; min-height: 58px;
-    padding: 0.9rem;
-    align-items: center; justify-content: center;
-  }
-  .contact-link::after, .contact-link-text { display: none; }
-  .contact-link svg { width: 22px; height: 22px; }
-  .big-jp {
-    max-width: 100%;
-    overflow: hidden;
-  }
+  .dir-fieldnotes #hero-journal { margin-top: 0; max-width: none; align-self: center; }
 }
-@media (prefers-reduced-motion: reduce) {
-  .exp-bullets li, .hero-intro, .hero-cta, .hero-status { opacity: 1 !important; transform: none !important; filter: none !important; }
-}
+
+/* warm the accents (cyan stays the brand spine; warmth signals the journey) */
+.dir-fieldnotes .dz-tag { color: var(--warm); }
+.dir-fieldnotes .fact-label { color: var(--warm); }
+.dir-fieldnotes .camp-quote { color: var(--warm); }
+
+/* notebook-style surfaces: dashed rules, squared corners, paper-dark */
+.dir-fieldnotes .glass { background: rgba(16,14,12,.55); border: 1px solid rgba(240,168,120,.20); border-radius: .35rem; }
+.dir-fieldnotes .fact-card { border-left: 2px solid rgba(240,168,120,.5); }
+.dir-fieldnotes .fact-card:hover { border-color: rgba(240,168,120,.6); }
+.dir-fieldnotes .dz-tag::before { content: '✦ '; color: var(--warm); }
+
+/* camping is the centrepiece — give it more room + a warm wash */
+.dir-fieldnotes .dz-camp { min-height: 104vh; }
+.dir-fieldnotes .dz-camp h2 { font-size: clamp(2.2rem, 5vw, 3.2rem); }
+.dir-fieldnotes .camp-grid { grid-template-columns: 1.4fr 1fr; gap: 4rem; }
+.dir-fieldnotes .camp-lead p { font-size: 1.1rem; }
+
+/* gauge: a field-journal scale (warm fill + dot) */
+.dir-fieldnotes .g-fill { background: linear-gradient(to bottom, var(--warm), var(--cyan)); }
+.dir-fieldnotes .g-dot { background: var(--warm); box-shadow: 0 0 0 4px rgba(240,168,120,.18), 0 0 14px rgba(240,168,120,.8); }
+.dir-fieldnotes .g-zone { color: var(--warm); }
+.dir-fieldnotes .g-u { color: var(--warm); }
+
+.dir-fieldnotes .spacer .cap b { font-family: 'Space Grotesk', sans-serif; }
+.dir-fieldnotes .spacer .cap { color: rgba(255,225,200,.55); }
+
+@media (max-width: 900px) { .dir-fieldnotes .camp-grid { grid-template-columns: 1fr; gap: 2rem; } }
 </style>
+<noscript><style>
+  /* without JS: drop the loader + reveal everything so the page is readable */
+  #intro { display: none !important; }
+  .rise, .dz-hero h1 .w { opacity: 1 !important; transform: none !important; filter: none !important; }
+  .hero-intro, .hero-cta, .hero-status, #hero-journal { opacity: 1 !important; }
+  #descent-canvas, #descent-sprites, #descent-gauge { display: none !important; }
+  body { background: var(--navy) !important; }
+</style></noscript>
 </head>
-<body>
+<body class="dir-fieldnotes">
 
-<a class="skip-link" href="#main-content">Skip to main content</a>
+<a class="skip-link" href="#descent-content">Skip to main content</a>
 
 <div id="intro" aria-hidden="true">
   <div class="intro-logo">CK<span class="dot">.</span></div>
@@ -341,504 +90,225 @@ h1 em:hover { animation: glitch 0.4s steps(2) infinite; }
 <div id="cursor-ring" aria-hidden="true"></div>
 <div id="cursor-dot" aria-hidden="true"></div>
 <div id="progress" aria-hidden="true"></div>
-<canvas id="starfield" aria-hidden="true"></canvas>
+
+<canvas id="descent-canvas" aria-hidden="true"></canvas>
+<div id="descent-sprites" aria-hidden="true"></div>
+<div id="descent-gauge" aria-hidden="true"></div>
 
 <nav aria-label="Primary navigation">
-  <a href="/" class="nav-logo">CK<span>.</span></a>
+  <a href="#top" class="nav-logo">CK<span>.</span></a>
   <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="primary-links" aria-label="Open navigation menu">
     <span></span><span></span><span></span>
   </button>
   <ul class="nav-links" id="primary-links">
     <li><a href="#about">About</a></li>
     <li><a href="#experience">Experience</a></li>
+    <li><a href="#camping">Camp</a></li>
     <li><a href="#projects">Projects</a></li>
     <li><a href="/blog/">Blog</a></li>
     <li><a href="#contact">Contact</a></li>
   </ul>
 </nav>
 
-<main id="main-content" tabindex="-1">
-<!-- HERO -->
-<section class="hero">
-  <div class="hero-inner">
-    <div class="hero-content">
-      <div class="greeting-line"><em class="wave">👋</em><span id="typed-greeting"></span><span class="caret" id="greet-caret"></span></div>
-      <h1 id="headline">
-        <span class="w">I</span> <span class="w">build</span> <span class="w">systems</span> <span class="w">that</span><br>
-        <span class="w">stay</span> <span class="w">up</span> <span class="w">while</span><br>
-        <a href="https://en.wikipedia.org/wiki/Multiverse" target="_blank" rel="noopener noreferrer" title="Yes, I believe in the multiverse"><span class="w"><em>Worlds</em></span></a><span class="w"><em>fall</em></span> <span class="w"><em>apart.</em></span>
-      </h1>
-      <p class="hero-intro" id="hero-intro">
-        Right now I'm a Software Engineer at <strong>AWS CloudFront</strong> in Dublin, working on the infrastructure that makes the internet feel fast for millions of people. I care about reliability, latency, and building things that quietly do their job at scale.
-      </p>
-      <div class="hero-cta" id="hero-cta">
-        <a href="mailto:work.kchakradhar@gmail.com" class="btn-primary">Say Hello →</a>
-        <a href="#about" class="btn-secondary">More About Me</a>
+<main class="descent-main" id="descent-content" tabindex="-1">
+
+  <!-- ============ HERO · SPACE ============ -->
+  <section class="dz dz-hero" data-zone="space" id="top">
+    <div class="hero-wrap">
+      <div class="hero-main">
+        <div class="greeting-line"><em class="wave">👋</em><span id="typed-greeting"></span><span class="caret" id="greet-caret"></span></div>
+        <h1 id="headline">
+          <span class="w">I</span> <span class="w">build</span> <span class="w">systems</span> <span class="w">that</span><br>
+          <span class="w">stay</span> <span class="w">up</span> <span class="w">while</span><br>
+          <span class="w"><em>Worlds</em></span> <span class="w"><em>fall</em></span> <span class="w"><em>apart.</em></span>
+        </h1>
+        <p class="hero-intro rise">
+          I'm a software engineer in Dublin who's happiest with a <strong>hard problem</strong> in front of me —
+          and just as happy <strong>outdoors with a pack on</strong>, miles from the nearest signal. Scroll, and
+          you'll fall: out of orbit, through the clouds, past a campfire in the trees, under the waves, all the
+          way to the bottom.
+        </p>
+        <div class="hero-cta rise">
+          <a href="/blog/" class="btn-primary">Read the journal →</a>
+          <a href="#about" class="btn-secondary">Begin the descent ↓</a>
+        </div>
+        <div class="hero-status rise">
+          <span class="status-dot"></span>
+          Available for interesting conversations · Dublin, Ireland
+        </div>
       </div>
-      <div class="hero-status" id="hero-status">
-        <span class="status-dot"></span>
-        Available for interesting conversations · Dublin, Ireland
+      <aside class="hero-journal glass rise" id="hero-journal">
+        <div class="hj-head">LATEST FROM THE JOURNAL</div>
+        <a class="hj-more" href="/blog/">Browse all writing →</a>
+      </aside>
+    </div>
+    <div class="scroll-hint">SCROLL TO FALL</div>
+  </section>
+
+  <div class="spacer" data-zone="orbit"><div class="cap"><b>Leaving orbit</b>altitude four hundred kilometres · the last quiet place<span class="jp">궤도 · కక్ష్య</span></div></div>
+
+  <!-- ============ ABOUT · SKY ============ -->
+  <section class="dz" data-zone="sky" id="about">
+    <div class="dz-tag">// a bit about me <span class="jp">자기소개 · నా గురించి</span></div>
+    <h2 class="rise">Who I Am</h2>
+    <div class="about-grid">
+      <div class="about-text">
+        <p class="rise">I've loved <strong>problem-solving</strong> for as long as I can remember — the more tangled the problem, the more I want to sit with it until it gives up a clean, simple answer. That's the thread running through everything I do.</p>
+        <p class="rise">It's what pulls me toward distributed systems: by day I keep large-scale internet infrastructure fast and reliable when it would much rather fall over. The roles and the detail are in the descent log just below.</p>
+        <p class="rise">Competitive programming scratches the same itch — a hard puzzle with an elegant solution. I'm a <strong>LeetCode Knight (1800+)</strong>, with a few national robotics and coding finishes along the way.</p>
+        <p class="rise">And when I'm not at a keyboard, I'm outside — <strong>tent, fire, no signal</strong>. Best debugging happens away from the screen anyway. You'll meet that campfire further down.</p>
       </div>
-    </div>
-  </div>
-  <div class="scroll-hint">SCROLL</div>
-</section>
-
-<!-- TICKER -->
-<div class="ticker-wrap">
-  <div class="ticker" id="ticker">
-    <span><em>RUST</em>ラスト</span><span><em>DISTRIBUTED SYSTEMS</em>分散システム</span><span><em>FAULT ISOLATION</em>障害分離</span><span><em>LOW LATENCY</em>低遅延</span><span><em>EDGE COMPUTING</em>エッジ</span><span><em>gRPC</em></span><span><em>LINUX NETWORKING</em></span><span><em>AVAILABILITY</em>可用性</span><span><em>OBSERVABILITY</em>可観測性</span><span><em>AWS CDK</em></span><span><em>AI</em>인공지능</span><span><em>CAMPING</em>캠핑</span><span><em>COMPETITIVE PROGRAMMING</em>競プロ</span><span><em>LEARNING KOREAN</em>한국어 공부중</span>
-  </div>
-</div>
-
-<!-- ABOUT -->
-<div class="panel"><div class="section-wrap" id="about">
-  <div class="section-tag rv">// a bit about me<span class="jp">自己紹介 · 자기소개</span></div>
-  <h2 data-type="Who I Am"></h2>
-  <div class="about-grid">
-    <div class="about-text">
-      <p class="rv">I grew up in India, studied computer science, and found myself completely hooked by the problem of making distributed systems <strong>not fail</strong> — or at least, fail gracefully.</p>
-      <p class="rv">At AWS I work on CloudFront's data plane — the edge infrastructure that routes requests, caches content, and keeps things humming. I've shipped work that shaved <strong>50–75% off connection latency</strong>, cut inter-region round trips by <strong>60%</strong>, and built fault-isolated control-plane services that shrink blast radius when things go wrong.</p>
-      <p class="rv">Outside of work I like competitive programming — there's something satisfying about a hard algorithmic problem with a clean solution. I'm a LeetCode Knight (1800+) and I've competed in national robotics and coding competitions.</p>
-      <p class="rv">When I'm not staring at terminals, you'll find me <strong>camping</strong> — tent, fire, no signal. Ireland's west coast is full of spots where the only latency that matters is how long the kettle takes. Best debugging happens away from the keyboard anyway.</p>
-      <p class="rv">If you're working on something interesting in infrastructure, distributed systems, or just want to chat — I'd love to hear from you.</p>
-    </div>
-    <div class="about-facts">
-      <div class="fact-card rv"><div class="fact-label">Currently</div><div class="fact-val">Software Engineer @ Amazon Web Services</div></div>
-      <div class="fact-card rv"><div class="fact-label">Based in</div><div class="fact-val">Dublin, Ireland 🇮🇪</div></div>
-      <div class="fact-card rv"><div class="fact-label">Favourite problem space</div><div class="fact-val">Distributed systems & AI</div></div>
-      <div class="fact-card rv"><div class="fact-label">Primary language (currently)</div><div class="fact-val">Rust — and loving it</div></div>
-      <div class="fact-card rv"><div class="fact-label">Learning right now</div><div class="fact-val">Korean 한국어 — 조금씩, 조금씩</div></div>
-      <div class="fact-card rv"><div class="fact-label">Off the clock</div><div class="fact-val">Camping ⛺ — somewhere with zero bars of signal</div></div>
-      <div class="fact-card rv"><div class="fact-label">Competitive programming</div><div class="fact-val">LeetCode Knight · CodeChef 1600+ · HackerRank 5★</div></div>
-    </div>
-  </div>
-</div></div>
-
-<!-- EXPERIENCE -->
-<div class="panel"><div class="section-wrap" id="experience">
-  <div class="section-tag rv">// where I've worked<span class="jp">経歴 · 경력</span></div>
-  <h2 data-type="Experience"></h2>
-  <div class="exp-item">
-    <div class="exp-meta rv">
-      <div class="exp-date">Aug 2022 – Present</div>
-      <div class="exp-company">Amazon Web Services</div>
-      <div class="exp-loc">Dublin, Ireland</div>
-    </div>
-    <div class="exp-body">
-      <div class="exp-title rv">Software Engineer — CloudFront</div>
-      <ul class="exp-bullets">
-        <li>Designed a fault-isolated control-plane service for zonal state management, reducing regional blast radius and improving resilience under failure scenarios.</li>
-        <li>Architected an HTTP connection warm-pooling system reducing connection acquisition time by 50–75%, significantly improving first-byte latency at scale.</li>
-        <li>Built a gRPC benchmarking tool supporting unary, streaming, and bidirectional RPCs for on-demand performance testing.</li>
-        <li>Developed a Rust-based image transformation library with URI schema definitions, powering multi-region image processing as a service.</li>
-        <li>Resolved persistent HTTP connection reuse defects, cutting inter-region latency by 60%.</li>
-        <li>Created hierarchical observability metrics that accelerated root-cause analysis and reduced outage mitigation time.</li>
-        <li>Modernised operator tooling (Spring XML → Java config); recognised as Operator of the Quarter.</li>
-        <li>Mentored new engineers on distributed systems and ownership of production code.</li>
-      </ul>
-      <div class="exp-stack rv">
-        <span class="tag">Rust</span><span class="tag">C</span><span class="tag">Java</span><span class="tag">Python</span><span class="tag">Nginx</span><span class="tag">gRPC</span><span class="tag">AWS CDK</span><span class="tag">Linux Networking</span><span class="tag">Distributed Systems</span>
+      <div class="about-facts">
+        <div class="fact-card glass rise"><div class="fact-label">Currently</div><div class="fact-val">Software engineer · distributed systems</div></div>
+        <div class="fact-card glass rise"><div class="fact-label">Based in</div><div class="fact-val">Dublin, Ireland 🇮🇪</div></div>
+        <div class="fact-card glass rise"><div class="fact-label">Favourite problem space</div><div class="fact-val">Distributed systems & AI</div></div>
+        <div class="fact-card glass rise"><div class="fact-label">Primary language</div><div class="fact-val">Rust — and loving it</div></div>
+        <div class="fact-card glass rise"><div class="fact-label">Learning right now</div><div class="fact-val">Korean 한국어 — 조금씩</div></div>
+        <div class="fact-card glass rise"><div class="fact-label">Competitive</div><div class="fact-val">LeetCode Knight · CodeChef 1600+ · HackerRank 5★</div></div>
       </div>
     </div>
-  </div>
-  <div class="exp-item">
-    <div class="exp-meta rv">
-      <div class="exp-date">Jan 2022 – Jul 2022</div>
-      <div class="exp-company">Tekion</div>
-      <div class="exp-loc">Remote, India</div>
-    </div>
-    <div class="exp-body">
-      <div class="exp-title rv">Software Engineer Intern</div>
-      <ul class="exp-bullets">
-        <li>Built CRM dashboards with drag-and-drop layout customization for sales teams.</li>
-        <li>Developed real-time visualization widgets with live graphing for actionable insights.</li>
-      </ul>
-      <div class="exp-stack rv">
-        <span class="tag">ReactJS</span><span class="tag">Redux</span><span class="tag">HighCharts</span>
+  </section>
+
+  <div class="spacer" data-zone="sky"><div class="cap"><b>Through the weather</b>cruising altitude · something just passed the window<span class="jp">하늘 · ఆకాశం</span></div></div>
+
+  <!-- ============ EXPERIENCE · DESCENDING ============ -->
+  <section class="dz" data-zone="sky" id="experience">
+    <div class="dz-tag">// where I've worked <span class="jp">경력 · అనుభవం</span></div>
+    <h2 class="rise">Experience</h2>
+    <div class="timeline">
+      <div class="timeline-item rise">
+        <div class="timeline-date">Aug 2022 — Present</div>
+        <div class="timeline-title">Software Engineer · CloudFront</div>
+        <div class="timeline-company">Amazon Web Services · Dublin, Ireland</div>
+        <p class="timeline-summary">Working on CloudFront's data plane — the edge that routes requests, caches content, and quietly keeps the internet feeling fast at scale.</p>
+        <div class="timeline-highlights">
+          <div class="timeline-highlight">Cut connection acquisition time by <strong>50–75%</strong> with HTTP warm-pooling — a major first-byte latency win.</div>
+          <div class="timeline-highlight">Reduced inter-region latency by <strong>60%</strong> by resolving persistent connection reuse defects.</div>
+          <div class="timeline-highlight">Designed a fault-isolated control-plane service that shrinks regional blast radius under failure.</div>
+          <div class="timeline-highlight">Recognised as <strong>Operator of the Quarter</strong> for modernising operator tooling end-to-end.</div>
+        </div>
+        <div class="timeline-stack"><span class="tag">Rust</span><span class="tag">Java</span><span class="tag">gRPC</span><span class="tag">AWS CDK</span><span class="tag">Linux Networking</span><span class="tag">Distributed Systems</span></div>
+      </div>
+      <div class="timeline-item rise">
+        <div class="timeline-date">Jan 2022 — Jul 2022</div>
+        <div class="timeline-title">Software Engineer Intern</div>
+        <div class="timeline-company">Tekion · Remote, India</div>
+        <p class="timeline-summary">Built CRM dashboards with drag-and-drop layout customisation and real-time visualisation widgets for sales teams.</p>
+        <div class="timeline-stack"><span class="tag">ReactJS</span><span class="tag">Redux</span><span class="tag">HighCharts</span></div>
       </div>
     </div>
-  </div>
-  <div class="resume-cta rv">
-    <div class="resume-cta-text">
-      <div class="resume-cta-title">Want the full professional story?</div>
-      <div class="resume-cta-sub">My résumé has the deeper detail — roles, impact, and the technical work behind it all.</div>
-    </div>
-    <a href="https://drive.google.com/file/d/1BawpLfYBIrtNBlJQKrSI-Bh09yINWSzR/view?usp=sharing" target="_blank" rel="noopener noreferrer" class="btn-primary">View Résumé →</a>
-  </div>
-</div></div>
+  </section>
 
-<!-- PROJECTS -->
-<div class="panel"><div class="section-wrap" id="projects">
-  <div class="section-tag rv">// things I've built<span class="jp">作品 · 작품</span></div>
-  <h2 data-type="Projects &amp; Wins"></h2>
-  <div class="projects-grid">
-    <div class="project-card rv tilt">
-      <div class="project-num">PROJECT</div>
-      <div class="project-title">Face Recognition Attendance System</div>
-      <div class="project-desc">Attendance tracking using Histogram of Gradients-based face recognition. 93% true positive rate.</div>
-      <div class="project-highlight">OpenCV · Flask · Python</div>
-    </div>
-    <div class="project-card rv tilt">
-      <div class="project-num">COMPETITION</div>
-      <div class="project-title">Xiaomi ode2code 2</div>
-      <div class="project-desc">Top 30 finish out of 15,000+ participants in Xiaomi's competitive programming contest.</div>
-      <div class="project-highlight">Top 30 / 15,000+</div>
-    </div>
-    <div class="project-card rv tilt">
-      <div class="project-num">COMPETITION</div>
-      <div class="project-title">e-Yantra Robotics</div>
-      <div class="project-desc">Led a team of four to a top 50 national finish in IIT Bombay's robotics competition.</div>
-      <div class="project-highlight">Top 50 · Team Lead</div>
-    </div>
-    <div class="project-card rv tilt">
-      <div class="project-num">ONGOING</div>
-      <div class="project-title">Competitive Programming</div>
-      <div class="project-desc">Consistent high ratings across platforms. Love a clean algorithmic solution to a hard problem.</div>
-      <div class="project-highlight">LeetCode Knight 1800+ · CodeChef 1600+ · HackerRank 5★</div>
-    </div>
-  </div>
-</div></div>
+  <div class="spacer" data-zone="forest"><div class="cap"><b>Touchdown</b>ground level · woodsmoke, and the hush of no signal<span class="jp">숲 · అడవి</span></div></div>
 
-<!-- BLOG -->
-<div class="panel"><div class="section-wrap" id="blog">
-  <div class="section-tag rv">// things I write</div>
-  <h2 data-type="From the Blog"></h2>
-  <div class="blog-list" id="blog-teaser-list">
-    <!-- populated from blog/posts.json -->
-  </div>
-  <p class="blog-note rv">I write about distributed systems, latency, camping trips, and things that break at 3am. <a href="/blog/" style="color: var(--cyan);">Browse all posts →</a></p>
-</div></div>
-
-<!-- EDUCATION -->
-<div class="panel"><div class="section-wrap">
-  <div class="section-tag rv">// where I studied<span class="jp">学歴 · 학력</span></div>
-  <h2 data-type="Education"></h2>
-  <div class="edu-card rv">
-    <div class="edu-badge">CU</div>
-    <div>
-      <div class="edu-degree">BTech in Computer Science</div>
-      <div class="edu-school">Chandigarh University, Punjab · 2018 – 2022</div>
-      <div class="edu-details">GPA 8.0/10.0 (Major GPA 9.0/10.0) · JEE Merit Scholar with 75% tuition fee grant</div>
-      <div class="cert-list">
-        <span class="tag">Cloud — QwikLabs</span>
-        <span class="tag">Data Science — Credly</span>
-        <span class="tag">Networking — IIT Kharagpur Silver</span>
+  <!-- ============ CAMPING CENTREPIECE · FOREST ============ -->
+  <section class="dz dz-camp" data-zone="forest" id="camping">
+    <div class="dz-tag">// off the clock <span class="jp">캠핑 · క్యాంపింగ్</span></div>
+    <h2 class="rise">The campfire stop</h2>
+    <div class="camp-grid">
+      <div class="camp-lead">
+        <p class="rise">This is the part of the map I care about most. Somewhere on Ireland's west coast, a tent, a fire, and a kettle that takes exactly as long as it takes. The only latency that matters out here.</p>
+        <p class="rise">I come back from these trips with the clearest head and, more often than not, the answer to whatever I was stuck on. No notifications. No dashboards. Just the slow work of staying warm and watching the light go.</p>
+        <div class="camp-quote rise">"Best debugging happens away from the keyboard."</div>
+      </div>
+      <div class="camp-facts">
+        <div class="fact-card glass rise"><div class="fact-label">Setup</div><div class="fact-val">Tent · fire · zero bars of signal ⛺</div></div>
+        <div class="fact-card glass rise"><div class="fact-label">Territory</div><div class="fact-val">Ireland's west coast & the Wicklow Way</div></div>
+        <div class="fact-card glass rise"><div class="fact-label">Latest trip</div><div class="fact-val"><a href="/blog/coming-soon.html" style="color: var(--warm);">The Wicklow Way, the hard way →</a></div></div>
       </div>
     </div>
-  </div>
-</div></div>
+  </section>
 
-<!-- CONTACT -->
-<div class="panel"><div class="contact-section" id="contact">
-  <div class="contact-inner">
-    <div class="contact-copy">
-      <div class="section-tag rv">// let's build something<span class="jp">連絡 · 연락</span></div>
-      <h2 data-type="Start a Conversation"></h2>
-      <p class="contact-desc rv">Have a difficult systems problem, an ambitious product idea, or a role where reliability matters? Send the first message and let's see where it goes.</p>
-      <div class="contact-availability rv">
-        <span class="status-dot"></span>
-        Based in Dublin · Open to interesting conversations
+  <div class="spacer" data-zone="surface"><div class="cap"><b>Into the water</b>sea level · holding a breath, going under<span class="jp">해면 · సముద్రం</span></div></div>
+
+  <!-- ============ PROJECTS · SHALLOWS ============ -->
+  <section class="dz" data-zone="surface" id="projects">
+    <div class="dz-tag">// things I've built <span class="jp">작품 · ప్రాజెక్టులు</span></div>
+    <h2 class="rise">Projects & Wins</h2>
+    <div class="projects-grid">
+      <div class="project-card glass rise tilt">
+        <div class="project-num">LIVE</div>
+        <div class="project-title">Hamkke · 함께</div>
+        <div class="project-desc">A mobile app that matches gym-goers with verified training partners and coaches by location and experience level — with built-in workout tracking, progress logging, and rest timers.</div>
+        <div class="project-highlight"><a href="https://hamkke.fit" target="_blank" rel="noopener noreferrer" style="color: var(--cyan);">hamkke.fit ↗</a></div>
+      </div>
+      <div class="project-card glass rise tilt">
+        <div class="project-num">LIVE</div>
+        <div class="project-title">siob.ie</div>
+        <div class="project-desc">A live web project at siob.ie. <!-- TODO: one-line description — tell me what siob.ie is and I'll fill this in. --></div>
+        <div class="project-highlight"><a href="https://siob.ie" target="_blank" rel="noopener noreferrer" style="color: var(--cyan);">siob.ie ↗</a></div>
+      </div>
+      <div class="project-card glass rise tilt">
+        <div class="project-num">PROJECT</div>
+        <div class="project-title">Face Recognition Attendance System</div>
+        <div class="project-desc">Attendance tracking using Histogram-of-Gradients face recognition. 93% true-positive rate.</div>
+        <div class="project-highlight">OpenCV · Flask · Python</div>
+      </div>
+      <div class="project-card glass rise tilt">
+        <div class="project-num">COMPETITION</div>
+        <div class="project-title">Xiaomi ode2code 2</div>
+        <div class="project-desc">Top 30 finish out of 15,000+ participants in Xiaomi's competitive programming contest.</div>
+        <div class="project-highlight">Top 30 / 15,000+</div>
+      </div>
+      <div class="project-card glass rise tilt">
+        <div class="project-num">COMPETITION</div>
+        <div class="project-title">e-Yantra Robotics</div>
+        <div class="project-desc">Led a team of four to a top-50 national finish in IIT Bombay's robotics competition.</div>
+        <div class="project-highlight">Top 50 · Team Lead</div>
+      </div>
+      <div class="project-card glass rise tilt">
+        <div class="project-num">ONGOING</div>
+        <div class="project-title">Competitive Programming</div>
+        <div class="project-desc">Consistent high ratings across platforms. I love a clean algorithmic solution to a hard problem.</div>
+        <div class="project-highlight">LeetCode Knight 1800+ · CodeChef 1600+ · HackerRank 5★</div>
       </div>
     </div>
-    <div class="contact-links rv">
-      <a href="mailto:work.kchakradhar@gmail.com" class="contact-link" aria-label="Email Chakri">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 7 10 6 10-6"/></svg>
-        <span class="contact-link-text"><span class="contact-link-label">Email me</span><span class="contact-link-detail">work.kchakradhar@gmail.com</span></span>
-      </a>
-      <a href="https://linkedin.com/in/chakri-konda" target="_blank" rel="noopener noreferrer" class="contact-link" aria-label="Chakri on LinkedIn">
-        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.45 20.45h-3.55v-5.57c0-1.33-.03-3.04-1.85-3.04-1.85 0-2.14 1.45-2.14 2.94v5.67H9.36V9h3.41v1.56h.05c.47-.9 1.63-1.85 3.36-1.85 3.6 0 4.27 2.37 4.27 5.45v6.29zM5.34 7.43a2.06 2.06 0 1 1 0-4.12 2.06 2.06 0 0 1 0 4.12zM7.12 20.45H3.56V9h3.56v11.45z"/></svg>
-        <span class="contact-link-text"><span class="contact-link-label">LinkedIn</span><span class="contact-link-detail">Let's connect</span></span>
-      </a>
-      <a href="https://github.com/CaptChakri" target="_blank" rel="noopener noreferrer" class="contact-link" aria-label="Chakri on GitHub">
-        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.44 9.8 8.21 11.39.6.11.82-.26.82-.58 0-.28-.01-1.04-.02-2.04-3.34.73-4.04-1.61-4.04-1.61-.55-1.39-1.33-1.76-1.33-1.76-1.09-.74.08-.73.08-.73 1.2.09 1.84 1.24 1.84 1.24 1.07 1.83 2.81 1.3 3.49 1 .11-.78.42-1.31.76-1.61-2.66-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.13-.3-.54-1.52.12-3.18 0 0 1.01-.32 3.3 1.23a11.5 11.5 0 0 1 6.01 0c2.29-1.55 3.29-1.23 3.29-1.23.66 1.66.25 2.88.12 3.18.77.84 1.24 1.91 1.24 3.22 0 4.61-2.81 5.62-5.49 5.92.43.37.81 1.1.81 2.22 0 1.61-.01 2.9-.01 3.29 0 .32.21.7.82.58A12 12 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
-        <span class="contact-link-text"><span class="contact-link-label">GitHub</span><span class="contact-link-detail">@CaptChakri</span></span>
-      </a>
-      <a href="tel:+353894152861" class="contact-link" aria-label="Call Chakri">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 1 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-        <span class="contact-link-text"><span class="contact-link-label">Call</span><span class="contact-link-detail">+353 894 152 861</span></span>
-      </a>
-      <a href="https://drive.google.com/file/d/1BawpLfYBIrtNBlJQKrSI-Bh09yINWSzR/view?usp=sharing" target="_blank" rel="noopener noreferrer" class="contact-link resume-link" aria-label="View Chakri's résumé">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg>
-        <span class="contact-link-text"><span class="contact-link-label">View my résumé</span><span class="contact-link-detail">Experience, impact, and technical work</span></span>
-      </a>
+  </section>
+
+  <div class="spacer" data-zone="deep"><div class="cap"><b>The dark</b>minus nineteen hundred metres · something enormous, drifting<span class="jp">심해 · అగాధం</span></div></div>
+
+  <!-- ============ EDUCATION · DEEP ============ -->
+  <section class="dz" data-zone="deep" id="education">
+    <div class="dz-tag">// where I studied <span class="jp">학력 · విద్య</span></div>
+    <h2 class="rise">Education</h2>
+    <div class="edu-card glass rise">
+      <div class="edu-badge">CU</div>
+      <div>
+        <div class="edu-degree">BTech in Computer Science</div>
+        <div class="edu-school">Chandigarh University, Punjab · 2018 – 2022</div>
+        <div class="edu-details">GPA 8.0/10.0 (Major GPA 9.0/10.0) · JEE Merit Scholar with 75% tuition grant</div>
+        <div class="cert-list"><span class="tag">Cloud — QwikLabs</span><span class="tag">Data Science — Credly</span><span class="tag">Networking — IIT Kharagpur Silver</span></div>
+      </div>
     </div>
-  </div>
-  <div class="big-jp" id="thanks">ありがとう</div>
-</div></div>
+  </section>
+
+  <div class="spacer" data-zone="trench"><div class="cap"><b>The bottom</b>minus ten thousand nine hundred metres · the deepest point there is<span class="jp">해구 · కందకం</span></div></div>
+
+  <!-- ============ CONTACT · TRENCH ============ -->
+  <section class="dz dz-contact" data-zone="trench" id="contact">
+    <div class="dz-tag">// let's talk <span class="jp">연락 · సంప్రదింపు</span></div>
+    <h2 class="rise">Get in Touch</h2>
+    <p class="contact-desc rise">You made it to the bottom. Whether it's a hard problem, a project, a question about distributed systems, or just wanting to swap trail recommendations — my inbox is open, even down here.</p>
+    <div class="contact-links rise">
+      <a href="mailto:work.kchakradhar@gmail.com" class="contact-link" aria-label="Email"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 7 10 6 10-6"/></svg><span class="cl-label">Email</span></a>
+      <a href="https://linkedin.com/in/chakri-konda" target="_blank" rel="noopener noreferrer" class="contact-link" aria-label="LinkedIn"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.45 20.45h-3.55v-5.57c0-1.33-.03-3.04-1.85-3.04-1.85 0-2.14 1.45-2.14 2.94v5.67H9.36V9h3.41v1.56h.05c.47-.9 1.63-1.85 3.36-1.85 3.6 0 4.27 2.37 4.27 5.45v6.29zM5.34 7.43a2.06 2.06 0 1 1 0-4.12 2.06 2.06 0 0 1 0 4.12zM7.12 20.45H3.56V9h3.56v11.45z"/></svg><span class="cl-label">LinkedIn</span></a>
+      <a href="https://github.com/CaptChakri" target="_blank" rel="noopener noreferrer" class="contact-link" aria-label="GitHub"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.44 9.8 8.21 11.39.6.11.82-.26.82-.58 0-.28-.01-1.04-.02-2.04-3.34.73-4.04-1.61-4.04-1.61-.55-1.39-1.33-1.76-1.33-1.76-1.09-.74.08-.73.08-.73 1.2.09 1.84 1.24 1.84 1.24 1.07 1.83 2.81 1.3 3.49 1 .11-.78.42-1.31.76-1.61-2.66-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.13-.3-.54-1.52.12-3.18 0 0 1.01-.32 3.3 1.23a11.5 11.5 0 0 1 6.01 0c2.29-1.55 3.29-1.23 3.29-1.23.66 1.66.25 2.88.12 3.18.77.84 1.24 1.91 1.24 3.22 0 4.61-2.81 5.62-5.49 5.92.43.37.81 1.1.81 2.22 0 1.61-.01 2.9-.01 3.29 0 .32.21.7.82.58A12 12 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg><span class="cl-label">GitHub</span></a>
+      <a href="https://drive.google.com/file/d/1BawpLfYBIrtNBlJQKrSI-Bh09yINWSzR/view?usp=sharing" target="_blank" rel="noopener noreferrer" class="contact-link" aria-label="Résumé"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg><span class="cl-label">Résumé</span></a>
+      <a href="tel:+353894152861" class="contact-link" aria-label="Call"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg><span class="cl-label">Call</span></a>
+    </div>
+  </section>
+
+  <footer class="seafloor-footer">
+    <div class="seafloor-credit">© <span data-year>2026</span> Chakri · Dublin, Ireland · The descent ends here ⟂</div>
+  </footer>
 
 </main>
 
-<footer>© <span data-year>2026</span> Chakri · Dublin, Ireland · All rights reserved</footer>
-
+<script>window.DESCENT_CONFIG = { gauge: 'field', intensity: 1.15, sprites: true };</script>
 <script src="assets/js/theme.js"></script>
-<script>
-/* ===== HERO SEQUENCE ===== */
-(function() {
-  const greetings = [
-    ["Hey, I'm ", 'Chakri'],
-    ['안녕하세요, ', '차크리', '입니다'],
-    ['నమస్తే, నేను ', 'చక్రిని'],
-    ['こんにちは、', 'チャクリ', 'です'],
-    ['नमस्ते, मैं ', 'चक्री', ' हूँ']
-  ];
-  const greeting = greetings[0].join('');
-  const el = document.getElementById('typed-greeting');
-  const skipIntro = document.body.classList.contains('skip-intro');
-  const startDelay = REDUCED ? 0 : (skipIntro ? 250 : 400);
-
-  function setGreeting(parts) {
-    el.replaceChildren(
-      document.createTextNode(parts[0]),
-      Object.assign(document.createElement('span'), {
-        className: 'greeting-name',
-        textContent: parts[1]
-      }),
-      document.createTextNode(parts[2] || '')
-    );
-  }
-
-  function typeGreeting(cb) {
-    if (REDUCED || skipIntro) { setGreeting(greetings[0]); cb(); return; }
-    let i = 0;
-    (function tick() {
-      if (i <= greeting.length) {
-        el.textContent = greeting.slice(0, i++);
-        setTimeout(tick, 28 + Math.random() * 38);
-      } else {
-        setGreeting(greetings[0]);
-        cb();
-      }
-    })();
-  }
-
-  function revealRest() {
-    if (!REDUCED) {
-      let greetingIndex = 0;
-      setInterval(() => {
-        el.style.opacity = 0;
-        setTimeout(() => {
-          greetingIndex = (greetingIndex + 1) % greetings.length;
-          setGreeting(greetings[greetingIndex]);
-          el.style.opacity = 1;
-        }, 500);
-      }, 2400);
-    }
-
-    const words = document.querySelectorAll('#headline .w');
-    words.forEach((w, i) => setTimeout(() => w.classList.add('show'), i * 80));
-    const after = words.length * 80 + 300;
-    setTimeout(() => document.getElementById('hero-intro').classList.add('show'), after);
-    setTimeout(() => document.getElementById('hero-cta').classList.add('show'), after + 180);
-    setTimeout(() => document.getElementById('hero-status').classList.add('show'), after + 360);
-  }
-
-  // wait for the loading screen to clear, then run the hero sequence
-  window.INTRO_DONE.then(() => setTimeout(() => typeGreeting(revealRest), startDelay));
-})();
-
-/* ===== TICKER (duplicate content for seamless loop) ===== */
-(function() {
-  const t = document.getElementById('ticker');
-  t.innerHTML += t.innerHTML;
-})();
-
-/* ===== PANEL STICKY OFFSETS ===== */
-(function() {
-  const panels = [...document.querySelectorAll('.panel')];
-  function set() {
-    const vh = innerHeight;
-    panels.forEach((p, i) => {
-      p.style.zIndex = 10 + i;
-      p.style.top = Math.min(0, vh - p.offsetHeight) + 'px';
-    });
-  }
-  set();
-  addEventListener('resize', set);
-  addEventListener('load', set);
-
-  /* fade a section's content as the next panel slides over it */
-  const pairs = [];
-  const heroInner = document.querySelector('.hero-inner');
-  if (heroInner && panels[0]) pairs.push({ content: heroInner, cover: panels[0] });
-  panels.forEach((p, i) => {
-    const next = panels[i + 1];
-    if (!next) return;
-    const content = p.querySelector('.section-wrap, .contact-section');
-    if (content) pairs.push({ content, cover: next });
-  });
-  pairs.forEach(pr => pr.content.classList.add('fade-target'));
-
-  let ticking = false;
-  function fade() {
-    ticking = false;
-    const vh = innerHeight;
-    for (const pr of pairs) {
-      const t = pr.cover.getBoundingClientRect().top;
-      let prog = 1 - t / vh;
-      prog = Math.max(0, Math.min(1, prog));
-      pr.content.style.opacity = Math.max(0, 1 - prog * 1.15);
-      pr.content.style.transform = `scale(${1 - prog * 0.04}) translateY(${prog * -18}px)`;
-    }
-  }
-  addEventListener('scroll', () => {
-    if (!ticking) { ticking = true; requestAnimationFrame(fade); }
-  }, { passive: true });
-  fade();
-
-  /* Resolve anchors to each panel's stable normal-flow position so smooth
-     navigation can move through the stacked cards in a single transition. */
-  function getFlowTop(element) {
-    const main = document.querySelector('main');
-    let section = element;
-    while (section.parentElement && section.parentElement !== main) {
-      section = section.parentElement;
-    }
-    if (!main || section.parentElement !== main) return element.offsetTop;
-
-    let top = main.offsetTop;
-    for (const sibling of main.children) {
-      if (sibling === section) break;
-      top += sibling.offsetHeight;
-    }
-    return top;
-  }
-
-  function jumpToHash(hash) {
-    let top = 0;
-    if (hash && hash !== '#') {
-      const target = document.querySelector(hash);
-      if (!target) return;
-      const panel = target.closest('.panel') || target;
-      top = getFlowTop(panel);
-    }
-    const max = document.documentElement.scrollHeight - innerHeight;
-    scrollTo({
-      top: Math.min(top, max),
-      behavior: REDUCED ? 'auto' : 'smooth'
-    });
-  }
-  document.querySelectorAll('a[href^="#"]').forEach(a => {
-    a.addEventListener('click', e => {
-      const hash = a.getAttribute('href');
-      e.preventDefault();
-      jumpToHash(hash);
-      history.replaceState(null, '', hash === '#' ? location.pathname : hash);
-    });
-  });
-})();
-
-/* ===== THANK YOU WATERMARK CYCLE ===== */
-(function() {
-  if (REDUCED) return;
-  const el = document.getElementById('thanks');
-  const words = ['ありがとう', '감사합니다'];
-  let i = 0;
-  el.style.transition = 'opacity 0.8s ease';
-  setInterval(() => {
-    el.style.opacity = 0;
-    setTimeout(() => {
-      i = (i + 1) % words.length;
-      el.textContent = words[i];
-      el.style.opacity = 1;
-    }, 800);
-  }, 5000);
-})();
-
-/* ===== 3D TILT ON PROJECT CARDS ===== */
-(function() {
-  if (REDUCED || !matchMedia('(hover: hover)').matches) return;
-  document.querySelectorAll('.tilt').forEach(card => {
-    card.addEventListener('mousemove', e => {
-      const r = card.getBoundingClientRect();
-      const x = (e.clientX - r.left) / r.width - 0.5;
-      const y = (e.clientY - r.top) / r.height - 0.5;
-      card.style.transform = `perspective(700px) rotateY(${x * 7}deg) rotateX(${-y * 7}deg) translateY(-2px)`;
-    });
-    card.addEventListener('mouseleave', () => { card.style.transform = ''; });
-  });
-})();
-
-/* ===== CONTACT LINK MOTION ===== */
-(function() {
-  const section = document.querySelector('.contact-section');
-  if (!section) return;
-
-  section.addEventListener('pointermove', e => {
-    const r = section.getBoundingClientRect();
-    section.style.setProperty('--contact-x', `${e.clientX - r.left}px`);
-    section.style.setProperty('--contact-y', `${e.clientY - r.top}px`);
-  });
-
-  /* contact links lean toward the cursor */
-  if (REDUCED || !matchMedia('(hover: hover)').matches) return;
-  document.querySelectorAll('.contact-link').forEach(link => {
-    link.addEventListener('mousemove', e => {
-      const r = link.getBoundingClientRect();
-      const x = (e.clientX - r.left - r.width / 2) * 0.18;
-      const y = (e.clientY - r.top - r.height / 2) * 0.35;
-      link.style.transform = `translate(${x}px, ${y - 3}px)`;
-    });
-    link.addEventListener('mouseleave', () => { link.style.transform = ''; });
-  });
-})();
-
-/* ===== BLOG TEASER (latest 3 posts from blog/posts.json) ===== */
-(function() {
-  const list = document.getElementById('blog-teaser-list');
-  function postUrl(post) {
-    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(post.date);
-    if (!match) throw new Error(`Invalid publication date for ${post.slug}`);
-    const [, year, month, day] = match;
-    const slug = encodeURIComponent(post.slug);
-    return `blog/${year}/${month}/${day}/${slug}.html`;
-  }
-
-  fetch('blog/posts.json')
-    .then(r => r.json())
-    .then(posts => {
-      posts
-        .slice()
-        .sort((a, b) => new Date(b.date) - new Date(a.date))
-        .slice(0, 3)
-        .forEach((post, i) => {
-          const card = document.createElement('a');
-          card.href = postUrl(post);
-          card.className = 'blog-card rv';
-
-          const date = document.createElement('time');
-          date.className = 'blog-date';
-          date.dateTime = post.date;
-          date.textContent = post.dateLabel || post.date;
-
-          const content = document.createElement('div');
-          const title = document.createElement('div');
-          title.className = 'blog-title';
-          title.textContent = post.title;
-          const excerpt = document.createElement('div');
-          excerpt.className = 'blog-excerpt';
-          excerpt.textContent = post.excerpt;
-          content.append(title, excerpt);
-
-          const arrow = document.createElement('div');
-          arrow.className = 'blog-arrow';
-          arrow.setAttribute('aria-hidden', 'true');
-          arrow.textContent = '→';
-          card.append(date, content, arrow);
-          list.appendChild(card);
-        });
-
-      // newly-added cards need to be picked up by the reveal observer
-      list.querySelectorAll('.rv').forEach((el, i) => {
-        el.style.animationDelay = (i * 0.09) + 's';
-        el.classList.add('show');
-      });
-    })
-    .catch(() => {
-      list.innerHTML = '<p class="blog-note">Posts coming soon.</p>';
-    });
-})();
-</script>
-
+<script src="assets/js/easter-eggs.js"></script>
+<script src="assets/js/descent-sprites.js"></script>
+<script src="assets/js/descent-engine.js"></script>
+<script src="assets/js/descent-content.js"></script>
 </body>
 </html>

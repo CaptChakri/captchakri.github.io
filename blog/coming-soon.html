@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="The Wicklow Way post is still being finished. Check back soon.">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#060B1C">
+<link rel="canonical" href="https://captchakri.github.io/blog/coming-soon.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Coming Soon - Chakri's World">
+<meta property="og:description" content="The Wicklow Way post is still being finished. Check back soon.">
+<meta property="og:url" content="https://captchakri.github.io/blog/coming-soon.html">
+<meta property="og:site_name" content="Chakri's World">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Coming Soon - Chakri's World">
+<meta name="twitter:description" content="The Wicklow Way post is still being finished. Check back soon.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<title>Coming Soon - Chakri's World</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
+<link rel="stylesheet" href="../assets/css/theme.css">
+<style>
+body { min-height: 100vh; display: flex; flex-direction: column; }
+main {
+  position: relative; z-index: 1; width: 100%;
+  max-width: 760px; margin: 0 auto; padding: 10rem 2.5rem 6rem;
+}
+.soon-panel {
+  background: var(--navy2); border: 1px dashed rgba(0,200,240,0.28);
+  border-radius: 0.5rem; padding: 2rem;
+}
+.soon-panel p { color: var(--text); max-width: 620px; }
+.soon-actions { display: flex; flex-wrap: wrap; gap: 0.9rem; margin-top: 1.8rem; }
+body > footer { margin-top: auto; }
+@media (max-width: 768px) {
+  main { padding: 7rem 1.25rem 4rem; }
+  .soon-panel { padding: 1.5rem; }
+}
+</style>
+</head>
+<body>
+
+<a class="skip-link" href="#main-content">Skip to main content</a>
+
+<div id="intro" aria-hidden="true">
+  <div class="intro-logo">CK<span class="dot">.</span></div>
+  <div class="intro-bar"></div>
+</div>
+
+<div id="cursor-ring" aria-hidden="true"></div>
+<div id="cursor-dot" aria-hidden="true"></div>
+<div id="progress" aria-hidden="true"></div>
+<canvas id="starfield" aria-hidden="true"></canvas>
+
+<nav aria-label="Primary navigation">
+  <a href="/" class="nav-logo">CK<span>.</span></a>
+  <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="primary-links" aria-label="Open navigation menu">
+    <span></span><span></span><span></span>
+  </button>
+  <ul class="nav-links" id="primary-links">
+    <li><a href="/#about">About</a></li>
+    <li><a href="/#experience">Experience</a></li>
+    <li><a href="/#projects">Projects</a></li>
+    <li><a href="/blog/" class="active">Blog</a></li>
+    <li><a href="/#contact">Contact</a></li>
+  </ul>
+</nav>
+
+<main id="main-content" tabindex="-1">
+  <section class="soon-panel rv show">
+    <div class="section-tag">// coming soon</div>
+    <h1 class="post-title">The Wicklow Way post is still on the trail.</h1>
+    <p>I'm still finishing this one before it goes fully live. For now, the Wicklow Way story is gated here so the unfinished draft stays tucked away.</p>
+    <div class="soon-actions">
+      <a class="btn-primary" href="/blog/">Back to the blog</a>
+      <a class="btn-secondary" href="/">Home</a>
+    </div>
+  </section>
+</main>
+
+<footer>&copy; <span data-year>2026</span> Chakri - All rights reserved - <a href="/">Home</a></footer>
+
+<script src="../assets/js/theme.js"></script>
+</body>
+</html>
