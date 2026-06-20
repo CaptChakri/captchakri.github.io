@@ -30,15 +30,25 @@
     if (PIN == null) PIN = PIN_P.biosphere;
   }
 
-  // TODO: make the scene weather-aware of the visitor's current location.
-  //   • Get coords from navigator.geolocation (fall back to a sensible default city
-  //     on denial/unavailable — never block the animation on it).
-  //   • Fetch live weather from Open-Meteo (no API key, CORS-enabled, GitHub-Pages
-  //     friendly): current.weather_code + cloud_cover + wind_speed + precipitation.
-  //   • Drive the existing knobs from it: cloud_cover → cloud count/opacity, wind →
-  //     choppier sea wob/swell, and a weather_code precip branch → a rain/snow layer
-  //     in the sky/biosphere zones. Keep day/night on the device clock (nightAmount).
-  //   • Cache the result (sessionStorage) so we hit the API at most once per visit.
+  // ── live weather: the scene can react to the visitor's REAL local weather.
+  //   Coords come from navigator.geolocation (falling back to a default city if it's
+  //   denied/unavailable); current conditions come from Open-Meteo (no API key,
+  //   CORS-enabled, GitHub-Pages friendly). Fetched at most ~once per 30 min per
+  //   browser (cached in localStorage) and it NEVER blocks the animation — until/unless a reading
+  //   arrives the scene renders at the neutral defaults below. Day/night stays on the
+  //   device clock (nightAmount), independent of weather. The mapped 0..1 knobs feed
+  //   the existing systems: cloud → cloud count/opacity, wind → sea chop & swell,
+  //   precip/kind → a rain-or-snow layer over the sky & beach. See initWeather() /
+  //   classifyWeather() near boot. To force a look (no fetch): DESCENT_CONFIG.weather
+  //   = 'rain'|'storm'|'snow'|'clear', or add ?weather=rain to the URL.
+  const WEATHER = {
+    ready: false,            // true once a live (or cached) reading has been applied
+    cloud: 0.5,              // 0 clear … 1 overcast
+    wind: 0.25,              // 0 calm … 1 gale
+    precip: 0,               // 0 none … 1 heavy
+    kind: 'none',            // 'none' | 'rain' | 'snow'
+    south: false,            // visitor in the southern hemisphere? (coarse flag → flips the season; never a coordinate)
+  };
 
   const canvas = document.getElementById('descent-canvas');
   const spriteLayer = document.getElementById('descent-sprites');
@@ -53,13 +63,53 @@
     canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
     ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
     sfBuild();
+    buildWarp();
   }
 
-  /* ---------- progress ---------- */
+  /* ---------- progress ----------
+     Raw scroll fraction is WARPED so every transition heading frames the scene
+     beat it names — "Leaving orbit" lands on the satellite, "Through the weather"
+     on the plane, … (HEADING_SCENE_P, one target per spacer in document order).
+     A heading's SCROLL position depends on layout (content + full-screen spacer
+     heights), so we MEASURE each spacer live (buildWarp) and remap raw progress
+     through those points. The whole scene reads this one value — gradient, zones,
+     depth, sprites, fish, camp, seafloor — so they all stay in step; only the
+     timing moves, never the artwork. The lower headings keep ~their natural
+     positions (the deep half already lined up), so this mainly pulls the orbit
+     and weather beats up to meet their labels. Rebuilt on resize / reflow; until
+     measured (or on a page with no spacers) it's the identity. */
+  const HEADING_SCENE_P = [0.18, 0.345, 0.447, 0.609, 0.81, 0.923];
+  let warpPts = null;
+  function buildWarp() {
+    const max = document.documentElement.scrollHeight - window.innerHeight;
+    const spacers = document.querySelectorAll('.spacer');
+    if (max <= 0 || !spacers.length) { warpPts = null; return; }
+    const ih = window.innerHeight, pts = [{ s: 0, t: 0 }];
+    spacers.forEach((el, i) => {
+      if (i >= HEADING_SCENE_P.length) return;
+      const top = el.getBoundingClientRect().top + window.scrollY;
+      const s = Math.min(1, Math.max(0, (top + el.offsetHeight / 2 - ih / 2) / max));
+      if (s > pts[pts.length - 1].s + 1e-3) pts.push({ s, t: HEADING_SCENE_P[i] });
+    });
+    pts.push({ s: 1, t: 1 });
+    warpPts = pts.length > 2 ? pts : null;     // need at least one heading for a warp to mean anything
+  }
+  // piecewise smoothstep through the control points: the scene eases to a near-still
+  // composed frame as each heading centres, then flows on into the next section
+  function warp(s) {
+    if (!warpPts) return s;
+    for (let i = 1; i < warpPts.length; i++) {
+      if (s <= warpPts[i].s) {
+        const a = warpPts[i - 1], b = warpPts[i], k = (s - a.s) / (b.s - a.s);
+        return a.t + (b.t - a.t) * k * k * (3 - 2 * k);
+      }
+    }
+    return 1;
+  }
   function prog() {
     if (PIN != null) return PIN;          // a pinned page holds one sphere (see cfg.pin)
     const max = document.documentElement.scrollHeight - window.innerHeight;
-    return max > 0 ? Math.min(1, Math.max(0, window.scrollY / max)) : 0;
+    return max > 0 ? warp(Math.min(1, Math.max(0, window.scrollY / max))) : 0;
   }
 
   /* ---------- colour journey ---------- */
@@ -155,8 +205,27 @@
     const dist = Math.min(Math.abs(h - 6.5), Math.abs(h - 17.5)); // hours from a horizon crossing
     return Math.max(0, 1 - dist / 2.5);                           // glow within ~2.5h of sunrise/sunset
   }
+  // ── season: a hemisphere-aware "summeriness" 0..1 — ~1 at midsummer, ~0 at
+  //   midwinter, easing through spring & autumn. WEATHER.south (a coarse hemisphere flag
+  //   from the live reading, never a coordinate) flips it; until then it assumes northern.
+  //   Drives the warm-season creatures: the camp fireflies, the swifts over the bay, the dusk bat.
+  function summerAmount() {
+    const now = new Date();
+    const doy = (now - new Date(now.getFullYear(), 0, 0)) / 86400000;  // day of year, ~1..365
+    const peak = WEATHER.south ? 355 : 172;                            // S: ~Dec 21, N: ~Jun 21
+    let off = Math.abs(doy - peak); if (off > 182.5) off = 365 - off;  // days from the warm peak (wrapped)
+    return Math.cos((off / 182.5) * Math.PI) * 0.5 + 0.5;             // 1 at the peak → 0 half a year away
+  }
+  // ── fair-weather flyers (the raptor, the swifts, the bat) keep out of a downpour or a
+  //   gale and ride calm, dry air: 1 in fair weather → 0 as the rain/wind builds. Until a
+  //   live reading lands (WEATHER.ready) it's a no-op so the sky stays populated by default.
+  function flyWeather() {
+    if (!WEATHER.ready) return 1;
+    const f = 1 - WEATHER.precip * 1.3 - Math.max(0, WEATHER.wind - 0.5) * 1.4;
+    return f < 0 ? 0 : (f > 1 ? 1 : f);
+  }
   const CAMP_FIRE_X = 0.58, CAMP_TENT_X = 0.36; // preferred fireplace + tent x (fraction of W); fire is the smoke origin
-  let stars = [], shooters = [], clouds = [], fireflies = [], bubbles = [], bios = [], snow = [], fishes = [];
+  let stars = [], shooters = [], clouds = [], fireflies = [], bubbles = [], bios = [], snow = [], precip = [], fishes = [];
   let smoke = [], lastShooter = 0, lastSmoke = 0;
   // the swimming tortoise, published each frame by stepTortoise as something the
   // shoal flees: its viewport-normalised centre + how strongly it spooks nearby fish
@@ -317,11 +386,16 @@
 
   function seed() {
     stars = []; for (let i = 0; i < N(180); i++) stars.push({ x: Math.random(), y: Math.random(), r: rnd(0.3, 1.7), a: rnd(0.15, 0.9), ts: rnd(0.002, 0.01), td: Math.random() > .5 ? 1 : -1, par: rnd(0.05, 0.35) });
-    clouds = []; for (let i = 0; i < N(7); i++) clouds.push({ x: Math.random(), y: rnd(0.1, 0.9), w: rnd(120, 320), h: rnd(28, 60), v: rnd(0.02, 0.06) * (Math.random() > .5 ? 1 : -1), a: rnd(0.05, 0.16) });
+    // a pool sized for the cloudiest sky; how many actually draw tracks the live
+    // cloud cover (default ~0.5 → ~7, matching the scene's original scattering)
+    clouds = []; for (let i = 0; i < N(11); i++) clouds.push({ x: Math.random(), y: rnd(0.1, 0.9), w: rnd(120, 320), h: rnd(28, 60), v: rnd(0.02, 0.06) * (Math.random() > .5 ? 1 : -1), a: rnd(0.05, 0.16) });
     fireflies = []; for (let i = 0; i < N(26); i++) fireflies.push({ x: Math.random(), y: rnd(0.55, 0.82), ph: Math.random() * 6.28, sp: rnd(0.3, 0.9), dx: rnd(0.0003, 0.0012) * (Math.random() > .5 ? 1 : -1) });
     bubbles = []; for (let i = 0; i < N(34); i++) bubbles.push({ x: Math.random(), y: Math.random(), r: rnd(1, 4), v: rnd(0.0015, 0.005), wob: Math.random() * 6.28, ws: rnd(0.01, 0.03) });
     bios = []; for (let i = 0; i < N(40); i++) bios.push({ x: Math.random(), y: Math.random(), r: rnd(0.6, 2.2), ph: Math.random() * 6.28, sp: rnd(0.5, 1.6), hue: Math.random() > .5 ? 'c' : 'p' });
     snow = []; for (let i = 0; i < N(50); i++) snow.push({ x: Math.random(), y: Math.random(), r: rnd(0.4, 1.4), v: rnd(0.0006, 0.0018), dx: rnd(-0.0004, 0.0004) });
+    // rain/snow drops for the live-weather precip layer (only drawn when the
+    // visitor's real weather calls for it); z gives per-drop depth → size/speed/fade
+    precip = []; for (let i = 0; i < N(120); i++) precip.push({ x: Math.random(), y: Math.random(), z: rnd(0.35, 1), sp: rnd(0.7, 1.3), sw: Math.random() * 6.28 });
     fishes = []; syncFish();
   }
 
@@ -852,14 +926,16 @@
   }
 
   /* ---------- daytime sky-cooling envelope ----------
-     Where (by progress) the gradient's warm "dawn horizon" band is cooled toward a
-     clear daytime sky. Covers the high-sky→shore approach (p≈0.30–0.47) where GRAD is
-     warmest; 0 above (deep-sky palette is already cool/dark) and below (the beach owns
-     its own coastal sky). Scaled at the call site by daylight × (1 − golden hour), so
-     it only neutralises the warmth at midday and leaves it at sunrise/sunset. */
+     Where (by progress) GRAD's twilight tones — the mauve "pre-dawn" of the upper
+     stratosphere and the warm "dawn horizon" lower down — are cooled toward a clear
+     daytime sky. Covers the high-sky→shore approach (p≈0.28–0.47); 0 above (the
+     deep-indigo "edge of space" ≳10 km is already cool/dark and should stay so) and
+     below (the beach owns its own coastal sky). Scaled at the call site by
+     daylight × (1 − golden hour), so it only neutralises those tones at midday and
+     leaves them at sunrise/sunset. */
   function dayCoolEnv(p) {
-    if (p < 0.30 || p > 0.47) return 0;
-    if (p < 0.37) return (p - 0.30) / 0.07;          // ease in as the warm band begins
+    if (p < 0.28 || p > 0.47) return 0;              // leave the deep-indigo "edge of space" (≳10 km) alone
+    if (p < 0.34) return (p - 0.28) / 0.06;          // ease in across the upper stratosphere (the mauve "pre-dawn" band)
     if (p > 0.44) return (0.47 - p) / 0.03;          // ease out into the beach's own coastal sky
     return 1;
   }
@@ -902,12 +978,14 @@
     }
   }
 
-  /* a loose V-formation of birds drifting slowly across the daytime bay */
-  function drawBirds(a, t, px, py) {
+  /* a loose V-formation of birds drifting slowly across the daytime bay.
+     `lift` raises the flock up the viewport as the tide floods in, so they peel
+     away into the sky rather than being overtaken (and submerged) by the water. */
+  function drawBirds(a, t, px, py, lift = 0) {
     if (a <= 0.01) return;
     ctx.strokeStyle = `rgba(38,50,70,${a})`; ctx.lineWidth = 2; ctx.lineCap = 'round';
     const cx = (((t * 0.00002) % 1.3) - 0.15) * W + px * 0.4;            // slow sweep, looping across
-    const cy = H * 0.2 + py * 0.4;
+    const cy = H * 0.2 + py * 0.4 - lift;
     for (let i = 0; i < 6; i++) {
       const k = i - 2.5;                                                 // place along the V
       const bx = cx + k * 24, by = cy + Math.abs(k) * 12;
@@ -1260,7 +1338,17 @@
     // a raptor soaring over the bay — kept down in the BIOSPHERE (sea level) rather
     // than alone in the high sky, so birds read as part of the coast, not as traffic
     // you pass at altitude. yb lifts it into the sky above the headland (see updateSprites).
-    { e: '🦅', p: 0.52, x: 70, s: 38, w: 0.07, m: 'glide', yb: -0.22 },
+    // `vis` is a 0..1 environmental gate (multiplied into the scroll fade): the raptor
+    // soars by DAY (resident year-round) and keeps out of a downpour or gale (flyWeather).
+    { e: '🦅', p: 0.52, x: 70, s: 38, w: 0.07, m: 'glide', yb: -0.22, vis: () => (1 - nightAmount()) * flyWeather() },
+    // swifts wheeling over the bay on warm days — a SUMMER day-flyer (summerAmount),
+    // fair-weather (flyWeather), that drops to hunt LOW when rain is brewing (see the
+    // 'wheel' gait). Small and few, so they read as a restless detail, not a flock.
+    { e: 'swift', p: 0.5, x: 38, s: 26, w: 0.085, m: 'wheel', yb: -0.27, vis: () => (1 - nightAmount()) * summerAmount() * flyWeather() },
+    // a bat flitting out at dusk — the NIGHT counterpart to the swifts, so the bay's sky
+    // always has the right flyer for the hour: warm-season (summerAmount), nocturnal
+    // (nightAmount), and only on calm, dry evenings (flyWeather). See the 'flit' gait.
+    { e: 'bat', p: 0.54, x: 60, s: 24, w: 0.085, m: 'flit', yb: -0.2, vis: () => nightAmount() * summerAmount() * flyWeather() },
     /* the campsite (tent + stone fireplace) is drawn into the scenery on the
        ground (see drawCamp); the balloon sprite was removed */
     /* small fish are drawn as a lively, continuously-swimming canvas school
@@ -1278,7 +1366,11 @@
        drifting clear off the edge rather than hovering on one spot; `dir` sets which
        way each one heads so they don't move in lockstep. */
     { e: 'seahorse-natural', p: 0.78, x: 30, s: 44, w: 0.08, m: 'seahorse', dir: 1 },
-    { e: 'seahorse', p: 0.80, x: 76, s: 48, w: 0.075, glow: 'warm', m: 'seahorse', dir: -1, rare: 0.2, egg: 'seahorse' }, // a rare catch (see catchEgg)
+    { e: 'seahorse', p: 0.80, x: 76, s: 48, w: 0.075, glow: 'warm', m: 'seahorse', dir: -1, rare: 0.07, egg: 'seahorse' }, // a rare catch (~1 in 14 visits; see catchEgg)
+    /* the deep dwellers (whale → octopus) carry NO time/weather/season gate on purpose:
+       this far below the surface there's no daylight, no weather and no real seasons —
+       their world is governed by DEPTH alone, which the descent already drives. So unlike
+       the sky birds and the camp fireflies, they look the same whatever the clock says. */
     { e: '🐋', p: 0.815, x: 54, s: 132, w: 0.15, glow: 'cool', m: 'swim' },
     { e: '🦑', p: 0.875, x: 64, s: 54, w: 0.09, glow: 'cool', m: 'swim' },
     { e: '🪼', p: 0.915, x: 38, s: 72, w: 0.10, glow: 'cool', m: 'pulse' },
@@ -1392,10 +1484,9 @@
     return true;
   }
   /* ---------- the tortoise: a shy beach-walker that takes to the sea ----------
-     A side-view tortoise painted straight INTO the beach tableau. Because it's drawn
-     between the camp and the left foreground conifer, the tree genuinely hides where
-     it comes from: it pads out from behind the trunk, ambles into the clearing and
-     lifts its head to LOOK AT YOU while you linger — then, as you scroll on and the
+     A side-view tortoise painted straight INTO the beach tableau. It EMERGES FROM THE
+     CAMP — padding out of the tent mouth, ambling into the clearing and lifting its
+     head to LOOK AT YOU while you linger (and again if you idle on it). Then, as you scroll on and the
      tide floods in, it slips under with a little fade and swims off toward the corner
      after a fish, scattering the shoal as it goes. The whole journey is a pure
      function of depth (tortoisePath), so scrolling back UP runs it in reverse: it
@@ -1413,8 +1504,9 @@
   // quarry fish under a spring that keeps it loosely tethered to the scroll anchor
   let tortSimX = null, tortSimY = null, tortVX = 0, tortVY = 0, tortQuarry = null, tortLunge = 0, tortLungeCd = 0;
   let tortWanderX = null, tortWanderY = null, tortWanderT = 0;   // a slow roaming waypoint for empty water, when no fish are about
-  let tortTuckHold = 0;                                          // frames left holding the shell-tuck after a poke (see pokeTortoise)
-  const tort = { x: 0, y: 0, scale: 14, swim: 0, look: 0, pitch: 0, aLand: 0, aWater: 0, aimX: 0, aimY: 0, tuck: 0 };
+  let tortTuckHold = 0, tortFallV = 0, tortSinkPh = 0;           // frames holding the shell-tuck after a poke; watery sink speed + waft phase while withdrawn (see pokeTortoise)
+  let tortIdleT = 0;                                             // how long it's sat still under a hovering cursor → it turns to watch you (idle attention)
+  const tort = { x: 0, y: 0, scale: 14, swim: 0, look: 0, pitch: 0, aLand: 0, aWater: 0, aimX: 0, aimY: 0, tuck: 0, rock: 0, depth: 0, heat: 0 };
   const tortHit = { x: 0, y: 0, r: 0, alpha: 0 };         // live screen geometry for the gold catch
 
   /* ---------- the drowned campfire: a hidden relight ----------
@@ -1434,9 +1526,13 @@
     if (reduce) return;
     for (let i = 0; i < 9; i++) smoke.push({ life: rnd(0, 0.22), ox: rnd(-13, 13), sw: Math.random() * 6.2832, vr: rnd(0.004, 0.0075), steam: true });
   }
-  // tap the cold pit to relight it — only when it's doused and clear of the water
+  // tap the cold pit to relight it — only when it's doused, clear of the water, and
+  // dark enough for the flame to actually catch. By day the fire only smoulders
+  // (drawFirepit gates its glow on nightAmount), so a daylight tap would fire the
+  // easter egg and spark burst with nothing to show — don't offer it until dusk.
   function relightFire(cx, cy) {
     if (!fireDoused || fireHit.alpha < 0.5) return false;
+    if (nightAmount() <= 0) return false;
     if (Math.hypot(cx - fireHit.x, cy - fireHit.y) > fireHit.r + 26) return false;
     fireDoused = false;
     burstAt(fireHit.x, fireHit.y, true);                 // a warm shower of sparks as it catches
@@ -1450,7 +1546,10 @@
   // it's looking up at you. Keyframed waypoints, smoothstepped between, so the land
   // and water draws share ONE position and hand off seamlessly across the tide.
   function tortoisePath(p) {
-    const KX = [[0.495, 0.05], [0.535, 0.235], [0.565, 0.255], [0.605, 0.40], [0.66, 0.57], [0.74, 0.77], [0.805, 0.95]];
+    // it emerges from the CAMP: x starts at the tent mouth (~0.36, which faces right toward the
+    // fire) and ambles out into the clearing, then down to the water. The water-entry keyframes
+    // (p≥0.66) are kept so the swim hand-off across the tide is unchanged.
+    const KX = [[0.495, 0.36], [0.535, 0.42], [0.565, 0.45], [0.605, 0.55], [0.66, 0.64], [0.74, 0.80], [0.805, 0.95]];
     const KY = [[0.495, 0.80], [0.535, 0.805], [0.565, 0.815], [0.605, 0.745], [0.66, 0.66], [0.74, 0.80], [0.805, 0.93]];
     const at = (K) => {
       if (p <= K[0][0]) return K[0][1];
@@ -1459,7 +1558,13 @@
     };
     const swim = sstep(0.60, 0.66, p);                    // the tide reaches it ~0.60, fully swimming ~0.66
     const grow = sstep(0.495, 0.55, p);                   // grows a touch walking out of the tree's shadow
-    const scale = Math.max(7, Math.min(W, H) * 0.023) * (0.78 + 0.22 * grow);  // small — true to size, well under the tent
+    const base = Math.max(7, Math.min(W, H) * 0.023);     // land/true-size basis — small, kept well under the tent
+    // underwater the fish around it are a FIXED pixel size (they don't scale with the viewport), so on a
+    // narrow phone min(W,H) shrinks the tortoise below the shoal and it reads as tiny. As it takes to the
+    // water, lift it to a readable sea-size keyed off the LONG edge (capped, so roomy desktops are unchanged)
+    // — it ends up a consistent, substantial creature among the fish on phone and desktop alike.
+    const seaMin = Math.min(20, Math.max(W, H) * 0.026);
+    const scale = (base + Math.max(0, seaMin - base) * swim) * (0.78 + 0.22 * grow);
     let look = Math.min(sstep(0.52, 0.532, p), 1 - sstep(0.563, 0.578, p));  // lifts its head while it pauses
     look *= (1 - swim);
     return { x: at(KX), y: at(KY), scale, swim, look };
@@ -1502,16 +1607,16 @@
     const c = tortoisePath(p);
     tort.scale = c.scale; tort.swim = c.swim; tort.look = c.look;
     // shell-tuck: a poke (pokeTortoise) sets tortTuckHold; head, limbs and tail snap IN
-    // quickly and then ease cautiously back OUT once the hold runs down. tg ≈ 0 while
-    // tucked so a tucked tortoise coasts to a near-stop instead of gliding on.
+    // quickly and then ease cautiously back OUT once the hold runs down. tg → 0 while
+    // tucked so a withdrawn tortoise can't swim/drift — it shouldn't move in its shell.
     tortTuckHold = Math.max(0, tortTuckHold - dt);
     const tuckTarget = tortTuckHold > 0 ? 1 : 0;
     tort.tuck += (tuckTarget - tort.tuck) * Math.min(1, (tuckTarget > tort.tuck ? 0.3 : 0.05) * dt);
-    const tg = 1 - 0.92 * tort.tuck;
+    const tg = 1 - tort.tuck;
     const pathX = c.x * W, pathY = c.y * H;
     if (tortSimX == null) { tortSimX = pathX; tortSimY = pathY; }
     if (c.swim < 0.05) {
-      tortSimX = pathX; tortSimY = pathY; tortVX = 0; tortVY = 0; tortQuarry = null; tortWanderX = null;   // ashore: follow the scripted walk exactly
+      tortSimX = pathX; tortSimY = pathY; tortVX = 0; tortVY = 0; tortFallV = 0; tortQuarry = null; tortWanderX = null;   // ashore: follow the scripted walk exactly (already on solid ground — no free-fall)
     } else {
       // LOCK ON and follow ONE fish it can SEE AHEAD: it keeps the same quarry — it does
       // NOT switch to a nearer one partway — until that fish DISAPPEARS: it fades out of
@@ -1564,10 +1669,25 @@
       tortVY = (tortVY + ay * dt) * Math.pow(0.86, dt);
       const spd = Math.hypot(tortVX, tortVY), maxSpd = Math.min(W, H) * (0.0032 + 0.004 * tortLunge);   // calm cruise, a brief surge on a lunge
       if (spd > maxSpd) { tortVX = tortVX / spd * maxSpd; tortVY = tortVY / spd * maxSpd; }
-      tortSimX += tortVX * dt * tg; tortSimY += tortVY * dt * tg;   // a tucked tortoise coasts to a stop rather than gliding on
+      tortSimX += tortVX * dt * tg;                        // self-propelled drift stops as it tucks — it shouldn't swim in its shell
+      // WITHDRAWN → it can't swim, so it SETTLES through the water: not a vacuum free-fall but a slow,
+      // buoyant sink — strong drag eases it onto a gentle terminal glide — until it comes to rest on the
+      // floor below. tort.tuck cross-fades the swim glide into this watery settle.
+      if (tort.tuck > 0.05) {
+        const sinkV = Math.min(W, H) * 0.006;              // a slow, watery terminal speed (buoyancy + drag), not a hard drop
+        tortFallV += (sinkV - tortFallV) * Math.min(1, 0.05 * dt);
+        tortSinkPh += 0.06 * dt;                           // drives the gentle waft + rock as it sinks (draw-only, below)
+      } else tortFallV = 0;
+      tortSimY += tortVY * dt * tg + tortFallV * dt * tort.tuck;
 
       tortSimX = Math.max(W * 0.04, Math.min(W * 0.96, tortSimX));   // stay on screen (the home spring, not a hard leash, keeps it near the anchor)
-      tortSimY = Math.max(H * 0.12, Math.min(H * 0.98, tortSimY));
+      // it settles on a seabed just BELOW its swim line — NOT the bottom edge of the view. There's no
+      // floor rendered out here in the open water, so a hard H*0.98 sent a tucked tortoise drifting clear
+      // of the water into the dark "underground" off-screen. Tying the floor to pathY keeps the sink a
+      // believable depth and never clamps a normal swim (tortSimY hovers at pathY, always above this).
+      const floorY = Math.min(H * 0.94, pathY + H * 0.13);
+      if (tortSimY >= floorY) { tortSimY = floorY; tortFallV = 0; }  // settled on the bottom — rest there until it comes back out
+      else tortSimY = Math.max(H * 0.12, tortSimY);
     }
     // motion this frame (excluding mouse parallax); guarded against scroll/resize jumps
     let dx = 0, dy = 0;
@@ -1576,8 +1696,20 @@
     tortPX = tortSimX; tortPY = tortSimY;
     if (Math.abs(dx) > 0.3) { const tgt = dx > 0 ? 1 : -1; tortFaceV += (tgt - tortFaceV) * Math.min(1, 0.16 * dt); } // turn toward travel
     if (!reduce) tortWalk += dx * 0.05;                   // legs pace with the ground covered (freeze when paused)
-    tort.pitch = Math.max(-0.6, Math.min(0.6, Math.atan2(dy, Math.abs(dx) + 0.001))) * c.swim;  // nose along the dive/chase
-    tort.x = tortSimX; tort.y = tortSimY + py * 0.55;     // parallax with the beach scene
+    tort.pitch = Math.max(-0.6, Math.min(0.6, Math.atan2(dy, Math.abs(dx) + 0.001))) * c.swim * (1 - tort.tuck);  // nose along the dive/chase; a withdrawn shell carries no swim-pitch
+    // idle attention: stop scrolling and just hover, and a settled tortoise gets curious and turns
+    // to LOOK AT YOU — the same head-up, cursor-tracking pose as its scripted beat. Resets the moment
+    // it moves again (you scroll) or the pointer leaves. Land-biased: underwater it's busy chasing fish.
+    const tortMoving = Math.abs(dx) + Math.abs(dy) > 0.4;
+    if (pointerHere && !tortMoving && tort.tuck < 0.1) tortIdleT += dt; else tortIdleT = 0;
+    tort.look = Math.max(tort.look, sstep(180, 270, tortIdleT) * (1 - c.swim));   // ~3s still → eases up to watch you
+    // a withdrawn shell holds its position (it shouldn't move/swim), but while it's still SINKING it
+    // wafts and rocks gently the way a shell wafts down through water — a draw-only sway that stops dead
+    // once it lands; mouse parallax fades out too so a rested shell sits perfectly still.
+    const settling = tort.tuck * (tortFallV > 0.05 ? 1 : 0);   // wafts only while actually sinking through water — still on land and once it lands
+    const waft = reduce ? 0 : Math.sin(tortSinkPh) * tort.scale * 0.18 * settling;
+    tort.rock = reduce ? 0 : Math.sin(tortSinkPh * 0.8 + 0.7) * 0.16 * settling;   // a slow rocking tilt as it settles
+    tort.x = tortSimX + waft; tort.y = tortSimY + py * 0.55 * (1 - tort.tuck);     // parallax with the beach scene (frozen while tucked)
     // while it pauses to look, its head tracks the cursor (the clever, nosy tortoise);
     // eases back to neutral the moment it stops looking or the pointer leaves
     const wantAim = (tort.look > 0.05 && pointerHere) ? 1 : 0;
@@ -1588,6 +1720,12 @@
     // the land form dissolves as it submerges; the swimmer fades in from the tide and out at the corner
     tort.aLand = sstep(0.49, 0.505, p) * (1 - sstep(0.595, 0.625, p));
     tort.aWater = sstep(0.59, 0.635, p) * (1 - sstep(0.775, 0.81, p));
+    // reactive shell: how much ambient light it's sitting in. `depth` deepens the cool watery
+    // tint as it descends; `heat` warms it toward a vent-glow near the geothermal trench. It
+    // swims above the trench today (fades out by ~0.81), so heat stays ~0 in its current range —
+    // it's wired so the glow pays off if the dive is ever carried deeper. (See drawTortoise.)
+    tort.depth = sstep(0.49, 0.81, p);
+    tort.heat = sstep(0.86, 0.97, p);
     tortHit.alpha = 0;                                    // recomputed by this frame's draws
     if (tort.aWater > 0.05 && c.swim > 0.2) { turtleThreat.x = tort.x / W; turtleThreat.y = tort.y / H; turtleThreat.power = tort.aWater * c.swim; }
     else turtleThreat.power = 0;
@@ -1599,16 +1737,24 @@
   function drawTortoise(a, tt) {
     if (a <= 0.01) return;
     const s = tort.scale, L = tort.look, sw = tort.swim, land = 1 - sw, gold = tortGold, tk = tort.tuck || 0;  // tk: how far it's withdrawn into its shell
-    const shell = gold ? '#f0b24e' : '#5f7a3e', shade = gold ? '#cf9a3e' : '#46602c';
-    const rim = gold ? '#a86a18' : '#374d22', line = gold ? 'rgba(168,106,24,.55)' : 'rgba(40,55,25,.5)';
-    const skin = gold ? '#ffce54' : '#8a9b63', skinSh = gold ? '#e0992f' : '#6d7e4a', eyeC = '#0a140a';
+    // reactive shell: it catches the ambient light around it — a cool blue-green that deepens with
+    // depth, warming toward a vent-orange near heat. The solid colours are tinted toward that ambient
+    // (gold takes far less — it glows from within); the heat term is ~0 in its current range (see step).
+    const heat = tort.heat || 0;
+    const amb = mix(mix('#2f6675', '#0e2b46', tort.depth || 0), '#e8662a', heat);   // teal → deep blue, warming near the volcano
+    // only the WATER lights it this way — ashore in the grassy clearing it keeps its natural olive (sw≈0)
+    const amt = Math.min(0.7, ((0.14 + 0.34 * (tort.depth || 0)) * (gold ? 0.4 : 1) + 0.45 * heat) * sw);
+    const tint = (c) => mix(c, amb, amt);
+    const shell = tint(gold ? '#f0b24e' : '#5f7a3e'), shade = tint(gold ? '#cf9a3e' : '#46602c');
+    const rim = tint(gold ? '#a86a18' : '#374d22'), line = gold ? 'rgba(168,106,24,.55)' : 'rgba(40,55,25,.5)';
+    const skin = tint(gold ? '#ffce54' : '#8a9b63'), skinSh = tint(gold ? '#e0992f' : '#6d7e4a'), eyeC = '#0a140a';
     const sx = Math.abs(tortFaceV) < 0.14 ? (tortFaceV < 0 ? -0.14 : 0.14) : tortFaceV;  // never collapse to 0 mid-turn
     if (a >= tortHit.alpha) { tortHit.x = tort.x; tortHit.y = tort.y; tortHit.r = s * 1.25; tortHit.alpha = a; }
     ctx.save();
     ctx.globalAlpha = a;
     ctx.translate(tort.x, tort.y);
     ctx.scale(sx, 1);
-    ctx.rotate(tort.pitch);
+    ctx.rotate(tort.pitch + (tort.rock || 0));            // dive-pitch + the gentle watery rock while it sinks in its shell
     const limb = (ax, ay, ang, len, wid, col) => {       // an angled stubby limb, pivoting at its attach point
       ctx.save(); ctx.translate(ax, ay); ctx.rotate(ang);
       ctx.fillStyle = col; ctx.beginPath(); ctx.ellipse(0, len * 0.5, wid * 0.5, len * 0.5, 0, 0, 6.2832); ctx.fill();
@@ -1629,6 +1775,7 @@
     ctx.moveTo(-s * 0.98, 0); ctx.lineTo(s * (-1.22 + 0.26 * tk), s * 0.12); ctx.lineTo(-s * 0.92, s * 0.18); ctx.closePath(); ctx.fill();
     // ---- carapace ----
     if (gold) { ctx.shadowColor = 'rgba(255,185,95,.6)'; ctx.shadowBlur = s * 0.7; }
+    else if (heat > 0.01) { ctx.shadowColor = `rgba(255,140,60,${0.6 * heat})`; ctx.shadowBlur = s * 0.85 * heat; }  // a warm vent-glow rim near the volcano
     ctx.fillStyle = shell; ctx.beginPath();
     ctx.moveTo(-s, s * 0.16);
     ctx.quadraticCurveTo(-s * 1.0, -s * 0.66, 0, -s * 0.78);
@@ -1684,7 +1831,7 @@
   function pokeTortoise(cx, cy) {
     if (tortHit.alpha < 0.3) return false;               // only when it's clearly drawn this frame
     if (Math.hypot(cx - tortHit.x, cy - tortHit.y) > tortHit.r + 16) return false;
-    tortTuckHold = 78;                                    // ~1.3s tucked, then it cautiously comes back out
+    tortTuckHold = 300;                                  // hold the tuck a good while (~5s) before it cautiously comes back out
     return true;
   }
 
@@ -1758,6 +1905,29 @@
           lifeOp = Math.max(0, Math.min(1, span / 0.14, (1 - span) / 0.14)); // fades in/out at the edges → drifts off, doesn't loop in place
           break;
         }
+        case 'wheel': {
+          // a swift wheeling fast over the bay — broad sweeping arcs with quick jinks,
+          // banking into the turns. When rain is brewing it hunts LOW: muggy, pre-front air
+          // drives the insects down, so the swift drops toward the water with the cloud/precip.
+          const a = tt * 0.6 + ph;
+          dx = Math.sin(a) * W * 0.34 + Math.sin(tt * 1.7 + ph) * W * 0.05;
+          sx = facing(Math.cos(a));
+          dy = Math.sin(tt * 2.3 + ph) * 14 + Math.cos(tt * 1.1 + ph) * 10;
+          const low = WEATHER.ready ? Math.min(1, WEATHER.cloud * 0.7 + WEATHER.precip * 1.2) : 0;
+          dy += low * H * 0.2;                                 // sink toward the headland/water before rain
+          rot = Math.sin(a) * 8;                               // bank into the wheel
+          break;
+        }
+        case 'flit': {
+          // a bat's erratic, fluttery flight — overlaid sines at odd, non-harmonic
+          // frequencies so the path jinks and never quite repeats, unlike the bird gaits
+          const a = tt * 0.5 + ph;
+          dx = (Math.sin(a) * 0.6 + Math.sin(tt * 1.3 + ph * 1.7) * 0.4) * W * 0.32;
+          sx = facing(Math.cos(a));
+          dy = Math.sin(tt * 3.7 + ph) * 12 + Math.sin(tt * 2.3 + ph * 0.6) * 16 + Math.cos(tt * 5.1) * 5;
+          rot = Math.sin(tt * 4 + ph) * 10;
+          break;
+        }
         case 'pulse': { lifeScale = 1 + Math.sin(tt * 1.7 + ph) * 0.09; dy = Math.sin(tt * 0.5 + ph) * 18; break; }
         case 'flicker': { lifeScale = 1 + Math.sin(tt * 13 + ph) * 0.07 + Math.sin(tt * 7.3 + ph) * 0.04; break; }
         case 'spin': { rot = (tt * 55 + ph * 57) % 360; dy = Math.sin(tt * 0.6 + ph) * 8; break; }
@@ -1768,6 +1938,10 @@
       }
       rot += sp.rot0 || 0;                         // base orientation (e.g. level the plane to a side view)
       op *= lifeOp;                                // per-pass fade so the streak stays visible across its whole fall
+      // environmental gate: a sprite's `vis()` returns 0..1 for the time/weather/season —
+      // the raptor & swifts fade out at night, the bat by day, the warm-season flyers in
+      // winter, and all of them in foul weather (see flyWeather / summerAmount).
+      if (sp.vis) op *= sp.vis();
       if (sp.egg) {
         // once caught, stay burst-away until this pass leaves the view (op→0), then
         // return as plain scenery; clickable only while clearly visible & not yet caught
@@ -1798,7 +1972,26 @@
       fill: g.querySelector('.g-fill'), dot: g.querySelector('.g-dot'), read: g.querySelector('.g-read'),
       v: g.querySelector('.g-v'), u: g.querySelector('.g-u'),
       dir: g.querySelector('.g-dir'), zone: g.querySelector('.g-zone'), jp: g.querySelector('.g-jp'),
+      prog: document.getElementById('progress'),   // the top scroll bar — tinted to the current temperature below
     };
+    // Mobile mirror: phones show one gauge per view, so the right-hand track is
+    // hidden (CSS) and the live sphere + depth ride in the nav bar instead — the
+    // top progress line is the gauge, this is its label just below it.
+    const nav = document.querySelector('nav');
+    if (nav && !nav.querySelector('.nav-gauge')) {
+      const ng = document.createElement('div');
+      ng.className = 'nav-gauge';
+      ng.setAttribute('aria-hidden', 'true');
+      ng.innerHTML =
+        '<span class="ng-zone"></span>' +
+        '<span class="ng-sep">·</span>' +
+        '<span class="ng-read"><span class="ng-v">0</span><span class="ng-u">m</span><span class="ng-dir"></span></span>';
+      nav.insertBefore(ng, nav.querySelector('.nav-toggle'));
+      gEls.ngZone = ng.querySelector('.ng-zone');
+      gEls.ngV = ng.querySelector('.ng-v');
+      gEls.ngU = ng.querySelector('.ng-u');
+      gEls.ngDir = ng.querySelector('.ng-dir');
+    }
     // fill = each sphere's temperature, anchored to the full track height so a
     // zone keeps its colour as the fill grows past it (not stretched)
     const stops = [`${ZONES[0].t} 0%`]
@@ -1836,6 +2029,22 @@
     gEls.dot.style.background = c;
     gEls.dot.style.boxShadow = `0 0 14px ${c}, 0 0 0 4px ${c.replace('rgb(', 'rgba(').replace(')', ',0.18)')}`;
     gEls.zone.style.color = c;
+    // the nav-bar mirror (mobile): same sphere, depth and temperature glow, compact
+    if (gEls.ngZone) {
+      gEls.ngZone.textContent = z.key;
+      gEls.ngZone.style.color = c;
+      gEls.ngV.textContent = (m < 0 && am >= 1 ? '−' : '') + v;
+      gEls.ngU.textContent = u;
+      gEls.ngDir.textContent = am < 1 ? '' : (m > 0 ? ' ↑' : ' ↓');
+    }
+    // the top scroll bar IS the gauge on phones, so it carries the temperature too:
+    // the filled portion runs from a faded trail to the current sphere's colour, and
+    // glows in it — matching the gauge dot. (Width is still scroll-driven, in theme.js.)
+    if (gEls.prog) {
+      const trail = c.replace('rgb(', 'rgba(').replace(')', ',0.25)');
+      gEls.prog.style.backgroundImage = `linear-gradient(to right, ${trail}, ${c})`;
+      gEls.prog.style.boxShadow = `0 0 8px ${c.replace('rgb(', 'rgba(').replace(')', ',0.55)')}`;
+    }
   }
 
   /* ---------- render ---------- */
@@ -1891,6 +2100,20 @@
     const sunPos  = skyArc((hod - 5) / 14);                  // visible ~05:00→19:00, peak at solar noon
     const moonPos = skyArc((((hod - 17.5) + 24) % 24) / 13); // rises ~17:30, peak at midnight, sets ~06:30
 
+    // ── celestial RISE: the sun and moon don't just fade in where they belong — they
+    //    CLIMB into place on one clean diagonal, rising from the east (off the lower-left)
+    //    up to their settled arc position, the way a real sun/moonrise sweeps east→west and
+    //    up. A single shared entrance runs as you fall through the high sky (p 0.23→0.38)
+    //    and SETTLES before the beach bodies take over (~0.41): the stratosphere and beach
+    //    draws all read these risen positions, and since the climb is done by the handoff
+    //    they sit exactly on sunPos/moonPos there — no jump. Both x and y ride the SAME ease,
+    //    so the path is a straight ↗ line, not a dogleg. Stilled for reduced-motion. ──
+    const riseM = (p - 0.23) / 0.15;                                      // 0 at first light → 1 by p≈0.38
+    const riseE = reduce || riseM >= 1 ? 1 : riseM <= 0 ? 0 : 1 - Math.pow(1 - riseM, 3); // ease-out cubic
+    const riseS = 1 - riseE;                                              // 1 = off to the lower-east … 0 = settled
+    const risen = (pos) => ({ x: pos.x - 0.46 * W * riseS, y: pos.y + 0.34 * H * riseS });
+    const sunRise = risen(sunPos), moonRise = risen(moonPos);
+
     // space nebula glow
     const spaceA = band(p, 0.05, 0.16);
     if (spaceA > 0) {
@@ -1932,30 +2155,36 @@
     //    without moving (stratoSkyA fades out exactly as the beach body fades in). At
     //    twilight both show — the sun setting, the moon rising — like the beach. Drawn
     //    BEFORE the clouds so they drift in front of it, and over the night wash.
+    // overcast veils the sky bodies: thick live cloud cover dims the sun & moon (and
+    // their water glades) toward gone, so a rainy/overcast sky reads hazy-to-hidden
+    // rather than a bright clear sun. No-op until a live reading lands (skyVeil = 1).
+    const cloudCover = WEATHER.ready ? WEATHER.cloud : 0.5;
+    const skyVeil = WEATHER.ready ? 1 - 0.9 * sfClamp((WEATHER.cloud - 0.3) / 0.6, 0, 1) : 1;
     const skyBodyA = stratoSkyA(p);
     if (skyBodyA > 0.01) {
       const bodyR = Math.max(22, Math.min(W, H) * 0.05);
-      drawSun(sunPos.x, sunPos.y, bodyR, skyBodyA * (1 - nightAmount()));
-      // the moon GLIDES into place on ONE clean diagonal as you fall through the high sky: it
-      // enters from off the upper-left and eases straight DOWN-and-right to moonPos — a single
-      // ↘ slide, not a right-then-down dogleg. Both offsets shrink on the SAME ease, so the
-      // path is a straight line. SETTLES by ~p0.38 — before the beach body takes over at ~0.42,
-      // so the handoff still doesn't move. Only the stratosphere body slides (it's the only
-      // moon up during the entrance band); the beach moon already sits at moonPos. Sun is left
-      // alone. Stilled for reduced-motion.
-      const me = (p - 0.23) / 0.15;                              // 0 at first appearance → 1 by p≈0.38
-      const ease = reduce || me >= 1 ? 1 : me <= 0 ? 0 : 1 - Math.pow(1 - me, 3); // ease-out cubic
-      const slide = 1 - ease;                                    // 1 = off the upper-left … 0 = settled
-      drawMoon(moonPos.x - 0.5 * W * slide, moonPos.y - 0.4 * H * slide, bodyR, skyBodyA * nightAmount());
+      // both bodies RISE into place on the shared east→west climb (sunRise/moonRise, set up
+      // top) rather than fading in fixed — they sweep up from the lower-east as you fall
+      // through the high sky and settle on the arc (sunPos/moonPos) by ~p0.38, before the
+      // beach body takes over. At twilight the sun is climbing down toward set / the moon
+      // up toward its arc, both on the same path the beach bodies inherit.
+      drawSun(sunRise.x, sunRise.y, bodyR, skyBodyA * (1 - nightAmount()) * skyVeil);
+      drawMoon(moonRise.x, moonRise.y, bodyR, skyBodyA * nightAmount() * skyVeil);
     }
 
-    // clouds (sky)
+    // clouds (sky) — the live cloud cover sets how many of the pool show and how
+    // thick they read; default 0.5 reproduces the scene's original scattering. Every
+    // cloud still drifts (so the sky keeps moving) but only the first `cloudShown` draw.
     const cloudA = band(p, 0.36, 0.12);
-    if (cloudA > 0) for (const c of clouds) {
+    const cloudShown = Math.round(clouds.length * (0.2 + 0.8 * cloudCover)); // clear → a few, overcast → all
+    const cloudThick = 0.55 + 0.9 * cloudCover;                             // and denser/darker when overcast
+    if (cloudA > 0) for (let ci = 0; ci < clouds.length; ci++) {
+      const c = clouds[ci];
       c.x += c.v * 0.004; if (c.x > 1.2) c.x = -0.2; if (c.x < -0.2) c.x = 1.2;
+      if (ci >= cloudShown) continue;
       const cy = c.y * H + py * 0.5 + riseAt(p, 0.36, 0.12, 0.8); // clouds sweep up as you fall through them
       const rg = ctx.createRadialGradient(c.x * W, cy, 0, c.x * W, cy, c.w);
-      rg.addColorStop(0, `rgba(245,238,250,${c.a * cloudA})`); rg.addColorStop(1, 'rgba(245,238,250,0)');
+      rg.addColorStop(0, `rgba(245,238,250,${c.a * cloudA * cloudThick})`); rg.addColorStop(1, 'rgba(245,238,250,0)');
       ctx.fillStyle = rg; ctx.beginPath(); ctx.ellipse(c.x * W, cy, c.w, c.h, 0, 0, 6.2832); ctx.fill();
     }
 
@@ -1985,7 +2214,9 @@
     const seaA = flood > 0 ? (1 - seaOut) : landA; // opaque while the tide rises (covers the camp), then fades out into the open water; fades IN with the beach on entry
     const campGy = H * 0.78 + py * 0.7;            // the camp's floor on the dry sand (smoke origin rides it too)
     const shoreY = (1 - flood) * (H * 0.84 + py * 0.85) - flood * H * 0.12;
-    const wob = (x) => Math.sin(x * 0.02 + t * 0.0016) * 5 + Math.sin(x * 0.05 + t * 0.0023) * 3;
+    // wind from the live weather makes the sea choppier (taller wobble & swell); 1 = the default calm
+    const seaChop = WEATHER.ready ? 0.7 + WEATHER.wind * 1.7 : 1;
+    const wob = (x) => (Math.sin(x * 0.02 + t * 0.0016) * 5 + Math.sin(x * 0.05 + t * 0.0023) * 3) * seaChop;
     const fireDims = campDims();
     const firePos = campCenters(fireDims);
     const fireY = campFireY(campGy, fireDims);
@@ -2004,12 +2235,18 @@
       // ---- the beach (fades with landA, covered from below by the rising sea) ----
       if (landA > 0.02) {
         // ── the daytime sun low over the bay (the moon takes its place at night) ──
-        drawSun(sunPos.x, sunPos.y, Math.max(22, Math.min(W, H) * 0.05), dayA);
+        //    reads the shared risen position too, so it continues the stratosphere sun's
+        //    climb seamlessly — by the time the beach has landed it's settled on sunPos.
+        drawSun(sunRise.x, sunRise.y, Math.max(22, Math.min(W, H) * 0.05), dayA * skyVeil);
         // a loose flock of birds drifting across the daytime sky — held back until the
         // beach has actually landed (full tableau) so birds belong to the coast, not
-        // something you pass while still falling through the high sky toward it
+        // something you pass while still falling through the high sky toward it. As the
+        // tide floods in they lift up the viewport and fade out (gone well before the
+        // rising water reaches their height) so they fly off rather than into the sea.
         const settled = Math.max(0, Math.min(1, (landA - 0.5) / 0.4));
-        drawBirds(dayA * 0.8 * settled, t, px, py);
+        // birds shelter in the rain — thin the flock out (and away entirely) as precip picks up
+        const birdsCalm = WEATHER.ready ? Math.max(0, 1 - WEATHER.precip * 1.6) : 1;
+        drawBirds(dayA * 0.8 * settled * Math.max(0, 1 - flood * 2) * birdsCalm, t, px, py, flood * H * 0.5);
         // distant mountains across the bay — hazier/higher behind, darker/lower in front
         drawRidge(H * 0.50 + py * 0.3, 70, 3.1, `rgba(54,66,92,${0.5 * landA})`, 22);   // far range
         drawRidge(H * 0.58 + py * 0.5, 96, 6.7, `rgba(30,40,62,${0.62 * landA})`, 18);  // near range
@@ -2031,9 +2268,9 @@
         // the camp tucked in the clearing — drawn BEFORE the framing conifers and grass
         // so the foreground trees/blades overlap it for depth (the fire is a later pass)
         drawCamp(t, Math.min(1, landA * 1.3), campGy);
-        // the tortoise padding through the clearing — drawn AFTER the camp but BEFORE
-        // the framing conifers, so the left tree genuinely hides where it emerges from
-        // (and fades with the scene as the tide floods over it)
+        // the tortoise padding through the clearing — drawn AFTER the camp (so it reads as
+        // crawling out of the tent) but BEFORE the framing conifers; fades with the scene as
+        // the tide floods over it
         drawTortoise(tort.aLand * landA, t * 0.001);
         // big conifers framing the scene from the foreground edges (swaying in the wind),
         // IN FRONT of the camp so the nearest trees overlap it instead of it looming over them
@@ -2048,14 +2285,21 @@
         const nWash = nightAmount() * seaA;          // dark sky/land/sea that holds through the flood
         const nStar = nightAmount() * landA;         // moon & stars fade as we sink under
         if (nWash > 0.01) { ctx.fillStyle = `rgba(6,12,30,${0.6 * nWash})`; ctx.fillRect(0, 0, W, H); }
+        // ── OVERCAST DAY wash: heavy live cloud flattens & dims the sunlit beach toward a
+        //    muted grey, so the scene stops looking sunny the moment it's cloudy/raining.
+        //    Day only (night has its own wash above); the campfire is a later pass, so it
+        //    still glows warm over this. Holds through the flood via seaA, like nWash. ──
+        const dayCloud = (1 - nightAmount()) * seaA * (WEATHER.ready ? sfClamp((WEATHER.cloud - 0.3) / 0.6, 0, 1) : 0);
+        if (dayCloud > 0.01) { ctx.fillStyle = `rgba(104,114,126,${0.4 * dayCloud})`; ctx.fillRect(0, 0, W, H); }
         if (nStar > 0.01) {
           // the night-beach moon — a full disc on the gentle device-clock arc (skyArc),
-          // independent of the exosphere's real-physics moon. It fades in over p 0.42→0.47,
-          // then rides nStar back down as we sink under, setting with the beach. Its glade
-          // trails beneath it.
+          // independent of the exosphere's real-physics moon. It fades in over p 0.42→0.47
+          // (by which point the shared rise has settled, so moonRise == moonPos and it picks
+          // up exactly where the stratosphere moon left off), then rides nStar back down as
+          // we sink under, setting with the beach. Its glade trails beneath it.
           const moonR = Math.max(22, Math.min(W, H) * 0.05);
           const moonBeachA = nightAmount() * (p < 0.47 ? Math.max(0, Math.min(1, (p - 0.42) / 0.05)) : landA);
-          drawMoon(moonPos.x, moonPos.y, moonR, moonBeachA);
+          drawMoon(moonRise.x, moonRise.y, moonR, moonBeachA * skyVeil);
           // stars across the upper sky (reusing the star field, sky half only)
           for (const s of stars) {
             if (s.y > 0.5) continue;
@@ -2094,8 +2338,8 @@
           ctx.beginPath(); ctx.ellipse(gx + jx, fy, spread + 10, 2.2, 0, 0, 6.2832); ctx.fill();
         }
       };
-      drawGlade(sunPos.x,  dayA,       255, 224, 150);   // gold sun-glade, beneath the sun
-      drawGlade(moonPos.x, nS * landA, 210, 225, 255);   // silver moon-glade, beneath the moon
+      drawGlade(sunPos.x,  dayA * skyVeil,       255, 224, 150);   // gold sun-glade, beneath the sun (dimmed by cloud)
+      drawGlade(moonPos.x, nS * landA * skyVeil, 210, 225, 255);   // silver moon-glade, beneath the moon
       // foam at the leading edge — laps the sand at rest, a wave front sweeping up in flood
       ctx.strokeStyle = `rgba(255,255,255,${0.5 - 0.2 * nS})`; ctx.lineWidth = 2; ctx.lineCap = 'round';  // dimmer, moonlit foam at night
       ctx.beginPath();
@@ -2107,23 +2351,60 @@
       for (let i = 1; i <= 2; i++) {
         const yy = shoreY + (H - shoreY) * (i / 3);
         ctx.beginPath();
-        for (let x = 0; x <= W; x += 12) { if (x === 0) ctx.moveTo(x, yy); else ctx.lineTo(x, yy + Math.sin(x * 0.03 + t * 0.0018 + i) * 3); }
-        ctx.lineTo(W, yy + Math.sin(W * 0.03 + t * 0.0018 + i) * 3);   // reach the right edge
+        for (let x = 0; x <= W; x += 12) { if (x === 0) ctx.moveTo(x, yy); else ctx.lineTo(x, yy + Math.sin(x * 0.03 + t * 0.0018 + i) * 3 * seaChop); }
+        ctx.lineTo(W, yy + Math.sin(W * 0.03 + t * 0.0018 + i) * 3 * seaChop);   // reach the right edge
         ctx.stroke();
       }
       ctx.globalAlpha = 1;
     }
 
-    // fireflies (beach/camp) — part of the held tableau, and nocturnal: only
-    // emerge after dusk in the device's local time, fading in/out across dawn &
-    // dusk like the moon and campfire
-    const ffA = landA * nightAmount() * (1 - flood);
+    // fireflies (beach/camp) — part of the held tableau, and nocturnal: only emerge
+    // after dusk in the device's local time, fading in/out across dawn & dusk like the
+    // moon and campfire. They're also a HIGH-SUMMER thing (ffSeason: gone outside the
+    // warm half of the year, peaking at midsummer) and stay home in rain or wind
+    // (flyWeather) — so a winter or wet night by the camp has none.
+    const ffSeason = Math.max(0, (summerAmount() - 0.5) / 0.5);
+    const ffA = landA * nightAmount() * (1 - flood) * ffSeason * flyWeather();
     if (!reduce && ffA > 0) for (const f of fireflies) {
       f.x += f.dx; f.ph += 0.03 * f.sp; if (f.x > 1) f.x = 0; if (f.x < 0) f.x = 1;
       const a = (Math.sin(f.ph) * 0.5 + 0.5) * ffA;
       ctx.beginPath(); ctx.arc(f.x * W, f.y * H + py * 0.9, 1.7, 0, 6.2832); // drift gently with the scene
       ctx.fillStyle = `rgba(255,225,140,${a})`; ctx.shadowBlur = 8; ctx.shadowColor = 'rgba(255,210,120,.8)';
       ctx.fill(); ctx.shadowBlur = 0;
+    }
+
+    // ── live-weather precipitation: rain or snow falling through the high sky and
+    //    over the beach when the visitor's real weather calls for it. Density/opacity
+    //    track WEATHER.precip; the slant follows the wind. Drawn over the sky & coast,
+    //    and faded out by the flood (it's an above-water layer) so it never rains under
+    //    the sea. dt-based, so it stays fps-independent like the rest of the scene.
+    const precipA = (WEATHER.ready && WEATHER.kind !== 'none')
+      ? band(p, 0.45, 0.22) * WEATHER.precip * (1 - flood)
+      : 0;
+    if (precipA > 0.002) {
+      const snowing = WEATHER.kind === 'snow';
+      const slant = (WEATHER.wind - 0.15) * (snowing ? 0.7 : 1.6);   // wind drives the drift; snow barely leans
+      for (const d of precip) {
+        if (snowing) {
+          d.y += (0.0016 + 0.0034 * d.sp) * dt;
+          d.x += (0.0007 * Math.sin(d.sw + d.y * 12) + slant * 0.0015) * dt;  // soft side-to-side flutter
+        } else {
+          d.y += (0.02 + 0.03 * d.sp) * dt;
+          d.x += slant * 0.004 * dt;
+        }
+        if (d.y > 1.02) { d.y = -0.02; d.x = Math.random(); }
+        if (d.x > 1.05) d.x -= 1.1; else if (d.x < -0.05) d.x += 1.1;
+        const xx = d.x * W + px * 0.3, yy = d.y * H;
+        if (snowing) {
+          ctx.beginPath(); ctx.arc(xx, yy, 0.8 + d.z * 1.7, 0, 6.2832);
+          ctx.fillStyle = `rgba(238,244,255,${precipA * (0.35 + 0.5 * d.z)})`; ctx.fill();
+        } else {
+          const len = 7 + d.z * 12;
+          ctx.strokeStyle = `rgba(176,206,232,${precipA * (0.3 + 0.4 * d.z)})`;
+          ctx.lineWidth = 0.7 + d.z * 0.7;
+          ctx.beginPath(); ctx.moveTo(xx, yy); ctx.lineTo(xx + slant * 6, yy + len); ctx.stroke();
+        }
+      }
     }
 
     // campfire smoke (beach/camp) — grey smoke rises from the lit fire; once the
@@ -2356,11 +2637,106 @@
     requestAnimationFrame(frame);
   }
 
+  /* ---------- live weather (Open-Meteo) ----------
+     Best-effort and entirely non-blocking: map a `current` reading to the scene's
+     neutral 0..1 knobs, fetched once per visit. Any failure (offline, blocked,
+     CORS, denial) silently leaves the defaults in place. WMO weather_code groups:
+     71–77/85–86 = snow, 51–67/80–82/95–99 = rain; everything else is dry. */
+  function classifyWeather(c) {
+    const code = c.weather_code | 0;
+    const cloud = sfClamp((c.cloud_cover || 0) / 100, 0, 1);
+    const wind = sfClamp((c.wind_speed_10m || 0) / 55, 0, 1);          // ~55 km/h → full gale
+    const mm = c.precipitation || 0;
+    const SNOW = [71, 73, 75, 77, 85, 86];
+    const RAIN = [51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82, 95, 96, 99];
+    let kind = 'none', precip = 0;
+    if (SNOW.indexOf(code) >= 0) { kind = 'snow'; precip = sfClamp(0.3 + mm / 3, 0.25, 1); }
+    else if (RAIN.indexOf(code) >= 0) { kind = 'rain'; precip = sfClamp(0.25 + mm / 6, 0.2, 1); }
+    return { ready: true, cloud, wind, precip, kind };
+  }
+
+  // ── persistent cache so we hit the API at most ~once per 30 min PER BROWSER (shared
+  //    across tabs & reloads, not just the current tab), and back off for 10 min after
+  //    a failure so a flaky / throttling / offline API is never hammered. localStorage
+  //    holds only the derived 0..1 knobs — never the visitor's coordinates.
+  const WX_KEY = 'descentWeather';
+  const WX_TTL_OK = 1800000;     // 30 min — reuse a good reading
+  const WX_TTL_ERR = 600000;     // 10 min — after a failure, don't re-hit
+  function wxLoad() { try { return JSON.parse(localStorage.getItem(WX_KEY) || 'null'); } catch (e) { return null; } }
+  function wxSave(o) { try { localStorage.setItem(WX_KEY, JSON.stringify(o)); } catch (e) {} }
+
+  function fetchWeather(lat, lon) {
+    // coords trimmed to ~1km — we only need the local conditions, not the exact spot
+    const url = 'https://api.open-meteo.com/v1/forecast?latitude=' + lat.toFixed(2)
+      + '&longitude=' + lon.toFixed(2)
+      + '&current=weather_code,cloud_cover,wind_speed_10m,precipitation';
+    // abort a stalled request so it can't hold a connection open indefinitely
+    const ctrl = ('AbortController' in window) ? new AbortController() : null;
+    const timer = ctrl ? setTimeout(() => ctrl.abort(), 8000) : 0;
+    fetch(url, ctrl ? { signal: ctrl.signal } : undefined)
+      .then(r => r.ok ? r.json() : Promise.reject(r.status))      // non-2xx (incl. 429 throttle) → fail
+      .then(j => {
+        if (!j || !j.current) return Promise.reject('shape');    // malformed 200 response → fail
+        const w = classifyWeather(j.current);
+        w.south = lat < 0;                                       // coarse hemisphere only (for the season) — not a coordinate
+        Object.assign(WEATHER, w);
+        wxSave({ t: Date.now(), w });                            // cache the good reading
+      })
+      .catch(() => { wxSave({ t: Date.now(), err: true }); })    // offline / blocked / CORS / 429 / timeout → back off, keep defaults
+      .finally(() => { if (timer) clearTimeout(timer); });
+  }
+
+  // a forced override for testing & showcasing the weather element, skipping the live
+  // fetch (and any geolocation prompt): DESCENT_CONFIG.weather = 'rain' | 'storm' |
+  // 'snow' | 'clear', or ?weather=rain in the URL. Returns a ready reading, or null
+  // for "go live". Handy for seeing the rain element without waiting for real rain.
+  function forcedWeather() {
+    let f = typeof cfg.weather === 'string' ? cfg.weather : null;
+    const q = new URLSearchParams(location.search).get('weather');
+    if (q) f = q;
+    switch ((f || '').toLowerCase()) {
+      case 'rain':  return { ready: true, cloud: 0.90, wind: 0.40, precip: 0.7, kind: 'rain' };
+      case 'storm': return { ready: true, cloud: 1.00, wind: 0.90, precip: 1.0, kind: 'rain' };
+      case 'snow':  return { ready: true, cloud: 0.85, wind: 0.30, precip: 0.8, kind: 'snow' };
+      case 'clear': return { ready: true, cloud: 0.08, wind: 0.12, precip: 0.0, kind: 'none' };
+      default:      return null;
+    }
+  }
+
+  function initWeather() {
+    const forced = forcedWeather();
+    if (forced) { Object.assign(WEATHER, forced); return; }           // explicit override — skip the live fetch
+    if (cfg.weather === false) return;                                // a page can opt out
+    const cached = wxLoad();
+    if (cached) {
+      if (cached.w && Date.now() - cached.t < WX_TTL_OK) { Object.assign(WEATHER, cached.w); return; }  // fresh good reading — no call
+      if (cached.err && Date.now() - cached.t < WX_TTL_ERR) return;                                     // recent failure — back off, keep defaults
+    }
+    const dLat = cfg.weatherLat != null ? cfg.weatherLat : 53.35;     // fallback location: Dublin
+    const dLon = cfg.weatherLon != null ? cfg.weatherLon : -6.26;
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        pos => fetchWeather(pos.coords.latitude, pos.coords.longitude),
+        () => fetchWeather(dLat, dLon),                               // denied/unavailable → the default city
+        { timeout: 6000, maximumAge: 1800000 }
+      );
+    } else { fetchWeather(dLat, dLon); }
+  }
+
   /* ---------- boot ---------- */
   resize(); seed(); buildSprites(); buildGauge();
   window.addEventListener('resize', () => { resize(); syncFish(); });
+  // the heading→scene warp is layout-derived, so rebuild it whenever the document
+  // reflows — async hero posts, late fonts and images all shift where headings sit
+  window.addEventListener('load', buildWarp);
+  if (window.ResizeObserver) {
+    let raf = 0;
+    new ResizeObserver(() => { cancelAnimationFrame(raf); raf = requestAnimationFrame(buildWarp); })
+      .observe(document.body);
+  }
+  initWeather();                              // async + best-effort — the scene runs regardless
   requestAnimationFrame(frame);
 
-  // expose progress for page scripts
-  window.DESCENT = { prog, depthAt, zoneAt };
+  // expose progress (and the live weather state) for page scripts
+  window.DESCENT = { prog, depthAt, zoneAt, weather: WEATHER };
 })();

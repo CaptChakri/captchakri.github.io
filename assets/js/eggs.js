@@ -22,6 +22,19 @@
 
   const REDUCED = !!window.REDUCED;
 
+  // Rarity ladder, rarest first. The vault groups finds under these tiers, but
+  // ONLY tiers the visitor has actually reached are drawn — we never render an
+  // empty tier, so the page still never betrays how much is left to find.
+  const RARITY = {
+    legendary: { label: 'Legendary', order: 0 },
+    epic:      { label: 'Epic',      order: 1 },
+    rare:      { label: 'Rare',      order: 2 },
+    uncommon:  { label: 'Uncommon',  order: 3 },
+    common:    { label: 'Common',    order: 4 },
+  };
+  const TIERS = Object.keys(RARITY).sort((a, b) => RARITY[a].order - RARITY[b].order);
+  const tierOf = (egg) => (egg && RARITY[egg.rarity]) ? egg.rarity : 'common';
+
   function esc(s) {
     return String(s == null ? '' : s).replace(/[&<>"]/g, c => (
       { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]
@@ -42,32 +55,51 @@
     } catch (e) { return ''; }
   }
 
+  function cardHtml(egg, tier) {
+    const when = fmtDate(EE.foundAt(egg.id));
+    return '<div class="egg-card-icon" aria-hidden="true">' + iconHtml(egg) + '</div>' +
+      '<div class="egg-card-body">' +
+        '<div class="egg-card-eyebrow">' + esc(egg.where || 'Found') + '</div>' +
+        '<h3 class="egg-card-title">' + esc(egg.label) + '</h3>' +
+        '<p class="egg-card-note">' + esc(egg.note || egg.hint || '') + '</p>' +
+        (egg.fact ? '<div class="egg-card-fact"><span class="egg-card-fact-label">Fun fact</span>' + esc(egg.fact) + '</div>' : '') +
+      '</div>' +
+      '<div class="egg-card-foot">' +
+        '<span class="egg-card-rarity">' + esc(RARITY[tier].label) + '</span>' +
+        (when ? '<span class="egg-card-date">' + esc(when) + '</span>' : '') +
+      '</div>';
+  }
+
   function render() {
-    // only the eggs this browser has actually found — order them by when they
-    // were caught so the collection reads like a little timeline
+    // only the eggs this browser has actually found — within a tier, order them
+    // by when they were caught so each tier still reads like a little timeline
     const mine = EE.all()
       .filter(egg => EE.has(egg.id))
       .sort((a, b) => (EE.foundAt(a.id) || '').localeCompare(EE.foundAt(b.id) || ''));
 
     grid.innerHTML = '';
-    mine.forEach((egg, i) => {
-      const when = fmtDate(EE.foundAt(egg.id));
-      const card = document.createElement('article');
-      card.className = 'egg-card';
-      card.style.setProperty('--i', i);
-      card.innerHTML =
-        '<div class="egg-card-icon" aria-hidden="true">' + iconHtml(egg) + '</div>' +
-        '<div class="egg-card-body">' +
-          '<div class="egg-card-eyebrow">' + esc(egg.where || 'Found') + '</div>' +
-          '<h3 class="egg-card-title">' + esc(egg.label) + '</h3>' +
-          '<p class="egg-card-note">' + esc(egg.note || egg.hint || '') + '</p>' +
-          (egg.fact ? '<div class="egg-card-fact"><span class="egg-card-fact-label">Fun fact</span>' + esc(egg.fact) + '</div>' : '') +
-        '</div>' +
-        '<div class="egg-card-foot">' +
-          '<span class="egg-card-tag">Found</span>' +
-          (when ? '<span class="egg-card-date">' + esc(when) + '</span>' : '') +
-        '</div>';
-      grid.appendChild(card);
+    let i = 0;   // one running index across headers + cards, so the entrance staggers top-to-bottom
+    TIERS.forEach(tier => {
+      const eggs = mine.filter(egg => tierOf(egg) === tier);
+      if (!eggs.length) return;   // skip tiers with nothing found — never reveal a tier you haven't reached
+
+      const head = document.createElement('div');
+      head.className = 'egg-tier';
+      head.dataset.rarity = tier;
+      head.style.setProperty('--i', i++);
+      head.innerHTML =
+        '<span class="egg-tier-dot" aria-hidden="true"></span>' +
+        '<span class="egg-tier-label">' + esc(RARITY[tier].label) + '</span>';
+      grid.appendChild(head);
+
+      eggs.forEach(egg => {
+        const card = document.createElement('article');
+        card.className = 'egg-card';
+        card.dataset.rarity = tier;
+        card.style.setProperty('--i', i++);
+        card.innerHTML = cardHtml(egg, tier);
+        grid.appendChild(card);
+      });
     });
 
     const n = mine.length;

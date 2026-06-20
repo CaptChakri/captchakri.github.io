@@ -14,12 +14,32 @@ window.DESCENT_SPRITES = {
 
   '🛰': '<svg viewBox="0 0 130 80"><line x1="60" y1="30" x2="60" y2="12" stroke="#aebfe2" stroke-width="3"/><circle cx="60" cy="9" r="4" fill="#cdd8ee"/><rect x="8" y="30" width="34" height="18" rx="2" fill="#6f9fe0"/><rect x="88" y="30" width="34" height="18" rx="2" fill="#6f9fe0"/><line x1="25" y1="30" x2="25" y2="48" stroke="#21345e" stroke-width="2"/><line x1="105" y1="30" x2="105" y2="48" stroke="#21345e" stroke-width="2"/><line x1="42" y1="39" x2="50" y2="39" stroke="#aebfe2" stroke-width="3"/><line x1="80" y1="39" x2="88" y2="39" stroke="#aebfe2" stroke-width="3"/><rect x="50" y="28" width="30" height="22" rx="4" fill="#dfe9ff"/></svg>',
 
-  '☄': '<svg viewBox="0 0 130 130"><path d="M40 86 L120 12" stroke="#bfe9ff" stroke-width="7" stroke-linecap="round" opacity=".45"/><path d="M46 92 L104 30" stroke="#dff4ff" stroke-width="4" stroke-linecap="round" opacity=".35"/><circle cx="34" cy="92" r="17" fill="#bfe9ff"/><circle cx="32" cy="90" r="10" fill="#ffffff"/></svg>',
+  /* comet — built to a real comet's anatomy, not a meteor's two-line streak.
+     A bright NUCLEUS sits inside a fuzzy glowing COMA (radial gradient), and the
+     tail is two parts both anchored at the coma and fanning/fading away from it:
+     a broad, gently-curved DUST tail (pale, reflected light) with a narrower,
+     straighter, bluer ION tail laid over it (gas blown straight back by the solar
+     wind). Tails are widest at the head and fade to nothing — the head LEADS the
+     down-left dive, so the tail trails up-right (see the 'streak' gait + the
+     "~43° to match the tail" note in the engine). */
+  '☄': '<svg viewBox="0 0 130 130"><defs><radialGradient id="dcComa" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#ffffff"/><stop offset=".3" stop-color="#eaf8ff"/><stop offset=".65" stop-color="#7fc8ff" stop-opacity=".5"/><stop offset="1" stop-color="#7fc8ff" stop-opacity="0"/></radialGradient><linearGradient id="dcDust" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#dcefff" stop-opacity=".85"/><stop offset="1" stop-color="#dcefff" stop-opacity="0"/></linearGradient><linearGradient id="dcIon" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#bfeaff" stop-opacity=".95"/><stop offset="1" stop-color="#7fb0ff" stop-opacity="0"/></linearGradient></defs><path d="M27.8 81.2 Q55 38 120 16 Q88 62 44.2 98.8 Z" fill="url(#dcDust)"/><path d="M32.6 86.4 L126 10 L39.4 93.6 Z" fill="url(#dcIon)"/><circle cx="36" cy="90" r="22" fill="url(#dcComa)"/><circle cx="36" cy="90" r="6.5" fill="#ffffff"/></svg>',
 
   /* ---- sky ---- */
   '✈': '<svg viewBox="0 0 130 70"><path d="M6 40 Q40 31 96 33 Q116 34 122 40 Q116 46 96 47 Q40 49 6 40 Z" fill="#e7eeff"/><path d="M20 40 L8 12 L24 15 L34 38 Z" fill="#e7eeff"/><path d="M56 42 L82 64 L96 64 L76 42 Z" fill="#c2cfe8"/><circle cx="104" cy="40" r="3" fill="#0c1428"/><circle cx="92" cy="40" r="2.4" fill="#0c1428"/></svg>',
 
   '🦅': '<svg viewBox="0 0 130 54"><path d="M8 42 Q36 6 65 32 Q94 6 122 42 Q94 24 65 42 Q36 24 8 42 Z" fill="#e2ebff"/></svg>',
+
+  /* swift — the summer day-flyer that wheels over the bay (see the 'wheel' gait +
+     the warm-season/fair-weather gate in the engine). A slim dark crescent with long
+     swept-back scythe wings and a pointed head, drawn facing LEFT like the other birds;
+     it reads as a fast, restless silhouette against the sky, not a soaring raptor. */
+  'swift': '<svg viewBox="0 0 130 54"><path d="M12 27 Q40 23 60 26 Q92 9 124 6 Q98 22 66 30 Q98 32 124 48 Q92 41 60 30 Q40 31 12 27 Z" fill="#2a3450"/></svg>',
+
+  /* bat — the dusk/night flyer that flits out on warm, calm summer evenings (see the
+     'flit' gait + the night/summer/dry gate in the engine). A near-black scalloped
+     silhouette, symmetric so its erratic direction-changes never need a facing flip;
+     two little ear bumps up top read it as a bat rather than just a dark bird. */
+  'bat': '<svg viewBox="0 0 120 54"><path d="M60 18 Q57 9 51 13 Q49 5 45 13 Q33 4 18 22 Q31 19 22 31 Q34 28 28 38 Q44 30 44 42 Q53 33 60 36 Q67 33 76 42 Q76 30 92 38 Q86 28 98 31 Q89 19 102 22 Q87 4 75 13 Q71 5 69 13 Q63 9 60 18 Z" fill="#1b2030"/></svg>',
 
   '🎈': '<svg viewBox="0 0 60 104"><path d="M30 4 Q53 4 53 35 Q53 60 30 70 Q7 60 7 35 Q7 4 30 4 Z" fill="#ff8fb8"/><path d="M26 69 L34 69 L30 78 Z" fill="#ff8fb8"/><path d="M30 78 q7 9 -2 22" stroke="#aebfe2" stroke-width="2" fill="none"/><ellipse cx="22" cy="26" rx="6" ry="10" fill="#ffd0e0" opacity=".6"/></svg>',
 

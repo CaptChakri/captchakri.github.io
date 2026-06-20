@@ -70,10 +70,15 @@ nav { z-index: 100; }
 }
 .dz h2 em { color: var(--cyan); font-style: normal; }
 
-/* scenery spacers between content — let the journey breathe */
+/* scenery spacers between content — each heading gets a FULL screen of the
+   descent backdrop behind it (a clean glimpse of that zone's scenery), so the
+   spacer fills the real viewport on every device. dvh tracks the dynamic
+   viewport so mobile browser chrome doesn't crop it; min-height keeps the
+   heading from overflowing on very short (e.g. landscape phone) screens. */
 .spacer {
   position: relative; z-index: 2;
-  height: 78vh; display: flex; align-items: center; justify-content: center;
+  min-height: 100vh; min-height: 100dvh;
+  display: flex; align-items: center; justify-content: center;
   text-align: center; pointer-events: none;
 }
 .spacer .cap {
@@ -133,6 +138,31 @@ nav { z-index: 100; }
   .g-read { display: none; }
 }
 
+/* ----- NAV GAUGE (mobile mirror) -----
+   On desktop the right-hand gauge carries its own readout, so this stays hidden.
+   On phones (≤768px, where the nav collapses to a hamburger) the right gauge is
+   dropped — one gauge per view — and the live sphere + depth ride here in the nav
+   bar instead, just below the top progress line. Built by the engine's buildGauge. */
+.nav-gauge { display: none; }
+@media (max-width: 768px) {
+  #descent-gauge { display: none; }
+  .nav-gauge {
+    display: flex; align-items: baseline; gap: 0.4rem;
+    min-width: 0; overflow: hidden; white-space: nowrap;
+    pointer-events: none; font-family: 'JetBrains Mono', monospace;
+  }
+  .ng-zone {
+    font-family: 'Space Grotesk', sans-serif; font-weight: 600;
+    font-size: 0.8rem; letter-spacing: 0.03em; color: var(--cyan);
+    overflow: hidden; text-overflow: ellipsis;
+  }
+  .ng-sep { color: var(--gray2); }
+  .ng-read { display: inline-flex; align-items: baseline; gap: 0.1rem; }
+  .ng-v { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 0.9rem; color: var(--white); line-height: 1; }
+  .ng-u { font-size: 0.62rem; color: var(--cyan); }
+  .ng-dir { font-size: 0.78rem; color: var(--gray); }
+}
+
 /* ----- shared card surfaces over the descent ----- */
 .glass {
   background: rgba(8,14,30,0.55);
@@ -148,7 +178,7 @@ nav { z-index: 100; }
 
 @media (max-width: 768px) {
   .dz { padding: 5rem 1.25rem; }
-  .spacer { height: 64vh; }
+  .spacer { min-height: 100vh; min-height: 100dvh; }
 }
 
 /* telemetry chrome — only shown in Mission Log */

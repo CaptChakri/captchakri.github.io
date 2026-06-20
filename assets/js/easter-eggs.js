@@ -14,13 +14,20 @@
    To add a new egg: append it to EGGS below, then have its trigger fire the
    event/discover call with the matching id. Adding one quietly deepens the
    hunt — nothing on the site announces that the total changed.
+
+   Each egg carries a `rarity` tier — one of: common, uncommon, rare, epic,
+   legendary — graded by how unlikely the average visitor is to ever turn it
+   up (appearance odds × catch difficulty; see the per-egg notes). The vault
+   (eggs.html) groups finds by tier, rarest first. The tier is the ONLY ranking
+   we expose: we still never show how many eggs exist or how many remain in a
+   tier, so the rest of the hunt stays a mystery.
    ===================================================================== */
 (function () {
   // The master list of findable eggs. Its length is never displayed (the total
   // stays hidden), so only ever add eggs that can actually be found right now.
   const EGGS = [
     {
-      id: 'comet',
+      id: 'comet', rarity: 'common',
       icon: '☄️', svg: '☄',
       label: 'Caught the comet',
       hint: 'Plucked a comet out of deep space as it streaked past.',
@@ -30,7 +37,7 @@
       fact: "A comet's tail always points away from the Sun — blown outward by the solar wind — so on its way back out of the solar system, a comet flies tail-first, chasing its own glow.",
     },
     {
-      id: 'golden-tortoise',
+      id: 'golden-tortoise', rarity: 'legendary',
       icon: '🐢', svg: 'golden-tortoise',
       label: 'Caught the golden tortoise',
       hint: 'Caught the golden tortoise on the shore before the tide took it.',
@@ -40,7 +47,7 @@
       fact: 'Tortoises are among the longest-lived animals on land — several have passed 150 years, outliving by generations the people who first wrote their names down.',
     },
     {
-      id: 'relit-campfire',
+      id: 'relit-campfire', rarity: 'rare',
       icon: '🔥', svg: '🔥',
       label: 'Relit the campfire',
       hint: 'Coaxed the drowned campfire back to life after the tide put it out.',
@@ -50,7 +57,7 @@
       fact: 'A genuine campfire is best put out the same way the tide does it — drown it and stir, then drown it again, until the ashes are cool to the touch. Embers buried in dry ash can smoulder unseen for days and reignite.',
     },
     {
-      id: 'seahorse',
+      id: 'seahorse', rarity: 'rare',
       icon: '🐚', svg: 'seahorse',
       label: 'Found the seahorse',
       hint: 'Spotted the rare golden seahorse hiding in the kelp.',
@@ -64,7 +71,7 @@
       // species instead (the goldfish-* eggs below), but this is kept so a
       // browser that caught gold before species tracking keeps its card. It is
       // no longer fired by the site — see catchGoldFish in descent-engine.js.
-      id: 'goldfish', legacy: true,
+      id: 'goldfish', legacy: true, rarity: 'rare',
       icon: '🐟', svg: 'goldfish',
       label: 'Caught the golden fish',
       hint: 'Plucked a rare golden specimen out of the passing shoal.',
@@ -80,7 +87,7 @@
        fires the matching id when you pluck one out. The deep-water kinds are far
        rarer catches — you have to be sinking through the dark to meet them gold. */
     {
-      id: 'goldfish-reef',
+      id: 'goldfish-reef', rarity: 'uncommon',
       icon: '🐠', svg: 'goldfish-reef',
       label: 'Caught the golden reef fish',
       hint: 'Plucked a gold reef fish out of the sunlit shallows.',
@@ -90,7 +97,7 @@
       fact: 'Many reef fish are born one sex and switch to the other as they grow — in a cleaner-wrasse harem the fish are all female until the dominant one becomes male, and will switch back if he disappears.',
     },
     {
-      id: 'goldfish-silver',
+      id: 'goldfish-silver', rarity: 'rare',
       icon: '🐟', svg: 'goldfish-silver',
       label: 'Caught the golden shoal fish',
       hint: 'Picked a gold one out of the silver midwater shoal.',
@@ -100,7 +107,7 @@
       fact: "A shoaling fish's mirror flanks aren't pigment but stacks of tiny crystal plates that reflect the surrounding blue, making it near-invisible in open water. The gold mutant loses that cloak — and stands out to predators too.",
     },
     {
-      id: 'goldfish-lantern',
+      id: 'goldfish-lantern', rarity: 'epic',
       icon: '🐟', svg: 'goldfish-lantern',
       label: 'Caught the golden lanternfish',
       hint: 'Caught a gold lanternfish in the dark midwater.',
@@ -110,7 +117,7 @@
       fact: 'Lanternfish are among the most numerous vertebrates on Earth, and most rise hundreds of metres to feed each night and sink by dawn — a daily vertical migration so vast it shows up on ships’ sonar as a false seafloor.',
     },
     {
-      id: 'goldfish-viper',
+      id: 'goldfish-viper', rarity: 'epic',
       icon: '🐟', svg: 'goldfish-viper',
       label: 'Caught the golden viperfish',
       hint: 'Caught a gold viperfish deep in the dark water.',
@@ -120,7 +127,7 @@
       fact: "The viperfish's fangs are so long they won't fit inside its mouth — they curve back almost to its eyes — and it dangles a glowing dorsal spine as a lure before snapping prey onto those teeth.",
     },
     {
-      id: 'goldfish-angler',
+      id: 'goldfish-angler', rarity: 'legendary',
       icon: '🐟', svg: 'goldfish-angler',
       label: 'Caught the golden anglerfish',
       hint: 'Landed a gold anglerfish at the bottom of the descent.',
@@ -130,7 +137,7 @@
       fact: 'In many deep-sea anglerfish the tiny male bites onto the much larger female and fuses to her for life, his body dissolving into hers until he is little more than a permanent supply of sperm.',
     },
     {
-      id: 'golden-shrimp',
+      id: 'golden-shrimp', rarity: 'epic',
       icon: '🦐', svg: 'golden-shrimp',
       label: 'Caught the golden shrimp',
       hint: 'Plucked a rare gold shrimp off the hydrothermal trench floor.',

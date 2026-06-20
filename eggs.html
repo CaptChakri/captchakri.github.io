@@ -141,12 +141,58 @@ main#main-content {
   border-top: 1px solid rgba(255,255,255,0.06);
   font-family: 'JetBrains Mono', monospace; font-size: 0.7rem;
 }
-.egg-card-tag {
-  color: var(--navy); background: var(--cyan);
-  padding: 0.15rem 0.55rem; border-radius: 999px; font-weight: 500;
-  letter-spacing: 0.04em; text-transform: uppercase;
-}
 .egg-card-date { color: var(--gray); }
+
+/* ----- rarity tiers -----
+   Each tier carries its own accent (--rc) plus matching soft fill/border
+   tokens, so chips, dots and card glows tint themselves from one source.
+   Gold is reserved for Legendary, echoing the golden finds in the descent. */
+[data-rarity="legendary"] { --rc: #FFCE54; --rc-bg: rgba(255,206,84,0.14);  --rc-bd: rgba(255,206,84,0.46); }
+[data-rarity="epic"]      { --rc: #B692FF; --rc-bg: rgba(182,146,255,0.14);  --rc-bd: rgba(182,146,255,0.46); }
+[data-rarity="rare"]      { --rc: #00C8F0; --rc-bg: rgba(0,200,240,0.12);    --rc-bd: rgba(0,200,240,0.46); }
+[data-rarity="uncommon"]  { --rc: #4FD1A5; --rc-bg: rgba(79,209,165,0.13);   --rc-bd: rgba(79,209,165,0.46); }
+[data-rarity="common"]    { --rc: #8C99B8; --rc-bg: rgba(140,153,184,0.13);  --rc-bd: rgba(140,153,184,0.40); }
+
+/* a tier heading spans the full grid row and separates each band of finds */
+.egg-tier {
+  grid-column: 1 / -1;
+  display: flex; align-items: center; gap: 0.65rem;
+  margin-top: 1.4rem;
+  opacity: 0; transform: translateY(10px);
+  animation: eggCardIn 0.6s cubic-bezier(.2,.8,.2,1) forwards;
+  animation-delay: calc(var(--i, 0) * 0.09s + 0.2s);
+}
+.egg-tier:first-child { margin-top: 0; }
+.egg-tier-dot {
+  width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0;
+  background: var(--rc); box-shadow: 0 0 12px var(--rc);
+}
+.egg-tier-label {
+  font-family: 'JetBrains Mono', monospace; font-size: 0.72rem;
+  letter-spacing: 0.22em; text-transform: uppercase; color: var(--rc);
+}
+.egg-tier::after {
+  content: ''; flex: 1 1 auto; height: 1px;
+  background: linear-gradient(90deg, rgba(255,255,255,0.12), transparent);
+}
+
+/* the rarity chip on each card, plus tier-tinted icon ring, glow and hover */
+.egg-card-rarity {
+  color: var(--rc); background: var(--rc-bg); border: 1px solid var(--rc-bd);
+  padding: 0.15rem 0.6rem; border-radius: 999px; font-weight: 600;
+  letter-spacing: 0.1em; text-transform: uppercase; font-size: 0.6rem;
+}
+.egg-card[data-rarity]::before {
+  background: radial-gradient(140px 110px at 22% 0%, var(--rc-bg), transparent 70%);
+}
+.egg-card[data-rarity] .egg-card-icon {
+  background: var(--rc-bg); border-color: var(--rc-bd);
+  filter: drop-shadow(0 0 14px var(--rc-bd));
+}
+.egg-card[data-rarity]:hover {
+  border-color: var(--rc-bd);
+  box-shadow: 0 18px 44px rgba(0,0,0,0.45), 0 0 28px var(--rc-bg);
+}
 
 body > footer { margin-top: auto; }
 
@@ -163,7 +209,7 @@ body > footer { margin-top: auto; }
 @media (prefers-reduced-motion: reduce) {
   #egg-404.pop { animation: none; }
   #egg-vault.show { animation: none; }
-  .egg-card { opacity: 1; transform: none; animation: none; }
+  .egg-card, .egg-tier { opacity: 1; transform: none; animation: none; }
   .egg-flash { display: none; }
 }
 </style>
