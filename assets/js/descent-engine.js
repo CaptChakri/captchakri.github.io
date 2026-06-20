@@ -78,7 +78,10 @@
      positions (the deep half already lined up), so this mainly pulls the orbit
      and weather beats up to meet their labels. Rebuilt on resize / reflow; until
      measured (or on a page with no spacers) it's the identity. */
-  const HEADING_SCENE_P = [0.18, 0.345, 0.447, 0.609, 0.81, 0.923];
+  // "Into the water" (index 3) is pushed a touch past the flood's start so the rising
+  // sea surface (shoreY, driven by `flood` from p≈0.59) climbs up to the heading text
+  // as it centres — the waterline meets "Into the water" and the line goes under with it.
+  const HEADING_SCENE_P = [0.18, 0.345, 0.447, 0.62, 0.81, 0.923];
   let warpPts = null;
   function buildWarp() {
     const max = document.documentElement.scrollHeight - window.innerHeight;
@@ -94,14 +97,24 @@
     pts.push({ s: 1, t: 1 });
     warpPts = pts.length > 2 ? pts : null;     // need at least one heading for a warp to mean anything
   }
-  // piecewise smoothstep through the control points: the scene eases to a near-still
-  // composed frame as each heading centres, then flows on into the next section
+  // piecewise ease through the control points: the scene settles toward a composed
+  // frame as each heading centres, then flows on into the next section.
+  // A pure smoothstep flattens to ZERO scene-speed at every control point, so at a
+  // constant scroll the background stalls then races between headings (measured ~80×
+  // speed swing → reads as choppy/“not smooth”). So we BLEND the smoothstep with the
+  // segment's own linear ramp: the endpoints (a.t/b.t) are identical for both, so each
+  // heading still lands exactly on its target frame, but the junction slope lifts off
+  // zero and the scene keeps moving through it. WARP_EASE = how much settle survives
+  // (1 = old pumping smoothstep, 0 = straight linear between headings).
+  const WARP_EASE = 0.5;
   function warp(s) {
     if (!warpPts) return s;
     for (let i = 1; i < warpPts.length; i++) {
       if (s <= warpPts[i].s) {
         const a = warpPts[i - 1], b = warpPts[i], k = (s - a.s) / (b.s - a.s);
-        return a.t + (b.t - a.t) * k * k * (3 - 2 * k);
+        const ease = k * k * (3 - 2 * k);                       // smoothstep (stalls at 0 & 1)
+        const blend = ease * WARP_EASE + k * (1 - WARP_EASE);   // … pulled toward linear so it never stalls
+        return a.t + (b.t - a.t) * blend;
       }
     }
     return 1;
@@ -184,6 +197,34 @@
     return mix(lo.t, hi.t, Math.max(0, Math.min(1, tt)));
   }
 
+  /* ---------- adaptive UI accent ----------
+     The page's text/UI accent (links, tags, the dz-tags, headings' <em>,
+     timeline + card highlights — everything that used to be a fixed cyan) now
+     RIDES the descent, retinted per sphere to suit the scene: icy cyan in deep
+     space, a periwinkle through orbit, warm dawn amber across the high sky,
+     firelight gold in the forest, turquoise in the sunlit shallows, electric
+     cyan in the deep, and ember-coral down at the hydrothermal trench. It's
+     published each frame as the CSS custom properties --accent / --accent-rgb
+     (see the tail of updateGauge); theme.css routes --cyan and every
+     rgba(var(--accent-rgb),…) through them, so the whole palette follows the
+     background. Stops mirror ZONES' progress; colours are chosen to stay
+     legible as text on each zone's backdrop. */
+  const ACCENT = [
+    { p: 0.06, c: '#54cdec' }, // EXOSPHERE    — icy cyan (deep space)
+    { p: 0.19, c: '#7fa6f0' }, // THERMOSPHERE — periwinkle (indigo orbit)
+    { p: 0.34, c: '#edb277' }, // STRATOSPHERE — dawn amber (pre-dawn sky)
+    { p: 0.52, c: '#e0a85c' }, // BIOSPHERE    — firelight gold (forest/campfire)
+    { p: 0.70, c: '#36cfc0' }, // HYDROSPHERE  — turquoise (sunlit shallows)
+    { p: 0.80, c: '#3cbce8' }, // BATHYSPHERE  — electric cyan (deep sea)
+    { p: 0.95, c: '#f0744a' }, // LITHOSPHERE  — ember coral (hydrothermal trench)
+  ];
+  function accentAt(p) {
+    let i = 0; while (i < ACCENT.length - 1 && p > ACCENT[i + 1].p) i++;
+    const lo = ACCENT[i], hi = ACCENT[Math.min(i + 1, ACCENT.length - 1)];
+    const t = hi.p === lo.p ? 0 : (p - lo.p) / (hi.p - lo.p);
+    return rgbOf(mix(lo.c, hi.c, Math.max(0, Math.min(1, t)))); // → [r,g,b]
+  }
+
   /* ---------- particles ---------- */
   const rnd = (a, b) => a + Math.random() * (b - a);
   const N = (n) => Math.max(1, Math.round(n * INT));
@@ -225,6 +266,16 @@
     return f < 0 ? 0 : (f > 1 ? 1 : f);
   }
   const CAMP_FIRE_X = 0.58, CAMP_TENT_X = 0.36; // preferred fireplace + tent x (fraction of W); fire is the smoke origin
+  // optional per-page nudge of the WHOLE camp left/right (fraction of W; e.g. a pinned
+  // blog post sets cfg.campShift:-0.26 so its side reading-panel stops covering the camp).
+  // Eased in on WIDE screens only — phones keep the camp centred — and 0 by default, so
+  // the home page (which never sets it) is untouched. Applied in campCenters().
+  const CAMP_SHIFT = cfg.campShift != null ? cfg.campShift : 0;
+  function campShiftPx() {
+    if (!CAMP_SHIFT) return 0;
+    const k = Math.max(0, Math.min(1, (W - 1000) / 400));   // 0 ≤1000px → full ≥1400px
+    return CAMP_SHIFT * W * k;
+  }
   let stars = [], shooters = [], clouds = [], fireflies = [], bubbles = [], bios = [], snow = [], precip = [], fishes = [];
   let smoke = [], lastShooter = 0, lastSmoke = 0;
   // the swimming tortoise, published each frame by stepTortoise as something the
@@ -881,7 +932,10 @@
      landscape appears together the moment we enter
      the BIOSPHERE and HOLDS, framed and in place, until we leave. Fades in across
      the cloud/dawn approach, full through the zone, fades out into the water. */
-  const BIO_IN = 0.46, BIO_OUT = 0.60, BIO_FADE = 0.05;
+  // BIO_IN is also the point the tableau is FULLY landed: it sits a hair before the
+  // "Touch some grass" caption's composed frame (warp target 0.447 — see HEADING_SCENE_P)
+  // so the scene reads as complete, not still fading, the moment that text centres.
+  const BIO_IN = 0.44, BIO_OUT = 0.60, BIO_FADE = 0.05;
   function bioVis(p) {
     if (p <= BIO_IN - BIO_FADE || p >= BIO_OUT + BIO_FADE) return 0;
     if (p < BIO_IN) return (p - (BIO_IN - BIO_FADE)) / BIO_FADE;   // fade in on entry
@@ -1072,7 +1126,7 @@
   }
 
   function campCenters(dims = campDims()) {
-    const mid = W * ((CAMP_TENT_X + CAMP_FIRE_X) / 2);
+    const mid = W * ((CAMP_TENT_X + CAMP_FIRE_X) / 2) + campShiftPx();
     const idealGap = W * (CAMP_FIRE_X - CAMP_TENT_X);
     const maxGap = Math.max(112, dims.tW * 1.45 + dims.rr * 1.3);
     const gap = Math.min(idealGap, maxGap);
@@ -1955,7 +2009,7 @@
   }
 
   /* ---------- gauge ---------- */
-  let gEls = null;
+  let gEls = null, lastAccentKey = '';
   function buildGauge() {
     const g = document.getElementById('descent-gauge');
     if (!g) return;
@@ -2044,6 +2098,17 @@
       const trail = c.replace('rgb(', 'rgba(').replace(')', ',0.25)');
       gEls.prog.style.backgroundImage = `linear-gradient(to right, ${trail}, ${c})`;
       gEls.prog.style.boxShadow = `0 0 8px ${c.replace('rgb(', 'rgba(').replace(')', ',0.55)')}`;
+    }
+    // publish the adaptive UI accent for this depth — theme.css routes --cyan and
+    // its rgba(var(--accent-rgb),…) tokens through these, so the page's text/UI
+    // palette retints with the scene. Only written when it actually changes (i.e.
+    // while scrolling) to keep idle frames free of style recalcs.
+    const ac = accentAt(p), acKey = ac[0] + ',' + ac[1] + ',' + ac[2];
+    if (acKey !== lastAccentKey) {
+      lastAccentKey = acKey;
+      const rs = document.documentElement.style;
+      rs.setProperty('--accent', 'rgb(' + acKey + ')');
+      rs.setProperty('--accent-rgb', acKey);
     }
   }
 
@@ -2213,6 +2278,17 @@
     const seaOut = Math.max(0, Math.min(1, (p - 0.66) / 0.09));
     const seaA = flood > 0 ? (1 - seaOut) : landA; // opaque while the tide rises (covers the camp), then fades out into the open water; fades IN with the beach on entry
     const campGy = H * 0.78 + py * 0.7;            // the camp's floor on the dry sand (smoke origin rides it too)
+    // ── camp-side RISE-IN: on the way in the whole vista CLIMBS up into place rather than
+    //    fading on the spot. campRise = 1 just entering → 0 once landed (and 0 on the way
+    //    OUT, where the flooding tide does the covering instead). Eased, then scaled per
+    //    layer below so the distant hills climb least and the near clearing most (parallax).
+    //    It's fully settled by BIO_IN (0.44), a hair before the "Touch some grass" caption
+    //    centres (0.447), so the scene reads as complete the moment that text shows. The
+    //    campfire smoke reads fgLift too, to stay tethered to the rising fire. (Distinct
+    //    from the celestial riseE above, which is the sun/moon's east→west climb.)
+    const campRise = p < BIO_IN ? 1 - landA : 0;
+    const campLiftE = campRise * campRise;        // ease the settle (gentle at the end)
+    const fgLift = campLiftE * H * 0.22;          // the near clearing: ground, trees, camp, grass, fire
     const shoreY = (1 - flood) * (H * 0.84 + py * 0.85) - flood * H * 0.12;
     // wind from the live weather makes the sea choppier (taller wobble & swell); 1 = the default calm
     const seaChop = WEATHER.ready ? 0.7 + WEATHER.wind * 1.7 : 1;
@@ -2247,12 +2323,24 @@
         // birds shelter in the rain — thin the flock out (and away entirely) as precip picks up
         const birdsCalm = WEATHER.ready ? Math.max(0, 1 - WEATHER.precip * 1.6) : 1;
         drawBirds(dayA * 0.8 * settled * Math.max(0, 1 - flood * 2) * birdsCalm, t, px, py, flood * H * 0.5);
-        // distant mountains across the bay — hazier/higher behind, darker/lower in front
-        drawRidge(H * 0.50 + py * 0.3, 70, 3.1, `rgba(54,66,92,${0.5 * landA})`, 22);   // far range
-        drawRidge(H * 0.58 + py * 0.5, 96, 6.7, `rgba(30,40,62,${0.62 * landA})`, 18);  // near range
-        // a soft band of mist along the foot of the hills for depth
-        drawMist(H * 0.605 + py * 0.5, 0.10 * landA, t);
-        ctx.globalAlpha = landA;
+        // distant mountains across the bay — hazier/higher behind, darker/lower in front.
+        // On the way IN they RISE up from behind the horizon (less than the near clearing,
+        // for parallax — see fgLift/campLiftE above); alpha comes to full early so the motion
+        // reads as a rise, not a fade. Entry only — on the way out the tide covers them.
+        const ridgeA = p < BIO_IN ? Math.min(1, landA * 2.5) : landA;
+        drawRidge(H * 0.50 + py * 0.3 + campLiftE * H * 0.10, 70, 3.1, `rgba(54,66,92,${0.5 * ridgeA})`, 22);   // far range
+        drawRidge(H * 0.58 + py * 0.5 + campLiftE * H * 0.14, 96, 6.7, `rgba(30,40,62,${0.62 * ridgeA})`, 18);  // near range
+        // a soft band of mist along the foot of the hills for depth (rises with the near range)
+        drawMist(H * 0.605 + py * 0.5 + campLiftE * H * 0.14, 0.10 * landA, t);
+        // ── the near clearing, lifted as ONE slab (fgLift) so it RISES up from the bottom
+        //    edge into place on the way in, then holds. Alpha is boosted to full early
+        //    (landA × 2.5 → opaque by landA≈0.4) so most of the climb plays out solid and
+        //    what reads is the rise, not a cross-fade. Everything ON the clearing — ground,
+        //    treeline, camp, tortoise, framing conifers, meadow — sits inside this transform
+        //    so it all climbs together, perfectly planted. ──
+        ctx.save();
+        ctx.translate(0, fgLift);
+        ctx.globalAlpha = Math.min(1, landA * 2.5);
         // the grassy clearing the camp sits in: green up by the treeline, thinning to a
         // sandy strip at the water's edge so the tide still reads as a shoreline
         const ground = ctx.createLinearGradient(0, H * 0.64, 0, H);
@@ -2278,6 +2366,7 @@
         drawConifer(W * 0.96, H * 0.99, H * 0.52, 'rgba(16,42,26,0.96)', t, 1.7);
         // a lush, wind-blown meadow across the clearing (globalAlpha fades it with the scene)
         drawGrass(1, t);
+        ctx.restore();
         ctx.globalAlpha = 1;
         // ── NIGHT BEACH (device-local time): wash the sky & sand dark, hang a moon
         //    over the bay and bring the stars out — all drawn BEFORE the firepit pass
@@ -2293,12 +2382,13 @@
         if (dayCloud > 0.01) { ctx.fillStyle = `rgba(104,114,126,${0.4 * dayCloud})`; ctx.fillRect(0, 0, W, H); }
         if (nStar > 0.01) {
           // the night-beach moon — a full disc on the gentle device-clock arc (skyArc),
-          // independent of the exosphere's real-physics moon. It fades in over p 0.42→0.47
-          // (by which point the shared rise has settled, so moonRise == moonPos and it picks
-          // up exactly where the stratosphere moon left off), then rides nStar back down as
-          // we sink under, setting with the beach. Its glade trails beneath it.
+          // independent of the exosphere's real-physics moon. It fades in over p 0.40→0.44
+          // (the shared rise has long settled by then, so moonRise == moonPos and it picks
+          // up exactly where the stratosphere moon left off — and it's full by the time the
+          // "Touch some grass" caption lands), then rides nStar back down as we sink under,
+          // setting with the beach. Its glade trails beneath it.
           const moonR = Math.max(22, Math.min(W, H) * 0.05);
-          const moonBeachA = nightAmount() * (p < 0.47 ? Math.max(0, Math.min(1, (p - 0.42) / 0.05)) : landA);
+          const moonBeachA = nightAmount() * (p < 0.47 ? Math.max(0, Math.min(1, (p - 0.40) / 0.04)) : landA);
           drawMoon(moonRise.x, moonRise.y, moonR, moonBeachA * skyVeil);
           // stars across the upper sky (reusing the star field, sky half only)
           for (const s of stars) {
@@ -2308,8 +2398,12 @@
           }
         }
         // the warm campfire laid over the night wash so it glows against the dark — and
-        // on top of the conifers/grass so nothing paints across the flames or stones
+        // on top of the conifers/grass so nothing paints across the flames or stones.
+        // Lifted with the clearing (fgLift) so it rises in planted with the camp.
+        ctx.save();
+        ctx.translate(0, fgLift);
         drawFirepit(t, Math.min(1, landA * 1.3), campGy, fireAlive);
+        ctx.restore();
       }
       // ---- the ocean, drawn ON TOP so it overtakes everything as it rises ----
       // shoreY climbs from the sand (rest) up past the top of the screen at full flood
@@ -2424,7 +2518,8 @@
         if (smoke.length > 40) smoke.shift();
       }
       const smokeDims = campDims();
-      const ex = campCenters(smokeDims).fireX, ey = campFireY(campGy, smokeDims) - H * 0.03;
+      // fgLift keeps the smoke's origin on the fire while the camp rises in (0 once landed)
+      const ex = campCenters(smokeDims).fireX, ey = campFireY(campGy, smokeDims) - H * 0.03 + fgLift;
       for (const sm of smoke) {
         if (!reduce) sm.life += sm.vr * dt;   // dt-scaled so it stays a slow, lazy drift (fps-independent)
         const yy = ey - sm.life * H * 0.34;

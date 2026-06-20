@@ -11,7 +11,7 @@
            "dateLabel": "Jun 15, 2026", "readMins": 5, "tags": ["tag"],
            "sphere": "biosphere", "excerpt": "…" }
        The "sphere" picks which descent scene this post adopts as its backdrop
-       (set the same value in the DESCENT_CONFIG pin near </body>) and tints the
+       (set the same value in the DESCENT_CONFIG pin near the foot of the page) and tints the
        post's card on the blog index. Spheres: exosphere · thermosphere ·
        stratosphere · biosphere (the Wicklow camp) · hydrosphere · bathysphere ·
        lithosphere.
@@ -46,8 +46,10 @@
 <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
 <link rel="stylesheet" href="/assets/css/theme.css">
 <!-- sphere backdrop: this post adopts the look of one descent sphere (pinned in the
-     DESCENT_CONFIG near </body>). Drop this link + the canvas/scripts below, and the
-     "sphere-post" body class, for a plain post on the shared starfield theme. -->
+     DESCENT_CONFIG near the foot of the page). Drop this link + the canvas/scripts
+     below, and the "sphere-post" body class, for a plain post on the shared
+     starfield theme. (Avoid writing a literal closing-body tag inside a comment —
+     Live Server injects its reload script before the first one and corrupts the DOM.) -->
 <link rel="stylesheet" href="/assets/css/descent-backdrop.css">
 <style>
 /* Page-specific styles for this post go here. */

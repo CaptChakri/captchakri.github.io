@@ -114,7 +114,7 @@ nav { z-index: 100; }
   position: absolute; left: 50%; top: 0;
   width: 11px; height: 11px; border-radius: 50%;
   background: var(--cyan); transform: translate(-50%, -50%);
-  box-shadow: 0 0 0 4px rgba(0,200,240,0.18), 0 0 14px rgba(0,200,240,0.8);
+  box-shadow: 0 0 0 4px rgba(var(--accent-rgb),0.18), 0 0 14px rgba(var(--accent-rgb),0.8);
 }
 /* zone boundaries: small tick marks crossing the track — structure, no text */
 .g-tick {
@@ -249,7 +249,7 @@ nav { z-index: 100; }
 .about-text p strong { color: var(--white); font-weight: 500; }
 .about-facts { display: flex; flex-direction: column; gap: 1rem; }
 .fact-card { padding: 1.2rem 1.5rem; transition: border-color .25s, transform .25s; }
-.fact-card:hover { border-color: rgba(0,200,240,.45); transform: translateX(6px); }
+.fact-card:hover { border-color: rgba(var(--accent-rgb),.45); transform: translateX(6px); }
 .fact-label { font-size: .72rem; color: var(--cyan); font-family: 'JetBrains Mono', monospace; letter-spacing: .06em; margin-bottom: .3rem; }
 .fact-val { font-size: .95rem; color: var(--white); font-weight: 500; }
 
@@ -258,7 +258,7 @@ nav { z-index: 100; }
 .timeline::before { content: ''; position: absolute; left: 6px; top: 8px; bottom: 0; width: 1px; background: linear-gradient(to bottom, var(--cyan) 0%, var(--gray2) 65%, transparent 100%); }
 .timeline-item { position: relative; padding: 0 0 3.2rem; }
 .timeline-item:last-child { padding-bottom: 0; }
-.timeline-item::before { content: ''; position: absolute; left: -2.6rem; top: 7px; width: 13px; height: 13px; border-radius: 50%; background: var(--navy); border: 2px solid var(--cyan); box-shadow: 0 0 0 4px rgba(0,200,240,.1); transition: background .3s; }
+.timeline-item::before { content: ''; position: absolute; left: -2.6rem; top: 7px; width: 13px; height: 13px; border-radius: 50%; background: var(--navy); border: 2px solid var(--cyan); box-shadow: 0 0 0 4px rgba(var(--accent-rgb),.1); transition: background .3s; }
 .timeline-item:hover::before { background: var(--cyan); }
 .timeline-date { font-family: 'JetBrains Mono', monospace; font-size: .78rem; color: var(--cyan); letter-spacing: .06em; margin-bottom: .55rem; }
 .timeline-title { font-family: 'Space Grotesk', sans-serif; font-size: 1.2rem; font-weight: 600; color: var(--white); margin-bottom: .3rem; }
@@ -274,7 +274,7 @@ nav { z-index: 100; }
 /* ----- PROJECTS ----- */
 .projects-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px,1fr)); gap: 1.5rem; }
 .project-card { padding: 1.75rem; transition: border-color .25s, transform .15s ease-out, box-shadow .25s; transform-style: preserve-3d; }
-.project-card:hover { border-color: rgba(0,200,240,.45); box-shadow: 0 18px 40px rgba(0,0,0,.45), 0 0 24px rgba(0,200,240,.07); }
+.project-card:hover { border-color: rgba(var(--accent-rgb),.45); box-shadow: 0 18px 40px rgba(0,0,0,.45), 0 0 24px rgba(var(--accent-rgb),.07); }
 .project-num { font-family: 'JetBrains Mono', monospace; font-size: .7rem; color: var(--cyan); letter-spacing: .08em; margin-bottom: .75rem; }
 .project-title { font-family: 'Space Grotesk', sans-serif; font-size: 1.05rem; font-weight: 600; color: var(--white); margin-bottom: .6rem; }
 .project-desc { font-size: .9rem; color: var(--text); opacity: .82; margin-bottom: 1rem; }
@@ -282,7 +282,7 @@ nav { z-index: 100; }
 
 /* ----- EDUCATION ----- */
 .edu-card { padding: 2rem 2.25rem; display: flex; gap: 2rem; align-items: flex-start; }
-.edu-badge { width: 48px; height: 48px; flex-shrink: 0; background: rgba(0,200,240,.12); border: 1px solid rgba(0,200,240,.3); border-radius: .375rem; display: flex; align-items: center; justify-content: center; font-family: 'Space Grotesk', sans-serif; font-weight: 700; color: var(--cyan); }
+.edu-badge { width: 48px; height: 48px; flex-shrink: 0; background: rgba(var(--accent-rgb),.12); border: 1px solid rgba(var(--accent-rgb),.3); border-radius: .375rem; display: flex; align-items: center; justify-content: center; font-family: 'Space Grotesk', sans-serif; font-weight: 700; color: var(--cyan); }
 .edu-degree { font-family: 'Space Grotesk', sans-serif; font-size: 1.1rem; font-weight: 600; color: var(--white); margin-bottom: .25rem; }
 .edu-school { font-size: .9rem; color: var(--gray); margin-bottom: .75rem; }
 .edu-details { font-size: .875rem; color: var(--text); opacity: .82; }

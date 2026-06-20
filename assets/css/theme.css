@@ -11,13 +11,23 @@
   --navy: #060B1C;
   --navy2: #0C1428;
   --slate: #1A2544;
-  --cyan: #00C8F0;
+  /* ===== ADAPTIVE ACCENT =====
+     The descent engine retints these per sphere (accentAt / updateGauge in
+     descent-engine.js) so the UI palette follows whatever scene is on screen.
+     They default to the brand cyan, so pages without the engine (most of the
+     blog) look exactly as before. --cyan and every rgba(var(--accent-rgb),…)
+     below route through them — change the accent and the whole page follows. */
+  --accent: #00C8F0;
+  --accent-rgb: 0,200,240;
+  --cyan: var(--accent);
   --pink: #FF8FB8;
-  --white: #F0F5FF;
-  --gray: #7A88A8;
+  /* near-neutral ink: the old whites/grays carried a blue cast that made every
+     screen read "blue". The colour now comes from --accent, not the text. */
+  --white: #F3F5F9;
+  --gray: #8B91A0;
   --gray2: #3A4A6A;
-  --text: #CDD8EE;
-  --border: rgba(0,200,240,0.15);
+  --text: #D6DBE4;
+  --border: rgba(var(--accent-rgb),0.15);
 }
 
 /* nav scrolling is handled in JS (instant jumps for the stacked panels);
@@ -29,8 +39,14 @@ body {
   color: var(--text);
   line-height: 1.7;
   overflow-x: hidden;
+  /* render type smoothly: lighter, cleaner strokes on webkit/blink + macOS,
+     and kerning/ligatures on for the body face */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: 'kern' 1, 'liga' 1, 'calt' 1;
 }
-::selection { background: rgba(0,200,240,0.3); color: var(--white); }
+::selection { background: rgba(var(--accent-rgb),0.3); color: var(--white); }
 
 /* ===== INTRO OVERLAY ===== */
 #intro {
@@ -71,14 +87,14 @@ body {
   #cursor-ring {
     display: block; position: fixed; z-index: 999; pointer-events: none;
     width: 34px; height: 34px; border-radius: 50%;
-    border: 1px solid rgba(0,200,240,0.4);
+    border: 1px solid rgba(var(--accent-rgb),0.4);
     transform: translate(-50%, -50%);
     transition: width 0.25s, height 0.25s, border-color 0.25s, background 0.25s;
   }
   body.cursor-hover #cursor-ring {
     width: 56px; height: 56px;
     border-color: rgba(255,143,184,0.6);
-    background: rgba(0,200,240,0.06);
+    background: rgba(var(--accent-rgb),0.06);
   }
 }
 
@@ -97,9 +113,9 @@ body {
 body::before {
   content: ''; position: fixed; inset: -15%; z-index: -1; pointer-events: none;
   background:
-    radial-gradient(32% 30% at 18% 22%, rgba(0,200,240,0.07), transparent 72%),
+    radial-gradient(32% 30% at 18% 22%, rgba(var(--accent-rgb),0.07), transparent 72%),
     radial-gradient(34% 32% at 82% 30%, rgba(255,143,184,0.05), transparent 72%),
-    radial-gradient(40% 38% at 50% 88%, rgba(0,200,240,0.05), transparent 75%);
+    radial-gradient(40% 38% at 50% 88%, rgba(var(--accent-rgb),0.05), transparent 75%);
   animation: bgAurora 26s ease-in-out infinite alternate;
 }
 @keyframes bgAurora {
@@ -171,7 +187,7 @@ html:not(.nav-hover-lock) .nav-links a:hover::after { width: 100%; }
 .panel {
   position: sticky;
   background: rgba(6,11,28,0.55);
-  border-top: 1px solid rgba(0,200,240,0.35);
+  border-top: 1px solid rgba(var(--accent-rgb),0.35);
   box-shadow: 0 -24px 60px rgba(0,0,0,0.45);
 }
 .fade-target { will-change: opacity, transform; }
@@ -221,13 +237,13 @@ h2 .h2caret {
 .tag {
   font-family: 'JetBrains Mono', monospace;
   font-size: 0.72rem; color: var(--cyan);
-  background: rgba(0,200,240,0.06); border: 1px solid rgba(0,200,240,0.2);
+  background: rgba(var(--accent-rgb),0.06); border: 1px solid rgba(var(--accent-rgb),0.2);
   border-radius: 0.25rem; padding: 0.2rem 0.55rem; letter-spacing: 0.02em;
   transition: background 0.2s, transform 0.2s;
   text-decoration: none; display: inline-block;
 }
-.tag:hover { background: rgba(0,200,240,0.16); transform: translateY(-2px); }
-.tag.active { background: rgba(0,200,240,0.22); border-color: var(--cyan); color: var(--white); }
+.tag:hover { background: rgba(var(--accent-rgb),0.16); transform: translateY(-2px); }
+.tag.active { background: rgba(var(--accent-rgb),0.22); border-color: var(--cyan); color: var(--white); }
 
 /* ===== BUTTONS ===== */
 .btn-primary {
@@ -266,7 +282,7 @@ h2 .h2caret {
   text-decoration: none;
   transition: border-color 0.25s, transform 0.25s;
 }
-.blog-card:hover { border-color: rgba(0,200,240,0.45); transform: translateX(6px); }
+.blog-card:hover { border-color: rgba(var(--accent-rgb),0.45); transform: translateX(6px); }
 .blog-date { font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: var(--cyan); letter-spacing: 0.04em; }
 .blog-read { font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; color: var(--gray2); margin-top: 0.25rem; }
 .blog-title { font-family: 'Space Grotesk', sans-serif; font-size: 1.05rem; font-weight: 600; color: var(--white); margin-bottom: 0.3rem; }
@@ -287,7 +303,7 @@ h2 .h2caret {
   padding: 0.4rem 1rem; cursor: pointer; letter-spacing: 0.04em;
   transition: border-color 0.2s, color 0.2s, background 0.2s;
 }
-.tag-filter:hover { color: var(--cyan); border-color: rgba(0,200,240,0.4); }
+.tag-filter:hover { color: var(--cyan); border-color: rgba(var(--accent-rgb),0.4); }
 .tag-filter.active { color: var(--navy); background: var(--cyan); border-color: var(--cyan); font-weight: 600; }
 
 @media (max-width: 768px) {
@@ -310,7 +326,7 @@ h2 .h2caret {
 .post-article h3 { font-family: 'Space Grotesk', sans-serif; font-size: 1.2rem; color: var(--white); font-weight: 600; }
 .post-article p { line-height: 1.85; color: var(--text); }
 .post-article strong { color: var(--white); font-weight: 600; }
-.post-article a { color: var(--cyan); text-decoration-color: rgba(0,200,240,0.35); }
+.post-article a { color: var(--cyan); text-decoration-color: rgba(var(--accent-rgb),0.35); }
 .post-article a:hover { text-decoration-color: var(--cyan); }
 .post-article ul, .post-article ol { padding-left: 1.4rem; color: var(--text); display: flex; flex-direction: column; gap: 0.5rem; }
 .post-article blockquote {
@@ -329,7 +345,7 @@ h2 .h2caret {
 }
 .post-article code {
   font-family: 'JetBrains Mono', monospace; font-size: 0.85em;
-  background: rgba(0,200,240,0.08); border: 1px solid rgba(0,200,240,0.15);
+  background: rgba(var(--accent-rgb),0.08); border: 1px solid rgba(var(--accent-rgb),0.15);
   border-radius: 0.25rem; padding: 0.1rem 0.35rem; color: var(--cyan);
 }
 .post-article pre code { background: none; border: none; padding: 0; color: inherit; }
@@ -410,7 +426,7 @@ body.nav-open { overflow: hidden; }
     transition: opacity 0.2s ease, visibility 0.2s ease, transform 0.2s ease;
   }
   .nav-ready .nav-links.open { opacity: 1; visibility: visible; transform: translateY(0); }
-  .nav-links li { border-top: 1px solid rgba(0,200,240,0.09); }
+  .nav-links li { border-top: 1px solid rgba(var(--accent-rgb),0.09); }
   .nav-links a { display: block; padding: 0.9rem 0; font-size: 0.95rem; }
   .nav-links a::after { bottom: 0.7rem; }
 }
@@ -555,7 +571,7 @@ html.vt-in h1 .w { opacity: 1 !important; transform: none !important; filter: no
   .mnote, .mstat {
     position: static; width: auto; margin: 1.2rem 0 0;
     background: var(--navy2); border: 1px solid var(--border);
-    border-left: 2px solid rgba(0,200,240,0.35);
+    border-left: 2px solid rgba(var(--accent-rgb),0.35);
     border-radius: 0.5rem; padding: 0.8rem 1rem;
   }
 }

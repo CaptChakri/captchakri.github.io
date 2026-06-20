@@ -34,15 +34,15 @@
   display: flex; align-items: center; gap: .95rem;
   padding: .9rem 1.05rem;
   background: rgba(8,14,30,0.82);
-  border: 1px solid rgba(0,200,240,0.35);
+  border: 1px solid rgba(var(--accent-rgb),0.35);
   border-radius: .8rem;
   backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-  box-shadow: 0 18px 50px rgba(0,0,0,0.5), 0 0 30px rgba(0,200,240,0.12);
+  box-shadow: 0 18px 50px rgba(0,0,0,0.5), 0 0 30px rgba(var(--accent-rgb),0.12);
 }
 .egg-toast-icon {
   font-size: 1.7rem; line-height: 1; flex-shrink: 0;
   width: 2rem; display: flex; align-items: center; justify-content: center;
-  filter: drop-shadow(0 0 10px rgba(0,200,240,0.6));
+  filter: drop-shadow(0 0 10px rgba(var(--accent-rgb),0.6));
 }
 .egg-toast-icon svg { display: block; width: auto; height: 2rem; overflow: visible; }
 .egg-toast-body { flex: 1 1 auto; min-width: 0; }
@@ -69,8 +69,8 @@
   transition: transform .25s ease, border-color .25s ease, box-shadow .25s ease; }
 #egg-toast.show .egg-toast-card { pointer-events: auto; }
 .egg-toast-card:hover {
-  transform: translateY(-3px); border-color: rgba(0,200,240,0.6);
-  box-shadow: 0 22px 60px rgba(0,0,0,0.55), 0 0 36px rgba(0,200,240,0.2);
+  transform: translateY(-3px); border-color: rgba(var(--accent-rgb),0.6);
+  box-shadow: 0 22px 60px rgba(0,0,0,0.55), 0 0 36px rgba(var(--accent-rgb),0.2);
 }
 .egg-toast-card:focus-visible { outline: 2px solid var(--pink); outline-offset: 4px; }
 
@@ -87,7 +87,7 @@
   font-size: clamp(.66rem, 2.6vw, .74rem); letter-spacing: .04em; white-space: nowrap;
   color: var(--text); text-decoration: none;
   background: rgba(8,14,30,0.72);
-  border: 1px solid rgba(0,200,240,0.28); border-radius: 999px;
+  border: 1px solid rgba(var(--accent-rgb),0.28); border-radius: 999px;
   backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
   opacity: 0; transform: translateY(8px) scale(.96);
   transition: opacity .5s ease, transform .5s cubic-bezier(.2,.9,.2,1),
@@ -98,7 +98,7 @@
   opacity: 1; border-color: var(--cyan); background: rgba(8,14,30,0.92);
 }
 #egg-vault-link:focus-visible { outline: 2px solid var(--pink); outline-offset: 3px; }
-.evl-egg { font-size: 1.05em; line-height: 1; filter: drop-shadow(0 0 6px rgba(0,200,240,0.5)); }
+.evl-egg { font-size: 1.05em; line-height: 1; filter: drop-shadow(0 0 6px rgba(var(--accent-rgb),0.5)); }
 .evl-text b.evl-count { color: var(--cyan); font-weight: 700; margin-left: .15rem; }
 
 /* touch devices: comfortable tap target, and no hover to brighten it, so

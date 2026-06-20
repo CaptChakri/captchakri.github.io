@@ -43,6 +43,32 @@ body > footer { margin-top: auto; }
 .blog-card[data-sphere] .blog-date,
 .blog-card[data-sphere] .blog-arrow { color: var(--sphere, var(--cyan)); }
 .blog-card[data-sphere]:hover { border-color: var(--sphere, var(--cyan)); }
+
+/* local-only preview toggle: reveals gated "coming-soon" drafts so they can be
+   opened and reviewed before publishing. Hidden unless served from localhost. */
+.preview-toggle {
+  position: fixed; bottom: 1.25rem; right: 1.25rem; z-index: 60;
+  display: none; align-items: center; gap: 0.5rem;
+  padding: 0.55rem 0.95rem; border-radius: 999px;
+  font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; letter-spacing: 0.06em;
+  color: var(--cyan); background: rgba(6,11,28,0.82); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+  border: 1px solid var(--border); cursor: pointer;
+  transition: border-color 0.2s ease, color 0.2s ease, background 0.2s ease;
+}
+.preview-toggle.is-local { display: inline-flex; }
+.preview-toggle:hover { border-color: var(--cyan); }
+.preview-toggle[aria-pressed="true"] {
+  background: rgba(0,200,240,0.16); border-color: var(--cyan); color: var(--white);
+}
+.preview-toggle .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--gray2); }
+.preview-toggle[aria-pressed="true"] .dot { background: var(--cyan); box-shadow: 0 0 8px var(--cyan); }
+/* draft badge shown on a gated card while previewing */
+.blog-draft-badge {
+  font-family: 'JetBrains Mono', monospace; font-size: 0.6rem; letter-spacing: 0.12em;
+  color: var(--navy); background: var(--cyan); border-radius: 0.25rem;
+  padding: 0.1rem 0.4rem; align-self: flex-start;
+}
+@media (max-width: 768px) { .preview-toggle { bottom: 0.85rem; right: 0.85rem; } }
 </style>
 </head>
 <body>
@@ -90,25 +116,41 @@ body > footer { margin-top: auto; }
 
 <footer>© <span data-year>2026</span> Chakri · All rights reserved · <a href="/">Home</a></footer>
 
+<button class="preview-toggle" id="preview-toggle" type="button" aria-pressed="false" hidden>
+  <span class="dot" aria-hidden="true"></span><span class="preview-label">Preview drafts</span>
+</button>
+
 <script src="../assets/js/theme.js"></script>
 <script>
 (function() {
   const list = document.getElementById('blog-list');
   const filterBar = document.getElementById('tag-filter-bar');
   const empty = document.getElementById('blog-empty');
+  const previewBtn = document.getElementById('preview-toggle');
   let posts = [];
   let activeTag = 'all';
 
+  // only meaningful when served locally (Live Server, python -m http.server, file://)
+  const IS_LOCAL = location.protocol === 'file:'
+    || ['localhost', '127.0.0.1', '[::1]', ''].includes(location.hostname)
+    || location.hostname.endsWith('.local');
+  let previewDrafts = false;
+
   // each post adopts one descent sphere (posts.json "sphere"); its accent colour
   // tints the post's card. Keys mirror the engine's spheres; falls back to biosphere.
+  // mirrors accentAt() in descent-engine.js, so a post's card stripe/wash matches
+  // the UI accent you meet when you open that post's scene
   const SPHERE_TINT = {
-    exosphere: '#8fb4f0', thermosphere: '#ef5a2a', stratosphere: '#4f8fe0',
-    biosphere: '#86c64e', hydrosphere: '#2bb6e0', bathysphere: '#3f7be8',
-    lithosphere: '#e8412a',
+    exosphere: '#54cdec', thermosphere: '#7fa6f0', stratosphere: '#edb277',
+    biosphere: '#e0a85c', hydrosphere: '#36cfc0', bathysphere: '#3cbce8',
+    lithosphere: '#f0744a',
   };
 
   function postUrl(post) {
-    if (post.status === 'coming-soon') return post.comingSoonUrl || '/blog/coming-soon.html';
+    // while previewing locally, bypass the gate and link to the real draft
+    if (post.status === 'coming-soon' && !(IS_LOCAL && previewDrafts)) {
+      return post.comingSoonUrl || '/blog/coming-soon.html';
+    }
     const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(post.date);
     if (!match) throw new Error(`Invalid publication date for ${post.slug}`);
     const [, year, month, day] = match;
@@ -121,10 +163,13 @@ body > footer { margin-top: auto; }
     const filtered = activeTag === 'all' ? posts : posts.filter(p => p.tags.includes(activeTag));
     empty.hidden = filtered.length > 0;
 
+    const previewing = IS_LOCAL && previewDrafts;
     filtered.forEach((post, i) => {
+      const gated = post.status === 'coming-soon';
       const card = document.createElement('a');
       card.href = postUrl(post);
-      card.className = 'blog-card rv show' + (post.status === 'coming-soon' ? ' blog-soon' : '');
+      // while previewing, a gated draft is opened as a live card (no dashed/dimmed look)
+      card.className = 'blog-card rv show' + (gated && !previewing ? ' blog-soon' : '');
       card.style.animationDelay = `${i * 0.06}s`;
       const sphere = (post.sphere || 'biosphere').toLowerCase();
       card.dataset.sphere = sphere;
@@ -140,8 +185,15 @@ body > footer { margin-top: auto; }
       if (post.readMins) {
         const readTime = document.createElement('div');
         readTime.className = 'blog-read';
-        readTime.textContent = post.status === 'coming-soon' ? 'Coming soon' : `${post.readMins} min read`;
+        readTime.textContent = (gated && !previewing) ? 'Coming soon' : `${post.readMins} min read`;
         meta.appendChild(readTime);
+      }
+
+      if (gated && previewing) {
+        const badge = document.createElement('span');
+        badge.className = 'blog-draft-badge';
+        badge.textContent = 'DRAFT';
+        meta.appendChild(badge);
       }
 
       const content = document.createElement('div');
@@ -189,6 +241,19 @@ body > footer { margin-top: auto; }
         render();
       });
       filterBar.appendChild(btn);
+    });
+  }
+
+  if (IS_LOCAL) {
+    const label = previewBtn.querySelector('.preview-label');
+    previewBtn.hidden = false;
+    previewBtn.classList.add('is-local');
+    previewBtn.title = 'Local only — reveal gated draft posts';
+    previewBtn.addEventListener('click', () => {
+      previewDrafts = !previewDrafts;
+      previewBtn.setAttribute('aria-pressed', String(previewDrafts));
+      label.textContent = previewDrafts ? 'Previewing drafts' : 'Preview drafts';
+      render();
     });
   }
 

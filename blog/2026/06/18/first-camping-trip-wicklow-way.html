@@ -3,32 +3,22 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="refresh" content="0; url=/blog/coming-soon.html">
 <meta name="robots" content="noindex">
-<script>window.location.replace('/blog/coming-soon.html');</script>
+<script>
+/* Gate this draft in production, but let it render locally (Live Server / http
+   server / file://) so it can be reviewed via the blog's "Preview drafts" button.
+   Runs synchronously in <head> so production visitors never see a content flash. */
+(function () {
+  var h = location.hostname;
+  var local = location.protocol === 'file:'
+    || ['localhost', '127.0.0.1', '[::1]', ''].indexOf(h) !== -1
+    || h.endsWith('.local');
+  if (!local) location.replace('/blog/coming-soon.html');
+})();
+</script>
 <title>Coming Soon - Chakri's World</title>
 <meta name="description" content="The Wicklow Way post is still being finished. Check back soon.">
 <meta name="theme-color" content="#060B1C">
-<script>
-/* Shape the hero from the visitor's local clock, before first paint:
-   daytime (06:00–18:59) shows the sun + blue sky, otherwise moon + stars,
-   and the active body is placed along an east→zenith→west arc by the hour. */
-(function () {
-  var now = new Date();
-  var hf = now.getHours() + now.getMinutes() / 60;      // hours as a decimal
-  var isDay = hf >= 6 && hf < 19;
-  var de = document.documentElement;
-  de.dataset.tod = isDay ? 'day' : 'night';
-
-  // progress 0→1 across the body's time in the sky (day = 06→19, night = 19→06)
-  var p = isDay ? (hf - 6) / 13 : (hf >= 19 ? hf - 19 : hf + 5) / 11;
-  // x sweeps left→right; y dips low at the horizon, peaks overhead at the middle
-  var x = 150 + p * 900;
-  var y = 230 - Math.sin(p * Math.PI) * 170;
-  de.style.setProperty('--cb-x', x.toFixed(1) + 'px');
-  de.style.setProperty('--cb-y', y.toFixed(1) + 'px');
-})();
-</script>
 <link rel="canonical" href="https://captchakri.github.io/blog/coming-soon.html">
 <meta property="og:type" content="website">
 <meta property="og:title" content="Coming Soon - Chakri's World">
@@ -42,6 +32,12 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Spectral:ital,wght@0,400;0,500;0,600;1,400;1,500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+<!-- the home page's living "biosphere" (Wicklow camp) descent scene, pinned as a
+     fixed backdrop behind this post — see the DESCENT_CONFIG pin near the foot of
+     the page. NB: never write a literal closing-body tag inside a comment here —
+     Live Server injects its reload script before the first one it finds and would
+     corrupt the document, pushing the sticky nav down. -->
+<link rel="stylesheet" href="/assets/css/descent-backdrop.css">
 <style>
 /* =====================================================================
    FIELD NOTES — a self-contained camping journal theme.
@@ -53,18 +49,25 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  /* Night-sky palette — cool navy + cyan, matched to the portfolio home */
+  /* Camp-at-dusk palette: the accent now follows this post's pinned BIOSPHERE
+     scene instead of a fixed cyan. The descent engine publishes --accent /
+     --accent-rgb on <html>; the firelight gold below is that sphere's colour,
+     set here as a static default so there's no flash before the script runs.
+     Text is near-neutral so the warmth reads from the accent, not the prose —
+     the same move as the portfolio home. */
   --night:   #060B1C;   /* page base, deep navy */
   --panel:   #0C1428;   /* reading surface */
   --panel2:  #16223f;   /* raised chips / cards */
-  --ink:     #F0F5FF;   /* primary text */
-  --ink-dim: #CDD8EE;   /* secondary text */
-  --muted:   #7A88A8;   /* meta / captions */
-  --line:    rgba(0,200,240,0.15);
-  --line2:   rgba(0,200,240,0.28);
-  --ember:   #00C8F0;   /* cyan — primary accent */
-  --ember-d: #00A6C8;
-  --moss:    #FF8FB8;   /* pink — secondary accent */
+  --ink:     #F3F5F9;   /* primary text (near-neutral) */
+  --ink-dim: #D6DBE4;   /* secondary text */
+  --muted:   #8B91A0;   /* meta / captions */
+  --accent:     #e0a85c;        /* firelight gold — the pinned biosphere accent */
+  --accent-rgb: 224,168,92;
+  --line:    rgba(var(--accent-rgb),0.15);
+  --line2:   rgba(var(--accent-rgb),0.28);
+  --ember:   var(--accent);     /* primary accent — now firelight gold */
+  --ember-d: #c98a3e;           /* a deeper gold for gradients / hovers */
+  --moss:    #FF8FB8;   /* pink — secondary accent (gold → pink reads as dusk) */
   --sky-top: #060B1C;
   --sky-mid: #16223f;
   --sky-low: #25406e;
@@ -77,17 +80,15 @@ body {
   background: var(--night);
   line-height: 1.8;
   font-size: 19px;
-  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  /* clip (not hidden) keeps off-screen scene sprites from causing horizontal
+     scroll WITHOUT making <body> a scroll container — which would silently
+     break `position: sticky` on the .topbar below */
+  overflow-x: clip;
 }
-/* warm ambient glow over the base, no starfield */
-body::before {
-  content: ''; position: fixed; inset: 0; z-index: -2; pointer-events: none;
-  background:
-    radial-gradient(80% 50% at 78% 0%, rgba(0,200,240,0.10), transparent 60%),
-    radial-gradient(70% 45% at 0% 80%, rgba(255,143,184,0.05), transparent 60%),
-    var(--night);
-}
-::selection { background: rgba(0,200,240,0.28); color: #fff; }
+::selection { background: rgba(var(--accent-rgb),0.28); color: #fff; }
 img { max-width: 100%; display: block; }
 a { color: var(--ember); }
 
@@ -115,56 +116,16 @@ a { color: var(--ember); }
 
 /* ===================== HERO ===================== */
 .hero { position: relative; }
-.hero-art { position: relative; width: 100%; height: clamp(260px, 46vw, 460px); overflow: hidden; }
-.hero-art svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
-/* fade the illustration into the page base at the bottom */
-.hero-art::after {
-  content: ''; position: absolute; left: 0; right: 0; bottom: -1px; height: 42%;
-  background: linear-gradient(to bottom, transparent, var(--night));
-}
-@keyframes flicker { 0%,100% { opacity: 0.85; } 50% { opacity: 1; } }
-.fire-glow { transform-origin: center; animation: flicker 2.8s ease-in-out infinite; }
-@media (prefers-reduced-motion: reduce) { .fire-glow { animation: none; } }
-
-/* time-of-day: moon + stars by night, sun + blue sky by day.
-   `data-tod` is set on <html> from the visitor's local clock (see head
-   script); with no JS we fall through to the night scene below. */
-.hero-art .sky-day,
-.hero-art .sun { opacity: 0; }
-/* sun + moon ride the same arc; the head script sets --cb-x/--cb-y from the
-   clock. Falls back to the static top-right spot (matching the SVG attr). */
-.hero-art .sun,
-.hero-art .moon {
-  transform-box: view-box; transform-origin: 0 0;
-  transform: translate(var(--cb-x, 940px), var(--cb-y, 120px));
-}
-html[data-tod="day"] .hero-art .sky-day,
-html[data-tod="day"] .hero-art .sun { opacity: 1; }
-html[data-tod="day"] .hero-art .moon,
-html[data-tod="day"] .hero-art .stars { opacity: 0; }
-/* daylight repaints the ranges with atmospheric haze (distant = palest)
-   so they read as layered hills, not a dark shore against water. */
-html[data-tod="day"] .hero-art .range-far  { fill: #8fb0d2; }
-html[data-tod="day"] .hero-art .range-mid  { fill: #5d83aa; }
-html[data-tod="day"] .hero-art .range-near { fill: #3c5a4f; }
-html[data-tod="day"] .hero-art .ground     { fill: #2b4133; }
-html[data-tod="day"] .hero-art .pines      { fill: #1b2e23; }
-@media (prefers-reduced-motion: no-preference) {
-  .hero-art .sky-day,
-  .hero-art .sun,
-  .hero-art .moon,
-  .hero-art .stars { transition: opacity 1.1s ease; }
-  .hero-art .range-far,
-  .hero-art .range-mid,
-  .hero-art .range-near,
-  .hero-art .ground,
-  .hero-art .pines { transition: fill 1.1s ease; }
-}
+/* the article chrome rides ABOVE the descent scene (canvas z0, sprites/scrim z1) */
+.hero, .layout, footer { position: relative; z-index: 2; }
 
 .hero-head {
-  max-width: 760px; margin: 0 auto; padding: 0 1.25rem;
-  position: relative; margin-top: -2.4rem; z-index: 2;
+  max-width: 760px; margin: 0 auto;
+  padding: clamp(3.5rem, 12vh, 7rem) 1.25rem 1.5rem;
+  position: relative; z-index: 2;
 }
+/* hero text floats over the open sky — shadow keeps it legible day or night */
+.hero-head .eyebrow, .hero-head .meta, .hero-head .tags { text-shadow: 0 1px 10px rgba(6,11,28,0.65); }
 .eyebrow {
   font-family: 'JetBrains Mono', monospace; font-size: 0.74rem;
   letter-spacing: 0.16em; text-transform: uppercase; color: var(--ember);
@@ -177,6 +138,7 @@ html[data-tod="day"] .hero-art .pines      { fill: #1b2e23; }
   font-family: 'Space Grotesk', sans-serif; font-weight: 700;
   font-size: clamp(2rem, 7.5vw, 3.3rem); line-height: 1.08; letter-spacing: -0.025em;
   color: var(--ink); margin: 0.7rem 0 0.9rem; text-wrap: balance;
+  text-shadow: 0 2px 20px rgba(6,11,28,0.5);
 }
 .meta {
   font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; color: var(--muted);
@@ -202,7 +164,20 @@ html[data-tod="day"] .hero-art .pines      { fill: #1b2e23; }
 .fact .l { font-family: 'JetBrains Mono', monospace; font-size: 0.64rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-top: 0.2rem; }
 
 /* ===================== LAYOUT ===================== */
-.wrap { max-width: 760px; margin: 0 auto; padding: 2.4rem 1.25rem 4rem; }
+/* the article floats on a smoked-glass "journal page" over the campsite — keeps
+   body text readable against the live scene, which stays vivid in the hero, the
+   footer and (on desktop) the side gutters, and shows softly blurred behind */
+.wrap {
+  max-width: min(760px, 100% - 1.4rem); margin: 0 auto; padding: 2.2rem 1.4rem 3.5rem;
+  position: relative;
+  background: rgba(7,12,28,0.62);
+  -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+  border: 1px solid rgba(255,255,255,0.08); border-radius: 14px;
+}
+/* no blur support → lean on a more opaque panel so text stays readable */
+@supports not ((backdrop-filter: blur(8px)) or (-webkit-backdrop-filter: blur(8px))) {
+  .wrap { background: rgba(7,12,28,0.86); }
+}
 
 /* mobile contents card */
 .toc-card {
@@ -242,7 +217,7 @@ html[data-tod="day"] .hero-art .pines      { fill: #1b2e23; }
 article p { margin: 0 0 1.3rem; color: var(--ink-dim); }
 article p strong { color: var(--ink); font-weight: 600; }
 article em { color: var(--muted); }
-article a { text-decoration-color: rgba(0,200,240,0.4); text-underline-offset: 3px; }
+article a { text-decoration-color: rgba(var(--accent-rgb),0.4); text-underline-offset: 3px; }
 
 h2 {
   font-family: 'Space Grotesk', sans-serif; font-weight: 600; color: var(--ink);
@@ -276,7 +251,7 @@ figure { margin: 1.8rem 0; }
   width: 100%; aspect-ratio: 3 / 2; border-radius: 0.7rem;
   border: 1px dashed var(--line2);
   background:
-    repeating-linear-gradient(45deg, rgba(0,200,240,0.045) 0 14px, transparent 14px 28px),
+    repeating-linear-gradient(45deg, rgba(var(--accent-rgb),0.045) 0 14px, transparent 14px 28px),
     var(--panel);
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   gap: 0.55rem; color: var(--muted);
@@ -363,7 +338,7 @@ figcaption { font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; color
 .post-foot { margin-top: 2.6rem; padding-top: 1.6rem; border-top: 1px solid var(--line); }
 .post-foot a { font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; color: var(--ember); text-decoration: none; display: inline-flex; align-items: center; gap: 0.5rem; min-height: 44px; }
 
-footer { text-align: center; padding: 2rem 1.25rem; font-family: 'JetBrains Mono', monospace; font-size: 0.76rem; color: var(--muted); border-top: 1px solid var(--line); }
+footer { text-align: center; padding: 2rem 1.25rem; font-family: 'JetBrains Mono', monospace; font-size: 0.76rem; color: var(--muted); border-top: 1px solid var(--line); background: rgba(6,11,28,0.55); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
 footer a { color: var(--muted); }
 footer a:hover { color: var(--ember); }
 
@@ -376,9 +351,11 @@ footer a:hover { color: var(--ember); }
 /* ===================== DESKTOP ===================== */
 @media (min-width: 1080px) {
   .layout { display: grid; grid-template-columns: 200px 1fr; gap: 3.5rem; max-width: 1040px; margin: 0 auto; padding: 2.8rem 1.5rem 5rem; align-items: start; }
-  .wrap { max-width: none; margin: 0; padding: 0; }
+  .wrap { max-width: none; margin: 0; padding: 2.6rem 2.9rem 3.2rem; }
   .toc-card { display: none; }
   .side-toc { display: block; position: sticky; top: 96px; }
+  /* the side TOC sits over the open scene — shadow keeps it legible */
+  .side-toc .h, .side-toc a { text-shadow: 0 1px 8px rgba(6,11,28,0.7); }
   .side-toc .h { font-family: 'JetBrains Mono', monospace; font-size: 0.64rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted); margin-bottom: 0.9rem; }
   .side-toc ol { list-style: none; padding: 0; margin: 0; counter-reset: s; display: flex; flex-direction: column; }
   .side-toc li { counter-increment: s; }
@@ -399,14 +376,11 @@ footer a:hover { color: var(--ember); }
    no-JS and reduced-motion always render the finished, visible state.
    ===================================================================== */
 
-/* ambient canvas: faint warm stars + embers drifting up, behind content */
-#emberfield { position: fixed; inset: 0; z-index: -1; pointer-events: none; }
-
 /* scroll progress — ember→moss (home uses cyan→pink) */
 #post-progress {
   position: fixed; top: 0; left: 0; height: 2px; width: 0%;
   background: linear-gradient(90deg, var(--ember), var(--moss));
-  box-shadow: 0 0 10px rgba(0,200,240,0.5); z-index: 60;
+  box-shadow: 0 0 10px rgba(var(--accent-rgb),0.5); z-index: 60;
 }
 
 /* trailing custom cursor (desktop, fine pointer only) */
@@ -420,14 +394,14 @@ footer a:hover { color: var(--ember); }
   #cursor-ring {
     display: block; position: fixed; z-index: 999; pointer-events: none;
     width: 32px; height: 32px; border-radius: 50%;
-    border: 1px solid rgba(0,200,240,0.45);
+    border: 1px solid rgba(var(--accent-rgb),0.45);
     transform: translate(-50%, -50%);
     transition: width .25s, height .25s, border-color .25s, background .25s;
   }
   body.cursor-hover #cursor-ring {
     width: 54px; height: 54px;
     border-color: rgba(255,143,184,0.6);
-    background: rgba(0,200,240,0.06);
+    background: rgba(var(--accent-rgb),0.06);
   }
 }
 
@@ -483,9 +457,13 @@ html.vt-in .reveal { opacity: 1 !important; transform: none !important; filter: 
 }
 </style>
 </head>
-<body>
+<body class="sphere-post">
 
-<canvas id="emberfield" aria-hidden="true"></canvas>
+<!-- the pinned descent "biosphere" (Wicklow camp) renders here as a fixed,
+     living backdrop; the scrim keeps the article legible over it -->
+<canvas id="descent-canvas" aria-hidden="true"></canvas>
+<div id="descent-sprites" aria-hidden="true"></div>
+<div id="descent-scrim" aria-hidden="true"></div>
 <div id="post-progress" aria-hidden="true"></div>
 <div id="cursor-ring" aria-hidden="true"></div>
 <div id="cursor-dot" aria-hidden="true"></div>
@@ -496,82 +474,6 @@ html.vt-in .reveal { opacity: 1 !important; transform: none !important; filter: 
 </header>
 
 <div class="hero">
-  <div class="hero-art" aria-hidden="true">
-    <svg viewBox="0 0 1200 460" preserveAspectRatio="xMidYMid slice">
-      <defs>
-        <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="#060B1C"/>
-          <stop offset="45%" stop-color="#0c1430"/>
-          <stop offset="75%" stop-color="#16223f"/>
-          <stop offset="100%" stop-color="#25406e"/>
-        </linearGradient>
-        <radialGradient id="moonglow" cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stop-color="rgba(210,235,255,0.5)"/>
-          <stop offset="100%" stop-color="rgba(210,235,255,0)"/>
-        </radialGradient>
-        <!-- daytime sky + sun, revealed when html[data-tod="day"] -->
-        <linearGradient id="skyDay" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="#3f7cb6"/>
-          <stop offset="48%" stop-color="#6ea2cf"/>
-          <stop offset="80%" stop-color="#a6cae4"/>
-          <stop offset="100%" stop-color="#d7e8f3"/>
-        </linearGradient>
-        <radialGradient id="sunglow" cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stop-color="rgba(255,223,140,0.9)"/>
-          <stop offset="55%" stop-color="rgba(255,201,110,0.28)"/>
-          <stop offset="100%" stop-color="rgba(255,201,110,0)"/>
-        </radialGradient>
-        <radialGradient id="fire" cx="50%" cy="60%" r="50%">
-          <stop offset="0%" stop-color="rgba(0,200,240,0.85)"/>
-          <stop offset="45%" stop-color="rgba(0,200,240,0.32)"/>
-          <stop offset="100%" stop-color="rgba(0,200,240,0)"/>
-        </radialGradient>
-      </defs>
-      <rect width="1200" height="460" fill="url(#sky)"/>
-      <!-- daytime sky overlay (hidden at night) -->
-      <rect class="sky-day" width="1200" height="460" fill="url(#skyDay)"/>
-      <!-- sun (day) — JS positions it along the daytime arc -->
-      <g class="sun" transform="translate(940 120)">
-        <circle r="135" fill="url(#sunglow)"/>
-        <circle r="44" fill="#FFD66B"/>
-      </g>
-      <!-- moon (night) — JS positions it along the nighttime arc -->
-      <g class="moon" transform="translate(940 120)">
-        <circle r="120" fill="url(#moonglow)"/>
-        <circle r="46" fill="#DCEBFF"/>
-      </g>
-      <!-- stars (night) -->
-      <g class="stars" fill="#DCEBFF" opacity="0.7">
-        <circle cx="180" cy="80" r="1.6"/><circle cx="320" cy="140" r="1.2"/>
-        <circle cx="520" cy="70" r="1.4"/><circle cx="680" cy="150" r="1.1"/>
-        <circle cx="1080" cy="60" r="1.5"/><circle cx="1140" cy="180" r="1.2"/>
-        <circle cx="60" cy="160" r="1.3"/><circle cx="420" cy="40" r="1.1"/>
-      </g>
-      <!-- far range -->
-      <path class="range-far" fill="#2c2f4d" d="M0 300 L160 210 L320 290 L470 200 L640 285 L820 195 L980 280 L1130 215 L1200 265 L1200 460 L0 460 Z"/>
-      <!-- mid range -->
-      <path class="range-mid" fill="#242540" d="M0 340 L180 250 L360 330 L540 245 L720 325 L900 250 L1080 335 L1200 285 L1200 460 L0 460 Z"/>
-      <!-- near hills -->
-      <path class="range-near" fill="#1a1b30" d="M0 390 L220 320 L430 385 L640 315 L860 388 L1060 330 L1200 380 L1200 460 L0 460 Z"/>
-      <!-- foreground with pines -->
-      <path class="ground" fill="#12121f" d="M0 420 L1200 420 L1200 460 L0 460 Z"/>
-      <g class="pines" fill="#12121f">
-        <path d="M120 420 L135 372 L150 420 Z"/><path d="M150 420 L165 360 L180 420 Z"/>
-        <path d="M1010 420 L1025 366 L1040 420 Z"/><path d="M1040 420 L1058 352 L1076 420 Z"/>
-        <path d="M1080 420 L1092 380 L1104 420 Z"/>
-      </g>
-      <!-- campfire glow + flame + tent, centred -->
-      <ellipse class="fire-glow" cx="600" cy="418" rx="120" ry="60" fill="url(#fire)"/>
-      <path d="M590 422 Q600 398 610 422 Q604 410 600 422 Q596 410 590 422 Z" fill="#7FE6FF"/>
-      <!-- tent -->
-      <g transform="translate(470 372)">
-        <path d="M0 50 L34 0 L68 50 Z" fill="#15151f"/>
-        <path d="M34 0 L40 50 L28 50 Z" fill="#0d0d16"/>
-        <path d="M30 50 L34 28 L38 50 Z" fill="url(#fire)"/>
-      </g>
-    </svg>
-  </div>
-
   <div class="hero-head fade">
     <div class="eyebrow">The Wicklow Way · Marlay Park → Glendalough</div>
     <h1 class="title">The Wicklow Way: Part - 1</h1>
@@ -590,7 +492,7 @@ html.vt-in .reveal { opacity: 1 !important; transform: none !important; filter: 
     </div>
 
     <div class="facts">
-      <div class="fact"><div class="n">~50<span style="font-size:0.9rem"> km</span></div><div class="l">walked</div></div>
+      <div class="fact"><div class="n">~52<span style="font-size:0.9rem"> km</span></div><div class="l">walked</div></div>
       <div class="fact"><div class="n">2</div><div class="l">days on trail</div></div>
       <div class="fact"><div class="n">~20<span style="font-size:0.9rem"> kg</span></div><div class="l">on my back</div></div>
     </div>
@@ -673,7 +575,8 @@ html.vt-in .reveal { opacity: 1 !important; transform: none !important; filter: 
       <h2 id="day1">Day 1 — the chaotic start</h2>
       <div class="day-meta">
         <span><svg viewBox="0 0 24 24"><path d="M3 17l5-6 4 4 3-4 6 6"/><circle cx="8" cy="8" r="1.6"/></svg> Marlay Park → Glencree</span>
-        <span><svg viewBox="0 0 24 24"><path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7z"/><circle cx="12" cy="9" r="2.4"/></svg> ~20 km before dark</span>
+        <span><svg viewBox="0 0 24 24"><path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7z"/><circle cx="12" cy="9" r="2.4"/></svg> ~21 km before dark</span>
+        <span><svg viewBox="0 0 24 24"><path d="M3 18l6-6 4 4 8-8"/><path d="M17 8h4v4"/></svg> ~840 m of climb</span>
         <span><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg> started 12:16</span>
       </div>
 
@@ -732,7 +635,8 @@ html.vt-in .reveal { opacity: 1 !important; transform: none !important; filter: 
       <h2 id="day2">Day 2 — the perfect pitch</h2>
       <div class="day-meta">
         <span><svg viewBox="0 0 24 24"><path d="M3 17l5-6 4 4 3-4 6 6"/><circle cx="8" cy="8" r="1.6"/></svg> Glencree → Glendalough</span>
-        <span><svg viewBox="0 0 24 24"><path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7z"/><circle cx="12" cy="9" r="2.4"/></svg> scenic high routes</span>
+        <span><svg viewBox="0 0 24 24"><path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7z"/><circle cx="12" cy="9" r="2.4"/></svg> ~31 km to Glendalough</span>
+        <span><svg viewBox="0 0 24 24"><path d="M3 18l6-6 4 4 8-8"/><path d="M17 8h4v4"/></svg> ~900 m of climb</span>
         <span><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg> tired legs, 20 kg</span>
       </div>
 
@@ -759,8 +663,11 @@ html.vt-in .reveal { opacity: 1 !important; transform: none !important; filter: 
           <h4>Chasing the scenic routes</h4>
           <p>Then AllTrails started whispering. Every scenic alternative — a high
           route with a better view — we took. More distance, more elevation, more
-          climbing on legs no longer running on adrenaline. And every single time,
-          it was worth it.</p>
+          climbing on legs no longer running on adrenaline. The Way earns its name
+          along here: up over <strong>White Hill</strong>, the highest point on the
+          way to Glendalough at ~635 m, then the long boardwalk on the shoulder of
+          <strong>Djouce</strong>, high above Lough Tay. And every single time, it
+          was worth it.</p>
         </li>
         <li class="tl-item">
           <div class="tl-time">— to write —</div>
@@ -993,51 +900,15 @@ html.vt-in .reveal { opacity: 1 !important; transform: none !important; filter: 
       el.addEventListener('mouseleave', function () { document.body.classList.remove('cursor-hover'); });
     });
   })();
-
-  /* ambient emberfield — warm twinkling stars + embers drifting upward */
-  (function () {
-    var c = document.getElementById('emberfield'); if (!c) return;
-    var ctx = c.getContext('2d'), W, H, stars = [], embers = [], mx = 0, my = 0, sY = 0;
-    function resize() { W = c.width = innerWidth; H = c.height = innerHeight; }
-    function star() {
-      return { x: Math.random() * W, y: Math.random() * H, r: Math.random() * 1.2 + 0.3,
-        a: Math.random() * 0.55 + 0.12, ts: Math.random() * 0.006 + 0.002,
-        td: Math.random() > 0.5 ? 1 : -1, par: Math.random() * 0.25 + 0.05 };
-    }
-    function ember(init) {
-      return { x: Math.random() * W, y: init ? Math.random() * H : H + 12,
-        vy: 0.3 + Math.random() * 0.7, drift: Math.random() * Math.PI * 2,
-        ds: 0.006 + Math.random() * 0.014, da: 0.3 + Math.random() * 0.8,
-        size: 1 + Math.random() * 1.7, a: 0.28 + Math.random() * 0.4 };
-    }
-    resize();
-    for (var i = 0; i < 130; i++) stars.push(star());
-    for (var j = 0; j < 24; j++) embers.push(ember(true));
-    addEventListener('resize', resize);
-    addEventListener('mousemove', function (e) { mx = (e.clientX / innerWidth - 0.5) * 10; my = (e.clientY / innerHeight - 0.5) * 10; });
-    addEventListener('scroll', function () { sY = scrollY; }, { passive: true });
-    (function draw() {
-      ctx.clearRect(0, 0, W, H);
-      var sy = sY * 0.05;
-      for (var s of stars) {
-        s.a += s.ts * s.td; if (s.a > 0.7 || s.a < 0.07) s.td *= -1;
-        ctx.beginPath();
-        ctx.arc(s.x + mx * s.par, s.y + my * s.par - sy * s.par, s.r, 0, 6.283);
-        ctx.fillStyle = 'rgba(245,232,200,' + s.a + ')'; ctx.fill();
-      }
-      for (var p of embers) {
-        p.drift += p.ds; p.x += Math.sin(p.drift) * p.da; p.y -= p.vy;
-        if (p.y < -12) Object.assign(p, ember(false));
-        var fl = p.a * (0.6 + 0.4 * Math.sin(p.drift * 3));
-        ctx.beginPath();
-        ctx.arc(p.x + mx * 0.3, p.y, p.size, 0, 6.283);
-        ctx.fillStyle = 'rgba(0,200,240,' + fl + ')'; ctx.fill();
-      }
-      requestAnimationFrame(draw);
-    })();
-  })();
 })();
 </script>
+
+<!-- SPHERE BACKDROP: pin the descent engine to this post's sphere (biosphere =
+     the Wicklow camp), so the home page's living camp scene holds as a fixed
+     backdrop behind the article. Mirrors blog/posts/template.html. -->
+<script src="/assets/js/descent-sprites.js"></script>
+<script>window.DESCENT_CONFIG = { pin: 'biosphere', intensity: 0.85, campShift: -0.26 };</script>
+<script src="/assets/js/descent-engine.js"></script>
 
 </body>
 </html>
