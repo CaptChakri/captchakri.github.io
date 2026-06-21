@@ -44,14 +44,14 @@ def published_html_files() -> list[Path]:
     files = [
         ROOT / "index.html",
         ROOT / "blog/index.html",
-        ROOT / "blog/coming-soon.html",
-        ROOT / "eggs.html",
+        ROOT / "blog/coming-soon/index.html",
+        ROOT / "eggs/index.html",
     ]
     for post in posts:
         if post.get("status") == "coming-soon":
             continue
         year, month, day = post["date"].split("-")
-        files.append(ROOT / "blog" / year / month / day / f"{post['slug']}.html")
+        files.append(ROOT / "blog" / year / month / day / post["slug"] / "index.html")
     return files
 
 

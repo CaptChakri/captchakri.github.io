@@ -2,11 +2,12 @@
   POST TEMPLATE (annotated layout)
   ================================
   How to write a new post:
-    1. Copy this file to blog/YYYY/MM/DD/<slug>.html using the publication date.
+    1. Copy this file to blog/YYYY/MM/DD/<slug>/index.html using the publication
+       date. The post is served at the extensionless URL /blog/YYYY/MM/DD/<slug>/.
     2. Fill in <title>, the <meta>/og tags, .post-title, .post-meta, .blog-tags,
        and the article body.
-    3. Add a matching entry to blog/posts.json (the date creates the folders and
-       the slug must match the filename without .html), e.g.:
+    3. Add a matching entry to blog/posts.json (the date + slug create the folder
+       path and the slug must match the post's folder name), e.g.:
          { "slug": "my-post-name", "title": "…", "date": "2026-06-15",
            "dateLabel": "Jun 15, 2026", "readMins": 5, "tags": ["tag"],
            "sphere": "biosphere", "excerpt": "…" }
@@ -30,11 +31,11 @@
 <meta name="description" content="A blog post by Chakri about software engineering, distributed systems, and life beyond the keyboard.">
 <meta name="theme-color" content="#060B1C">
 <meta name="robots" content="noindex, nofollow">
-<link rel="canonical" href="https://captchakri.github.io/blog/YYYY/MM/DD/your-slug.html">
+<link rel="canonical" href="https://captchakri.github.io/blog/YYYY/MM/DD/your-slug/">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Post Title · Chakri's World">
 <meta property="og:description" content="A blog post by Chakri about software engineering, distributed systems, and life beyond the keyboard.">
-<meta property="og:url" content="https://captchakri.github.io/blog/YYYY/MM/DD/your-slug.html">
+<meta property="og:url" content="https://captchakri.github.io/blog/YYYY/MM/DD/your-slug/">
 <meta property="og:site_name" content="Chakri's World">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Post Title · Chakri's World">
@@ -42,7 +43,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <title>Post Title · Chakri's World</title>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap"></noscript>
 <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
 <link rel="stylesheet" href="/assets/css/theme.css">
 <!-- sphere backdrop: this post adopts the look of one descent sphere (pinned in the
@@ -51,6 +53,7 @@
      starfield theme. (Avoid writing a literal closing-body tag inside a comment —
      Live Server injects its reload script before the first one and corrupts the DOM.) -->
 <link rel="stylesheet" href="/assets/css/descent-backdrop.css">
+<link rel="preload" as="script" href="/assets/js/descent-engine.js">
 <style>
 /* Page-specific styles for this post go here. */
 </style>
@@ -168,15 +171,15 @@ fn main() {
 
 <footer>© <span data-year>2026</span> Chakri · All rights reserved · <a href="/">Home</a></footer>
 
-<script src="/assets/js/theme.js"></script>
+<script defer src="/assets/js/theme.js"></script>
 
 <!-- SPHERE BACKDROP: pin the descent to the sphere this post adopts. Set `pin` to one
      of: exosphere · thermosphere · stratosphere · biosphere · hydrosphere ·
      bathysphere · lithosphere — and match it to this post's "sphere" in posts.json.
      (biosphere = the Wicklow camp scene.) -->
-<script src="/assets/js/descent-sprites.js"></script>
+<script defer src="/assets/js/descent-sprites.js"></script>
 <script>window.DESCENT_CONFIG = { pin: 'biosphere', intensity: 0.85 };</script>
-<script src="/assets/js/descent-engine.js"></script>
+<script defer src="/assets/js/descent-engine.js"></script>
 
 <script>
 /* CUSTOM SECTION — add post-specific interactivity/animations here. */

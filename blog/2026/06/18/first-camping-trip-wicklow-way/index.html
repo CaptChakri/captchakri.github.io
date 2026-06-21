@@ -13,24 +13,25 @@
   var local = location.protocol === 'file:'
     || ['localhost', '127.0.0.1', '[::1]', ''].indexOf(h) !== -1
     || h.endsWith('.local');
-  if (!local) location.replace('/blog/coming-soon.html');
+  if (!local) location.replace('/blog/coming-soon/');
 })();
 </script>
 <title>Coming Soon - Chakri's World</title>
 <meta name="description" content="The Wicklow Way post is still being finished. Check back soon.">
 <meta name="theme-color" content="#060B1C">
-<link rel="canonical" href="https://captchakri.github.io/blog/coming-soon.html">
+<link rel="canonical" href="https://captchakri.github.io/blog/coming-soon/">
 <meta property="og:type" content="website">
 <meta property="og:title" content="Coming Soon - Chakri's World">
 <meta property="og:description" content="The Wicklow Way post is still being finished. Check back soon.">
-<meta property="og:url" content="https://captchakri.github.io/blog/coming-soon.html">
+<meta property="og:url" content="https://captchakri.github.io/blog/coming-soon/">
 <meta property="og:site_name" content="Chakri's World">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Coming Soon - Chakri's World">
 <meta name="twitter:description" content="The Wicklow Way post is still being finished. Check back soon.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Spectral:ital,wght@0,400;0,500;0,600;1,400;1,500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Spectral:ital,wght@0,400;0,500;0,600;1,400;1,500&family=JetBrains+Mono:wght@400;500&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Spectral:ital,wght@0,400;0,500;0,600;1,400;1,500&family=JetBrains+Mono:wght@400;500&display=swap"></noscript>
 <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
 <!-- the home page's living "biosphere" (Wicklow camp) descent scene, pinned as a
      fixed backdrop behind this post — see the DESCENT_CONFIG pin near the foot of
@@ -38,6 +39,7 @@
      Live Server injects its reload script before the first one it finds and would
      corrupt the document, pushing the sticky nav down. -->
 <link rel="stylesheet" href="/assets/css/descent-backdrop.css">
+<link rel="preload" as="script" href="/assets/js/descent-engine.js">
 <style>
 /* =====================================================================
    FIELD NOTES — a self-contained camping journal theme.
@@ -906,9 +908,9 @@ html.vt-in .reveal { opacity: 1 !important; transform: none !important; filter: 
 <!-- SPHERE BACKDROP: pin the descent engine to this post's sphere (biosphere =
      the Wicklow camp), so the home page's living camp scene holds as a fixed
      backdrop behind the article. Mirrors blog/posts/template.html. -->
-<script src="/assets/js/descent-sprites.js"></script>
+<script defer src="/assets/js/descent-sprites.js"></script>
 <script>window.DESCENT_CONFIG = { pin: 'biosphere', intensity: 0.85, campShift: -0.26 };</script>
-<script src="/assets/js/descent-engine.js"></script>
+<script defer src="/assets/js/descent-engine.js"></script>
 
 </body>
 </html>

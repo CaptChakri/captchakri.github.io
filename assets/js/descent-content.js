@@ -90,10 +90,10 @@
     const rail = document.getElementById('hero-journal'); if (!rail) return;
     const more = rail.querySelector('.hj-more');
     function postUrl(post) {
-      if (post.status === 'coming-soon') return post.comingSoonUrl || '/blog/coming-soon.html';
+      if (post.status === 'coming-soon') return post.comingSoonUrl || '/blog/coming-soon/';
       const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(post.date);
       if (!m) return '/blog/';
-      return `blog/${m[1]}/${m[2]}/${m[3]}/${encodeURIComponent(post.slug)}.html`;
+      return `blog/${m[1]}/${m[2]}/${m[3]}/${encodeURIComponent(post.slug)}/`;
     }
     fetch('blog/posts.json').then(r => r.json()).then(posts => {
       posts.filter(p => p.status !== 'coming-soon').sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 3).forEach(post => {

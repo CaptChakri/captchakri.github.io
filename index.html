@@ -17,11 +17,13 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <title>Chakri's World · The Descent</title>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap"></noscript>
 <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
 <link rel="stylesheet" href="assets/css/theme.css">
 <link rel="stylesheet" href="assets/css/descent.css">
 <link rel="stylesheet" href="assets/css/easter-eggs.css">
+<link rel="preload" as="script" href="assets/js/descent-engine.js">
 <style>
 /* ===== DIRECTION B — FIELD NOTES : warm, journal-like, camping-forward ===== */
 .dir-fieldnotes .hero-wrap { max-width: 760px; margin: 0 auto; }
@@ -220,7 +222,7 @@
       <div class="camp-facts">
         <div class="fact-card glass rise"><div class="fact-label">Setup</div><div class="fact-val">Tent · fire · zero bars of signal ⛺</div></div>
         <div class="fact-card glass rise"><div class="fact-label">Territory</div><div class="fact-val">Ireland's west coast & the Wicklow Way</div></div>
-        <div class="fact-card glass rise"><div class="fact-label">Latest trip</div><div class="fact-val"><a href="/blog/coming-soon.html" style="color: var(--warm);">The Wicklow Way, the hard way →</a></div></div>
+        <div class="fact-card glass rise"><div class="fact-label">Latest trip</div><div class="fact-val"><a href="/blog/coming-soon/" style="color: var(--warm);">The Wicklow Way, the hard way →</a></div></div>
       </div>
     </div>
   </section>
@@ -311,10 +313,10 @@
 </main>
 
 <script>window.DESCENT_CONFIG = { gauge: 'field', intensity: 1.15, sprites: true };</script>
-<script src="assets/js/theme.js"></script>
-<script src="assets/js/easter-eggs.js"></script>
-<script src="assets/js/descent-sprites.js"></script>
-<script src="assets/js/descent-engine.js"></script>
-<script src="assets/js/descent-content.js"></script>
+<script defer src="assets/js/theme.js"></script>
+<script defer src="assets/js/easter-eggs.js"></script>
+<script defer src="assets/js/descent-sprites.js"></script>
+<script defer src="assets/js/descent-engine.js"></script>
+<script defer src="assets/js/descent-content.js"></script>
 </body>
 </html>

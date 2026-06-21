@@ -1,0 +1,13 @@
+{
+  "name": "captchakri-site",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Build tooling for captchakri.github.io — assembles _site/ and minifies JS/CSS for GitHub Pages.",
+  "scripts": {
+    "build": "node scripts/build.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0"
+  }
+}

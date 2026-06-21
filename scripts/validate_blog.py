@@ -44,8 +44,11 @@ def permalink(post: dict[str, object]) -> tuple[Path, str]:
     except ValueError:
         fail(f"post {slug!r} has invalid date {published!r}; expected YYYY-MM-DD")
 
-    relative = Path("blog") / f"{parsed.year:04d}" / f"{parsed.month:02d}" / f"{parsed.day:02d}" / f"{slug}.html"
-    return relative, f"{SITE_URL}/{relative.as_posix()}"
+    relative = Path("blog") / f"{parsed.year:04d}" / f"{parsed.month:02d}" / f"{parsed.day:02d}" / slug / "index.html"
+    # Each post lives at slug/index.html, so the public URL is the directory with
+    # a trailing slash (served everywhere, no .html-rewrite needed); the canonical
+    # drops the index.html.
+    return relative, f"{SITE_URL}/{relative.parent.as_posix()}/"
 
 
 def sitemap_urls(sitemap_file: Path) -> set[str | None]:
@@ -75,8 +78,11 @@ def validate_posts(posts: object, root: Path, urls: set[str | None], verbose: bo
             coming_soon_url = post.get("comingSoonUrl")
             if not isinstance(coming_soon_url, str) or not coming_soon_url.startswith("/blog/"):
                 fail(f"coming-soon post {post.get('slug')!r} must set comingSoonUrl under /blog/")
-            gate = root / coming_soon_url.lstrip("/")
-            if not gate.is_file():
+            gate_rel = coming_soon_url.strip("/")
+            # comingSoonUrl is the public directory URL; the gate file on disk is
+            # its index.html (a legacy slug.html gate is still accepted).
+            candidates = (root / gate_rel / "index.html", root / f"{gate_rel}.html")
+            if not any(candidate.is_file() for candidate in candidates):
                 fail(f"coming-soon post {post.get('slug')!r} points to missing gate: {coming_soon_url}")
             coming_soon_count += 1
             if verbose:

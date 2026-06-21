@@ -1,5 +1,5 @@
 /* =====================================================================
-   THE VAULT — the hidden easter-egg collection page (eggs.html).
+   THE VAULT — the hidden easter-egg collection page (/eggs/).
 
    By default this page is a plain 404: a visitor who has found nothing
    sees only "page not found", so the collection stays a secret. The moment

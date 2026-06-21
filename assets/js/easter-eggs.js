@@ -4,7 +4,7 @@
    localStorage), and a discovery raises a toast showing the running tally of
    finds. We deliberately NEVER reveal how many eggs exist — no totals, no
    "n / x", no remaining count — so the rest stays a mystery worth chasing.
-   The hidden collection page (eggs.html) follows the same rule.
+   The hidden collection page (/eggs/) follows the same rule.
 
    Anything on the site can announce a find WITHOUT importing this file —
    just dispatch a DOM event:  window.dispatchEvent(new CustomEvent(
@@ -18,7 +18,7 @@
    Each egg carries a `rarity` tier — one of: common, uncommon, rare, epic,
    legendary — graded by how unlikely the average visitor is to ever turn it
    up (appearance odds × catch difficulty; see the per-egg notes). The vault
-   (eggs.html) groups finds by tier, rarest first. The tier is the ONLY ranking
+   (/eggs/) groups finds by tier, rarest first. The tier is the ONLY ranking
    we expose: we still never show how many eggs exist or how many remain in a
    tier, so the rest of the hunt stays a mystery.
    ===================================================================== */
@@ -42,7 +42,7 @@
       label: 'Caught the golden tortoise',
       hint: 'Caught the golden tortoise on the shore before the tide took it.',
       where: 'The descent · the beach',
-      note: 'The tortoise is the cleverest creature on the page — it watches you as you watch it. An ordinary one pads down the clearing and takes to the sea every visit, but it only ever comes up GOLD on the 30th of October, and even then only now and then. Catch it while it pauses to look at you, before the rising tide carries it off.',
+      note: 'The tortoise is the page\'s traveller — it makes the WHOLE descent with you: drifting weightless through space, parachuting down to the camp, padding the clearing, taking to the sea and diving on toward the trench, watching you the whole way (and you can prod it, shove it adrift, or tug its canopy). It only ever comes up GOLD on the 30th of October, and even then only now and then. Catch it while it pauses to look at you, before the rising tide carries it off.',
       tease: 'They say the tortoise turns to gold but one day a year.',
       fact: 'Tortoises are among the longest-lived animals on land — several have passed 150 years, outliving by generations the people who first wrote their names down.',
     },
@@ -65,6 +65,46 @@
       note: 'A rare drift — it only surfaces now and then, far down in the dark water.',
       tease: 'The deep keeps its rarest things well hidden.',
       fact: "It's the male seahorse that gets pregnant: the female lays her eggs in a pouch on his belly, and he carries the brood and gives birth to the young.",
+    },
+    {
+      id: 'rainbow', rarity: 'uncommon',
+      icon: '🌈', svg: 'rainbow',
+      label: 'Caught the rainbow',
+      hint: 'Caught the rainbow arcing over the bay in a passing shower.',
+      where: 'The descent · over the bay',
+      note: "It only arcs over the bay when the weather where YOU are is doing two things at once — raining AND shining: a passing daytime shower with the sun breaking through. Catch it while the light holds, before the cloud closes over or the rain blows through.",
+      tease: 'Sun and rain at once, and a band of colour over the water.',
+      fact: "A rainbow is really a full circle — you only ever see the top of it because the ground cuts off the rest; from a plane you can sometimes catch the whole ring. And no two people see the same one: it's built from the particular raindrops lined up between the sun and your eyes, so the rainbow you're looking at is yours alone.",
+    },
+    {
+      id: 'night-owl', rarity: 'uncommon',
+      icon: '🦉', svg: 'owl',
+      label: 'Found the owl',
+      hint: 'Spotted the owl watching from the dark treeline above the camp.',
+      where: 'The descent · the camp at night',
+      note: 'It only keeps watch after dark, perched in the conifers at the edge of the firelight — and not every night, so a pair of amber eyes blinking back at you is a lucky thing to find. Tap it before it lifts off the branch.',
+      tease: 'After dark, two amber eyes blink in the trees by the camp.',
+      fact: "An owl can't move its eyes in their sockets at all — they're locked facing forward — so to look around it swivels its whole head, up to about 270°, on a neck with twice as many bones as yours. Its hunt is near-silent too: a fine comb along the leading edge of each wing feather breaks up the rush of air, so the mouse never hears it coming.",
+    },
+    {
+      id: 'message-bottle', rarity: 'rare',
+      icon: '🍾', svg: 'bottle',
+      label: 'Opened the message in a bottle',
+      hint: 'Found a corked bottle on the tide line with a note still inside.',
+      where: 'The descent · the tide line',
+      note: "Now and then the rising tide leaves one on the wet sand as the sea floods the camp — a green bottle, still corked, a curl of paper inside. It's luck that it washes up at your feet at all; tap it while it lies clear of the next wave and open it.",
+      tease: 'Something the sea carried in is lying on the sand, corked tight.',
+      fact: "A bottle set adrift can outlive the hand that threw it: the oldest ever recovered had spent 132 years at sea. They ride the great ocean gyres — slow, wheeling currents the width of oceans — which is how a note dropped off one continent can wash up, lifetimes later, on the shore of another.",
+    },
+    {
+      id: 'sea-sparkle', rarity: 'epic',
+      icon: '✨', svg: 'sea-sparkle',
+      label: 'Caught the sea sparkle',
+      hint: 'Scooped a handful of glowing blue light from the night surf.',
+      where: 'The descent · the night surf',
+      note: 'On a warm summer NIGHT — and only then — the breaking waves light up an electric blue where they tumble on the sand. It takes the right season and the right hour together, so being there for the glow at all is rare. Tap the glowing surf to gather a handful.',
+      tease: 'On a warm night, the waves break in cold blue light.',
+      fact: "That blue light is alive: clouds of single-celled plankton (dinoflagellates) that flash when the water jostles them — a startle response that may give away whatever's trying to eat them by lighting it up. Each spark is one cell firing a chemical reaction so efficient that almost all of its energy leaves as light and almost none as heat — a cold light no bulb can match.",
     },
     {
       // LEGACY: the original "any golden fish" find. New catches record the
@@ -135,6 +175,41 @@
       note: 'The rarest gold of all: an anglerfish only looms this far down, and a gold one looming there is luck stacked on luck. The lure leads you to it.',
       tease: 'A small gold light floats in the trench — attached to something larger.',
       fact: 'In many deep-sea anglerfish the tiny male bites onto the much larger female and fuses to her for life, his body dissolving into hers until he is little more than a permanent supply of sperm.',
+    },
+    /* The three DRAGONS — one legendary, puzzle-gated find per realm of the
+       descent (heavens / sky / deep). Each is rare even to encounter (a per-visit
+       roll; the wyvern's odds ride the visitor's real weather) and each needs a
+       small puzzle to wake/catch — see the DRAGONS block in descent-engine.js,
+       which fires these ids (draco / storm-wyvern / leviathan). */
+    {
+      id: 'draco', rarity: 'legendary',
+      icon: '🐉', svg: 'draco',
+      label: 'Woke Draco',
+      hint: 'Joined the stars and woke the dragon hidden in the night sky.',
+      where: 'The descent · deep space',
+      note: 'The oldest dragon isn’t a beast you catch — it’s a shape hidden in the stars. High in the dark a handful of them burn a little brighter and a little golder than the rest. Light each one and the lines between them draw themselves; complete the figure and Draco uncoils and flies off into the black.',
+      tease: 'A few stars up in the dark seem to belong to one another.',
+      fact: 'Draco coils around the north celestial pole, and its star Thuban was the pole star when the Egyptians raised the pyramids — about 4,700 years ago. Earth’s slow axial wobble has since handed the title to Polaris, and will hand it back to Thuban in roughly 20,000 years.',
+    },
+    {
+      id: 'storm-wyvern', rarity: 'legendary',
+      icon: '🐉', svg: 'storm-wyvern',
+      label: 'Woke the storm wyvern',
+      hint: 'Struck the thundercloud three times and woke the wyvern asleep inside it.',
+      where: 'The descent · the high sky',
+      note: 'One cloud in the high sky is darker than the rest, and it watches you back with two amber eyes — and it’s far likelier to be lurking when the weather where YOU are is genuinely foul. Tap it to call down lightning; three strikes wake the wyvern, and it tears out of the cloud and banks away across the sky.',
+      tease: 'On a stormy day, one cloud up there has eyes.',
+      fact: 'A lightning flash is led by a faint, branching “stepped leader” that gropes its way down; the blinding stroke you actually see is the return stroke racing back UP that channel at a third of the speed of light, heating the air to around 30,000°C — five times hotter than the surface of the Sun.',
+    },
+    {
+      id: 'leviathan', rarity: 'legendary',
+      icon: '🐉', svg: 'leviathan',
+      label: 'Drew out the leviathan',
+      hint: 'Followed the lure through the dark and drew the trench leviathan into the light.',
+      where: 'The descent · the deep dark',
+      note: 'Far down in the black water something vast circles unseen, betrayed only by the single cold light it dangles ahead of itself. Follow that lure — each time you reach it, a little more of the leviathan kindles out of the dark — until the whole length of it ignites, uncoils, and surges away into the trench.',
+      tease: 'A lone light drifts in the dark down here. Something is holding it.',
+      fact: 'A deep-sea anglerfish’s lure glows with light made by bacteria it farms inside the bulb — a partnership called bioluminescent symbiosis. Below about 1,000 m, in permanent darkness, most animals make their own light, and a single drifting glow is as often a trap as it is a companion.',
     },
     {
       id: 'golden-shrimp', rarity: 'epic',
@@ -217,7 +292,7 @@
   function toast(egg, n) {
     const h = ensureHost();
     h.innerHTML =
-      '<a class="egg-toast-card" href="/eggs.html">' +
+      '<a class="egg-toast-card" href="/eggs/">' +
         '<div class="egg-toast-icon" aria-hidden="true">' + iconHtml(egg) + '</div>' +
         '<div class="egg-toast-body">' +
           '<div class="egg-toast-eyebrow">Easter egg found · view collection →</div>' +
@@ -254,7 +329,7 @@
     if (!link) {
       link = document.createElement('a');
       link.id = 'egg-vault-link';
-      link.href = '/eggs.html';
+      link.href = '/eggs/';
       link.setAttribute('aria-label', 'Open your easter-egg collection');
       link.innerHTML =
         '<span class="evl-egg" aria-hidden="true">🥚</span>' +

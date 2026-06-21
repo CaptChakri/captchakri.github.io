@@ -15,6 +15,12 @@
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const preview = cfg.preview || new URLSearchParams(location.search).has('preview');
   const INT = (cfg.intensity != null ? cfg.intensity : 1) * (preview ? 0.5 : 1);
+  // ?eggs (or DESCENT_CONFIG.eggs) — a testing/showcase force for the SPRITE eggs that
+  // only turn up by luck and/or the right time/season/weather (rainbow, owl, bottle,
+  // sea-sparkle): it makes every egg sprite PRESENT (skips the per-load `rare` roll) and
+  // IGNORES its `vis` gate, so all of them can be found on demand whatever the clock or
+  // sky says. Mirrors ?dragon=all for the canvas dragons; off by default.
+  const EGG_FORCE = cfg.eggs === true || new URLSearchParams(location.search).has('eggs');
 
   // A page can PIN the descent to a single sphere (cfg.pin) so the scene HOLDS that
   // zone as a fixed, living backdrop instead of being driven by scroll — used by blog
@@ -40,7 +46,7 @@
   //   the existing systems: cloud → cloud count/opacity, wind → sea chop & swell,
   //   precip/kind → a rain-or-snow layer over the sky & beach. See initWeather() /
   //   classifyWeather() near boot. To force a look (no fetch): DESCENT_CONFIG.weather
-  //   = 'rain'|'storm'|'snow'|'clear', or add ?weather=rain to the URL.
+  //   = 'rain'|'showers'|'storm'|'snow'|'clear', or add ?weather=rain to the URL.
   const WEATHER = {
     ready: false,            // true once a live (or cached) reading has been applied
     cloud: 0.5,              // 0 clear … 1 overcast
@@ -264,6 +270,20 @@
     if (!WEATHER.ready) return 1;
     const f = 1 - WEATHER.precip * 1.3 - Math.max(0, WEATHER.wind - 0.5) * 1.4;
     return f < 0 ? 0 : (f > 1 ? 1 : f);
+  }
+  // ── a rainbow wants BOTH sun and rain — a passing/clearing daytime shower. Returns
+  //   1 only when there's light rain about (not a downpour) under a BREAKING sky (a gap
+  //   for the sun), by DAY; 0 at night, in the dry, in a deluge, or under a solid lid.
+  //   Like flyWeather it's a no-op (0) until a live reading lands (WEATHER.ready), so the
+  //   rainbow over the bay is always a genuine weather moment, never a default. Gates the
+  //   `rainbow` egg sprite's visibility. Force it for a look with ?weather=showers (+?eggs).
+  function rainbowWeather() {
+    if (!WEATHER.ready || WEATHER.kind !== 'rain') return 0;
+    const day = 1 - nightAmount();
+    if (day <= 0) return 0;
+    const showery = Math.max(0, 1 - Math.abs(WEATHER.precip - 0.25) / 0.35);   // peaks at a light shower → 0 by a downpour
+    const breaking = Math.max(0, Math.min(1, (0.95 - WEATHER.cloud) / 0.35));  // needs a sunlit gap → fades under full overcast
+    return day * showery * breaking;
   }
   const CAMP_FIRE_X = 0.58, CAMP_TENT_X = 0.36; // preferred fireplace + tent x (fraction of W); fire is the smoke origin
   // optional per-page nudge of the WHOLE camp left/right (fraction of W; e.g. a pinned
@@ -1403,6 +1423,16 @@
     // always has the right flyer for the hour: warm-season (summerAmount), nocturnal
     // (nightAmount), and only on calm, dry evenings (flyWeather). See the 'flit' gait.
     { e: 'bat', p: 0.54, x: 60, s: 24, w: 0.085, m: 'flit', yb: -0.2, vis: () => nightAmount() * summerAmount() * flyWeather() },
+    // a RAINBOW arcing over the bay — a catchable egg gated to the visitor's REAL weather:
+    // it only shows in a passing/clearing daytime shower (sun + light rain; see rainbowWeather),
+    // so most visits never see it. A big, still arc high in the bay sky (yb lifts it over the
+    // headland); no `rare` roll — the weather IS the rarity. Tap it to catch (catchEgg).
+    { e: 'rainbow', p: 0.50, x: 50, s: 300, w: 0.085, m: 'still', yb: -0.16, vis: rainbowWeather, egg: 'rainbow' },
+    // an OWL perched in the camp treeline — the night watcher: visible only after dark
+    // (nightAmount), and even then only now and then (the `rare` roll), so it's a lucky
+    // dusk find. Planted low at the treeline (yb), still (owls perch), eyes blinking in
+    // the SVG. Tap to catch (catchEgg).
+    { e: 'owl', p: 0.48, x: 20, s: 48, w: 0.05, m: 'still', yb: 0.30, rare: 0.2, vis: () => nightAmount(), egg: 'night-owl' },
     /* the campsite (tent + stone fireplace) is drawn into the scenery on the
        ground (see drawCamp); the balloon sprite was removed */
     /* small fish are drawn as a lively, continuously-swimming canvas school
@@ -1419,6 +1449,14 @@
        slowly from one side to the other on the `seahorse` gait (see updateSprites),
        drifting clear off the edge rather than hovering on one spot; `dir` sets which
        way each one heads so they don't move in lockstep. */
+    // washed up on the TIDE LINE as the beach floods (just before flood at p≈0.59): a
+    // MESSAGE IN A BOTTLE on the wet sand (yb sets it near the waterline) and, on warm
+    // nights, the bioluminescent SEA SPARKLE in the surf. Both are catchable eggs. The
+    // bottle is luck-only (the `rare` roll — a lucky wash-up, any time); the sea sparkle
+    // needs a real summer NIGHT (nightAmount × summerAmount) on top of its roll, so it's
+    // the rarer of the two, and wears a cool glow. Tap either to catch (catchEgg).
+    { e: 'bottle', p: 0.585, x: 30, s: 60, w: 0.05, m: 'sway', yb: 0.32, rare: 0.14, egg: 'message-bottle' },
+    { e: 'sea-sparkle', p: 0.59, x: 72, s: 96, w: 0.05, m: 'flicker', yb: 0.31, glow: 'cool', rare: 0.25, vis: () => nightAmount() * summerAmount(), egg: 'sea-sparkle' },
     { e: 'seahorse-natural', p: 0.78, x: 30, s: 44, w: 0.08, m: 'seahorse', dir: 1 },
     { e: 'seahorse', p: 0.80, x: 76, s: 48, w: 0.075, glow: 'warm', m: 'seahorse', dir: -1, rare: 0.07, egg: 'seahorse' }, // a rare catch (~1 in 14 visits; see catchEgg)
     /* the deep dwellers (whale → octopus) carry NO time/weather/season gate on purpose:
@@ -1447,7 +1485,7 @@
       sp._amp = (sp.m === 'swim' ? (sp.s > 100 ? W * 0.14 : W * 0.05) : 0); // swim sway px
       // `rare` sprites (e.g. the seahorse) roll their luck once per page load; a lost
       // roll leaves an empty placeholder el so the SPRITES↔spriteEls indexes stay aligned
-      sp._present = (sp.rare == null) || (Math.random() < sp.rare);
+      sp._present = (EGG_FORCE && sp.egg) ? true : ((sp.rare == null) || (Math.random() < sp.rare));
       const el = document.createElement('div');
       el.className = 'd-sprite';
       if (sp._present) {
@@ -1537,18 +1575,24 @@
     window.dispatchEvent(new CustomEvent('easteregg', { detail: { id: 'goldfish-' + caughtKind } }));
     return true;
   }
-  /* ---------- the tortoise: a shy beach-walker that takes to the sea ----------
-     A side-view tortoise painted straight INTO the beach tableau. It EMERGES FROM THE
-     CAMP — padding out of the tent mouth, ambling into the clearing and lifting its
-     head to LOOK AT YOU while you linger (and again if you idle on it). Then, as you scroll on and the
-     tide floods in, it slips under with a little fade and swims off toward the corner
-     after a fish, scattering the shoal as it goes. The whole journey is a pure
-     function of depth (tortoisePath), so scrolling back UP runs it in reverse: it
-     turns, swims back up and walks home behind the tree. It also WATCHES you: while
-     it pauses to look, its head tracks the cursor (the clever, nosy tortoise). The
-     rarest find on the whole page is the GOLDEN tortoise — it only ever turns up on
-     OCTOBER 30 (device-local date), and even then only now and then; catch it and
-     it's an easter egg (tortGold → catchTortoise). Any other day it's an ordinary one. */
+  /* ---------- the tortoise: the traveller who makes the WHOLE descent ----------
+     The tortoise is the site's avatar — so it doesn't just appear at the beach: it
+     accompanies you the WHOLE way down, in a sequence of costumes that rhyme. It DRIFTS
+     weightless through SPACE in a bubble-helmet suit (curious about your cursor, tumbling
+     slowly); PARACHUTES down through the high sky toward the camp, swaying on the live
+     wind; touches down and pads the CLEARING, lifting its head to LOOK AT YOU; takes to
+     the SEA after a fish; then DIVES on past the shoal toward the trench in a dive bubble,
+     its shell catching the vent glow. The whole journey is a pure function of depth
+     (tortoisePath), so scrolling back UP runs every leg of it in reverse.
+
+     It has a lot of AUTONOMY and it's INTERACTABLE everywhere: in space it drifts toward
+     you and you can shove it (it tumbles); under the canopy you can tug it and it swings;
+     ashore it watches you and tracks the cursor; in the water it free-wills after fish;
+     poke it (ashore/at sea) and it pulls into its shell. A few traits are rolled fresh per
+     visit (a space tether, barrel rolls, a late-opening chute) so it "does different stuff"
+     each time. The rarest find on the whole page is still the GOLDEN tortoise — it only
+     ever turns up on OCTOBER 30 (device-local date), and even then only now and then; catch
+     it and it's an easter egg (tortGold → catchTortoise). Any other day it's an ordinary one. */
   const _tdNow = new Date();
   const tortGoldDay = _tdNow.getMonth() === 9 && _tdNow.getDate() === 30;   // October 30 only (month is 0-indexed)
   let tortGold = tortGoldDay && Math.random() < 0.5;     // and only sometimes, even then — the page's rarest creature
@@ -1560,8 +1604,16 @@
   let tortWanderX = null, tortWanderY = null, tortWanderT = 0;   // a slow roaming waypoint for empty water, when no fish are about
   let tortTuckHold = 0, tortFallV = 0, tortSinkPh = 0;           // frames holding the shell-tuck after a poke; watery sink speed + waft phase while withdrawn (see pokeTortoise)
   let tortIdleT = 0;                                             // how long it's sat still under a hovering cursor → it turns to watch you (idle attention)
-  const tort = { x: 0, y: 0, scale: 14, swim: 0, look: 0, pitch: 0, aLand: 0, aWater: 0, aimX: 0, aimY: 0, tuck: 0, rock: 0, depth: 0, heat: 0 };
-  const tortHit = { x: 0, y: 0, r: 0, alpha: 0 };         // live screen geometry for the gold catch
+  // per-visit variety — rolled once at load so the tortoise does something a little
+  // different each time: trails a slack tether in space, throws in barrel rolls, and/or
+  // skydives spread-eagle for a beat before its canopy snaps open.
+  const tortTether = Math.random() < 0.5, tortRolls = Math.random() < 0.45, tortFreefall = Math.random() < 0.6;
+  // aloft state: a free-running phase clock for space drift / canopy sway, the zero-g
+  // tumble (angle + its decaying spin rate, kicked by a shove), and the parachute rig
+  // (how open the canopy is — stowed at entry on a freefall visit — the pendulum sway, a tug billow).
+  let tortPh = 0, tortSpin = 0, tortSpinV = 0, tortChuteOpen = tortFreefall ? 0 : 1, tortSway = 0, tortChuteBillow = 0;
+  const tort = { x: 0, y: 0, scale: 14, swim: 0, look: 0, pitch: 0, tilt: 0, aSpace: 0, aSky: 0, aLand: 0, aWater: 0, aDeep: 0, aimX: 0, aimY: 0, tuck: 0, rock: 0, depth: 0, heat: 0, space: 0, chute: 0, deep: 0 };
+  const tortHit = { x: 0, y: 0, r: 0, alpha: 0 };         // live screen geometry for the gold catch / poke / shove
 
   /* ---------- the drowned campfire: a hidden relight ----------
      As the tide floods in it reaches the fire and DOUSES it in a hiss of steam.
@@ -1595,33 +1647,56 @@
   }
   const sstep = (e0, e1, x) => { let u = (x - e0) / (e1 - e0); u = u < 0 ? 0 : u > 1 ? 1 : u; return u * u * (3 - 2 * u); };
 
-  // the whole journey as a pure function of depth: screen position (W/H fractions),
-  // size, how much it has taken to the water (0 walking → 1 swimming) and whether
-  // it's looking up at you. Keyframed waypoints, smoothstepped between, so the land
-  // and water draws share ONE position and hand off seamlessly across the tide.
+  // the whole journey as a pure function of depth: the tethered ANCHOR position (W/H
+  // fractions), size, and the per-leg envelopes (space / chute / swim / deep) the step &
+  // draw read to pick the right costume and behaviour. Keyframed waypoints, smoothstepped
+  // between, so every leg shares ONE position and hands off seamlessly to the next.
   function tortoisePath(p) {
-    // it emerges from the CAMP: x starts at the tent mouth (~0.36, which faces right toward the
-    // fire) and ambles out into the clearing, then down to the water. The water-entry keyframes
-    // (p≥0.66) are kept so the swim hand-off across the tide is unchanged.
-    const KX = [[0.495, 0.36], [0.535, 0.42], [0.565, 0.45], [0.605, 0.55], [0.66, 0.64], [0.74, 0.80], [0.805, 0.95]];
-    const KY = [[0.495, 0.80], [0.535, 0.805], [0.565, 0.815], [0.605, 0.745], [0.66, 0.66], [0.74, 0.80], [0.805, 0.93]];
+    // SPACE: a slow weightless sink from the top → PARACHUTE: drifting onto the TENT → it
+    // emerges from the tent doorway and ambles out → the land/water keyframes carry it to sea
+    // → DEEP DIVE: it roams back across mid-water. Above the water this anchor LEADS it; in the
+    // water it's a loose home-spring the free-will sim roams around (see stepTortoise).
+    // The tent's real x is viewport-dependent (campCenters CLAMPS the tent↔fire gap, so on a
+    // wide desktop the tent sits well right of the bare 0.36 fraction) — so the parachute
+    // landing and the doorway emerge are ANCHORED to that live position, not a guessed constant,
+    // or the tortoise would touch down / appear out BESIDE the tent instead of out of it.
+    const tentF = campCenters().tentX / W;              // the tent doorway, as a live viewport fraction
+    const KX = [
+      [0.02, 0.54], [0.12, 0.46], [0.22, 0.42], [0.27, 0.40],                              // space: drifting down
+      [0.34, 0.40], [0.42, tentF],                                                         // parachute: easing onto the TENT
+      [0.47, tentF], [0.51, tentF + 0.02], [0.55, tentF + 0.07], [0.575, tentF + 0.11],    // step out of the tent mouth + amble into the clearing
+      [0.62, 0.55], [0.66, 0.64], [0.74, 0.80], [0.805, 0.86],                             // down to the sea
+      [0.86, 0.62], [0.93, 0.46], [1.0, 0.36],                                             // the deep dive, roaming back across mid-water
+    ];
+    const KY = [
+      [0.02, 0.20], [0.12, 0.34], [0.22, 0.46], [0.27, 0.50],                              // space sinking down-screen
+      [0.34, 0.56], [0.42, 0.70],                                                          // parachute descending onto the tent
+      [0.47, 0.785], [0.51, 0.80], [0.55, 0.81], [0.575, 0.815],                           // stepping out of the mouth (at the tent base) onto the sand
+      [0.62, 0.745], [0.66, 0.66], [0.74, 0.80], [0.805, 0.82],                            // land → into the sea
+      [0.86, 0.70], [0.93, 0.66], [1.0, 0.62],                                             // hovering above the trench floor as it dives
+    ];
     const at = (K) => {
       if (p <= K[0][0]) return K[0][1];
       for (let i = 1; i < K.length; i++) if (p <= K[i][0]) return K[i - 1][1] + (K[i][1] - K[i - 1][1]) * sstep(K[i - 1][0], K[i][0], p);
       return K[K.length - 1][1];
     };
+    const space = 1 - sstep(0.235, 0.285, p);             // weightless in space → 0 as it enters the high sky
+    const chute = sstep(0.25, 0.30, p) * (1 - sstep(0.43, 0.47, p));   // under canopy across the stratosphere, fading as it sinks behind the treeline to land (then it walks out of the tent)
     const swim = sstep(0.60, 0.66, p);                    // the tide reaches it ~0.60, fully swimming ~0.66
-    const grow = sstep(0.495, 0.55, p);                   // grows a touch walking out of the tree's shadow
+    const deep = sstep(0.795, 0.84, p);                   // diving on past the surface swim toward the trench
+    const grow = sstep(0.47, 0.55, p);                    // smallest squeezing out of the low doorway, growing to full as it ambles into the clearing
     const base = Math.max(7, Math.min(W, H) * 0.023);     // land/true-size basis — small, kept well under the tent
     // underwater the fish around it are a FIXED pixel size (they don't scale with the viewport), so on a
     // narrow phone min(W,H) shrinks the tortoise below the shoal and it reads as tiny. As it takes to the
     // water, lift it to a readable sea-size keyed off the LONG edge (capped, so roomy desktops are unchanged)
     // — it ends up a consistent, substantial creature among the fish on phone and desktop alike.
     const seaMin = Math.min(20, Math.max(W, H) * 0.026);
-    const scale = (base + Math.max(0, seaMin - base) * swim) * (0.78 + 0.22 * grow);
-    let look = Math.min(sstep(0.52, 0.532, p), 1 - sstep(0.563, 0.578, p));  // lifts its head while it pauses
-    look *= (1 - swim);
-    return { x: at(KX), y: at(KY), scale, swim, look };
+    const skyMin = Math.min(22, Math.max(W, H) * 0.028);  // a touch bigger up in the empty space/sky so the lone traveller still reads
+    let scale = (base + Math.max(0, seaMin - base) * swim) * (0.78 + 0.22 * grow);
+    scale += Math.max(0, skyMin - scale) * Math.max(space, chute);
+    let look = Math.min(sstep(0.52, 0.532, p), 1 - sstep(0.563, 0.578, p));  // lifts its head while it pauses ashore
+    look *= (1 - swim) * (1 - Math.max(space, chute));
+    return { x: at(KX), y: at(KY), scale, swim, look, space, chute, deep };
   }
 
   // the nearest fish the tortoise can SEE — within reach AND in front of it (inside a
@@ -1660,6 +1735,8 @@
   function stepTortoise(p, dt, py) {
     const c = tortoisePath(p);
     tort.scale = c.scale; tort.swim = c.swim; tort.look = c.look;
+    tort.space = c.space; tort.chute = c.chute; tort.deep = c.deep;
+    tortPh += dt;                                          // free-running clock for the aloft drift / canopy sway
     // shell-tuck: a poke (pokeTortoise) sets tortTuckHold; head, limbs and tail snap IN
     // quickly and then ease cautiously back OUT once the hold runs down. tg → 0 while
     // tucked so a withdrawn tortoise can't swim/drift — it shouldn't move in its shell.
@@ -1669,9 +1746,51 @@
     const tg = 1 - tort.tuck;
     const pathX = c.x * W, pathY = c.y * H;
     if (tortSimX == null) { tortSimX = pathX; tortSimY = pathY; }
-    if (c.swim < 0.05) {
-      tortSimX = pathX; tortSimY = pathY; tortVX = 0; tortVY = 0; tortFallV = 0; tortQuarry = null; tortWanderX = null;   // ashore: follow the scripted walk exactly (already on solid ground — no free-fall)
+    if (c.space > 0.02 && c.swim < 0.05) {
+      // ── SPACE: weightless free-drift. It potters around the slowly-sinking anchor on a
+      //    perpetual gentle bob, is CURIOUS about your cursor (drifts toward it in zero-g),
+      //    and tumbles — a slow barrel roll on lucky visits, faster for a beat after a shove
+      //    (tortSpinV, kicked by pushTortoise). The velocity carries shoves; drag bleeds them off.
+      const maxS = Math.min(W, H) * 0.004;
+      const pull = pointerHere ? 0.45 : 0;                                       // how far it leans off the anchor toward you
+      const wantX = pathX + (mx * W - pathX) * pull, wantY = pathY + (my * H - pathY) * pull;
+      const k = 0.0009 + 0.0016 * (pointerHere ? 1 : 0);
+      const idle = reduce ? 0 : 1;                                                // reduced-motion: no perpetual idle drift, just ride the anchor / cursor
+      let ax = (wantX - tortSimX) * k + Math.cos(tortPh * 0.03) * maxS * 0.05 * idle;   // spring + a slow orbital drift so it's never dead still
+      let ay = (wantY - tortSimY) * k + Math.sin(tortPh * 0.024 + 1.3) * maxS * 0.05 * idle;
+      tortVX = (tortVX + ax * dt) * Math.pow(0.92, dt);
+      tortVY = (tortVY + ay * dt) * Math.pow(0.92, dt);
+      const sp = Math.hypot(tortVX, tortVY); if (sp > maxS) { tortVX = tortVX / sp * maxS; tortVY = tortVY / sp * maxS; }
+      tortSimX += tortVX * dt * tg; tortSimY += tortVY * dt * tg;
+      tortSimX = Math.max(W * 0.08, Math.min(W * 0.92, tortSimX));
+      tortSimY = Math.max(H * 0.08, Math.min(H * 0.84, tortSimY));
+      const baseSpin = reduce ? 0 : (tortRolls ? 0.012 : 0.004);                 // a lazy spin; barrel-rolls on some visits
+      tortSpinV += (baseSpin - tortSpinV) * Math.min(1, 0.02 * dt);
+      tortSpin += tortSpinV * dt * tg;
+      tort.tilt = reduce ? 0 : tortSpin;
+      tort.look = pointerHere ? 0.8 : 0.25;                                       // it keeps an eye on you out here
+      tortFallV = 0; tortQuarry = null; tortWanderX = null;
+    } else if (c.chute > 0.02 && c.swim < 0.05) {
+      // ── PARACHUTE: the anchor LEADS the descent; the live wind nudges it sideways and it
+      //    swings under the canopy like a pendulum. On freefall visits the canopy stays shut
+      //    for a beat (spread-eagle plummet) then SNAPS open with a billow.
+      const wind = WEATHER.ready ? (WEATHER.wind - 0.3) : 0.1;
+      const drift = reduce ? 0 : (Math.sin(tortPh * 0.018) * (W * 0.03) + wind * W * 0.06 * (0.6 + 0.4 * Math.sin(tortPh * 0.01)));
+      const targetX = pathX + drift;
+      tortSimX += (targetX - tortSimX) * Math.min(1, 0.05 * dt);
+      tortSimY += (pathY - tortSimY) * Math.min(1, 0.12 * dt);
+      tortVX = 0; tortVY = 0;
+      const openTarget = (tortFreefall && p < 0.31) ? 0 : 1;                      // freefall visits plummet in spread-eagle, then the canopy SNAPS open (well before the sky beat)
+      tortChuteOpen += (openTarget - tortChuteOpen) * Math.min(1, (openTarget > tortChuteOpen ? 0.35 : 0.25) * dt);
+      tortChuteBillow = Math.max(0, tortChuteBillow - 0.04 * dt);                 // a tug-/open-billow that settles
+      const swayTarget = reduce ? 0 : Math.sin(tortPh * 0.04) * 0.16 + wind * 0.3;
+      tortSway += (swayTarget - tortSway) * Math.min(1, 0.06 * dt);
+      tort.tilt = tortSway * tortChuteOpen;                                       // no pendulum while still in freefall
+      tortFallV = 0; tortQuarry = null; tortWanderX = null;
+    } else if (c.swim < 0.05) {
+      tortSimX = pathX; tortSimY = pathY; tortVX = 0; tortVY = 0; tortFallV = 0; tortQuarry = null; tortWanderX = null; tort.tilt = 0;   // ashore: follow the scripted walk exactly (already on solid ground — no free-fall)
     } else {
+      tort.tilt = 0;
       // LOCK ON and follow ONE fish it can SEE AHEAD: it keeps the same quarry — it does
       // NOT switch to a nearer one partway — until that fish DISAPPEARS: it fades out of
       // its depth band (zoneFade), swims off the screen edge (x past the rim), or slips
@@ -1756,7 +1875,7 @@
     // it moves again (you scroll) or the pointer leaves. Land-biased: underwater it's busy chasing fish.
     const tortMoving = Math.abs(dx) + Math.abs(dy) > 0.4;
     if (pointerHere && !tortMoving && tort.tuck < 0.1) tortIdleT += dt; else tortIdleT = 0;
-    tort.look = Math.max(tort.look, sstep(180, 270, tortIdleT) * (1 - c.swim));   // ~3s still → eases up to watch you
+    tort.look = Math.max(tort.look, sstep(180, 270, tortIdleT) * (1 - c.swim) * (1 - c.chute));   // ~3s still → eases up to watch you (never while parachuting)
     // a withdrawn shell holds its position (it shouldn't move/swim), but while it's still SINKING it
     // wafts and rocks gently the way a shell wafts down through water — a draw-only sway that stops dead
     // once it lands; mouse parallax fades out too so a rested shell sits perfectly still.
@@ -1771,58 +1890,71 @@
     const taY = wantAim * Math.max(-1, Math.min(1, (my - tort.y / H) * 3.2));
     tort.aimX += (taX - tort.aimX) * Math.min(1, 0.12 * dt);
     tort.aimY += (taY - tort.aimY) * Math.min(1, 0.12 * dt);
-    // the land form dissolves as it submerges; the swimmer fades in from the tide and out at the corner
-    tort.aLand = sstep(0.49, 0.505, p) * (1 - sstep(0.595, 0.625, p));
-    tort.aWater = sstep(0.59, 0.635, p) * (1 - sstep(0.775, 0.81, p));
+    // each leg's opacity: the space drifter, the parachutist, the land form, the swimmer (now
+    // carried ALL the way down), and the dive-gear/heat for the trench leg. They hand off as
+    // smooth crossfades — the suit dissolves as the canopy blooms; the canopy collapses as it lands.
+    tort.aSpace = c.space * sstep(0.02, 0.05, p);          // drifts in just after the very top of the fall
+    tort.aSky = c.chute;                                   // the parachute window
+    tort.aLand = sstep(0.46, 0.49, p) * (1 - sstep(0.595, 0.625, p));   // eases in low at the dark tent mouth as it steps out (the doorway shadow softens the appearance), then walks into the clearing
+    tort.aWater = sstep(0.59, 0.635, p) * (1 - sstep(0.965, 0.99, p));   // dives on past the surface swim instead of vanishing at the corner
+    tort.aDeep = c.deep;                                   // the dive bubble + the warming shell fade in for the trench leg
     // reactive shell: how much ambient light it's sitting in. `depth` deepens the cool watery
-    // tint as it descends; `heat` warms it toward a vent-glow near the geothermal trench. It
-    // swims above the trench today (fades out by ~0.81), so heat stays ~0 in its current range —
-    // it's wired so the glow pays off if the dive is ever carried deeper. (See drawTortoise.)
-    tort.depth = sstep(0.49, 0.81, p);
+    // tint as it descends; `heat` warms it toward a vent-glow near the geothermal trench — and
+    // now that the dive carries it down into the trench's range, that warm glow finally PAYS OFF.
+    tort.depth = sstep(0.49, 0.9, p);
     tort.heat = sstep(0.86, 0.97, p);
     tortHit.alpha = 0;                                    // recomputed by this frame's draws
     if (tort.aWater > 0.05 && c.swim > 0.2) { turtleThreat.x = tort.x / W; turtleThreat.y = tort.y / H; turtleThreat.power = tort.aWater * c.swim; }
     else turtleThreat.power = 0;
   }
 
-  // draw the side-view tortoise at its current pose with opacity `a`. The art faces
-  // RIGHT; the eased heading (tortFaceV) mirrors it. Hands its live screen geometry
-  // to the gold catch hit-test. tt = seconds, for the swimming flipper stroke.
-  function drawTortoise(a, tt) {
-    if (a <= 0.01) return;
-    const s = tort.scale, L = tort.look, sw = tort.swim, land = 1 - sw, gold = tortGold, tk = tort.tuck || 0;  // tk: how far it's withdrawn into its shell
+  /* ---- the tortoise BODY art, drawn at the CURRENT origin ----
+     The caller has already translated to the body centre, scaled for facing (sx),
+     rotated (pitch/rock/tumble/sway) and set globalAlpha. This just paints the creature
+     itself — legs, tail, carapace, head — so every costume (land, swim, deep-dive, the
+     zero-g float and the parachute dangle) shares ONE body. opts:
+       land,sw  — walk↔row pose blend + the watery shell-tint amount (0 above water)
+       tk,L     — tuck (shell withdrawal) and look (head-up, watching you)
+       gold,heat,depth — colour state; aimX/aimY/sgnx — cursor-tracking head lean
+       pose     — 'auto' (walk/swim), 'float' (weightless scull), 'dangle' (legs hang)
+       shadow   — draw the ground contact shadow (default: only when land>0)
+       gear     — 'space' | 'dive' bubble helmet over the head; gearA fades it in */
+  function drawTortoiseBody(s, tt, o) {
+    const land = o.land || 0, sw = o.sw || 0, tk = o.tk || 0, L = o.L || 0, gold = o.gold;
+    const heat = o.heat || 0, depth = o.depth || 0, sgnx = o.sgnx || 1, baseA = ctx.globalAlpha;
     // reactive shell: it catches the ambient light around it — a cool blue-green that deepens with
-    // depth, warming toward a vent-orange near heat. The solid colours are tinted toward that ambient
-    // (gold takes far less — it glows from within); the heat term is ~0 in its current range (see step).
-    const heat = tort.heat || 0;
-    const amb = mix(mix('#2f6675', '#0e2b46', tort.depth || 0), '#e8662a', heat);   // teal → deep blue, warming near the volcano
-    // only the WATER lights it this way — ashore in the grassy clearing it keeps its natural olive (sw≈0)
-    const amt = Math.min(0.7, ((0.14 + 0.34 * (tort.depth || 0)) * (gold ? 0.4 : 1) + 0.45 * heat) * sw);
+    // depth, warming toward a vent-orange near heat. Only the WATER lights it this way (× sw); aloft
+    // and ashore (sw≈0) it keeps its natural olive.
+    const amb = mix(mix('#2f6675', '#0e2b46', depth), '#e8662a', heat);   // teal → deep blue, warming near the volcano
+    const amt = Math.min(0.7, ((0.14 + 0.34 * depth) * (gold ? 0.4 : 1) + 0.45 * heat) * sw);
     const tint = (c) => mix(c, amb, amt);
     const shell = tint(gold ? '#f0b24e' : '#5f7a3e'), shade = tint(gold ? '#cf9a3e' : '#46602c');
     const rim = tint(gold ? '#a86a18' : '#374d22'), line = gold ? 'rgba(168,106,24,.55)' : 'rgba(40,55,25,.5)';
     const skin = tint(gold ? '#ffce54' : '#8a9b63'), skinSh = tint(gold ? '#e0992f' : '#6d7e4a'), eyeC = '#0a140a';
-    const sx = Math.abs(tortFaceV) < 0.14 ? (tortFaceV < 0 ? -0.14 : 0.14) : tortFaceV;  // never collapse to 0 mid-turn
-    if (a >= tortHit.alpha) { tortHit.x = tort.x; tortHit.y = tort.y; tortHit.r = s * 1.25; tortHit.alpha = a; }
-    ctx.save();
-    ctx.globalAlpha = a;
-    ctx.translate(tort.x, tort.y);
-    ctx.scale(sx, 1);
-    ctx.rotate(tort.pitch + (tort.rock || 0));            // dive-pitch + the gentle watery rock while it sinks in its shell
     const limb = (ax, ay, ang, len, wid, col) => {       // an angled stubby limb, pivoting at its attach point
       ctx.save(); ctx.translate(ax, ay); ctx.rotate(ang);
       ctx.fillStyle = col; ctx.beginPath(); ctx.ellipse(0, len * 0.5, wid * 0.5, len * 0.5, 0, 0, 6.2832); ctx.fill();
       ctx.restore();
     };
-    if (land > 0.02) {                                    // soft contact shadow while ashore (grounds it in the clearing)
+    if ((o.shadow != null ? o.shadow : land > 0.02)) {   // soft contact shadow while ashore (grounds it in the clearing)
       ctx.fillStyle = `rgba(0,0,0,${0.2 * land})`; ctx.beginPath(); ctx.ellipse(0, s * 0.46, s * 0.95, s * 0.15, 0, 0, 6.2832); ctx.fill();
     }
-    // leg pose: a fore-aft walking swing ashore → a rowing flipper stroke in the water
-    const sw1 = reduce ? 0 : Math.sin(tortWalk), sw2 = reduce ? 0 : Math.sin(tortWalk + Math.PI);
-    const rF = reduce ? -0.1 : Math.sin(tt * 1.9) * 0.8 - 0.15, rB = reduce ? 0.1 : Math.sin(tt * 1.9 + 1.5) * 0.5;
-    const lpull = 1 - 0.78 * tk;                          // limbs draw IN toward the shell as it tucks
-    const len = s * (0.5 + 0.28 * sw) * lpull, wid = s * (0.22 + 0.07 * sw);
-    const angF = (sw1 * 0.5 * land + rF * sw) * (1 - tk), angB = (sw2 * 0.5 * land + rB * sw) * (1 - tk);  // paddling stops while withdrawn
+    // leg pose: a fore-aft WALK ashore → a rowing SWIM stroke in the water → a slow
+    // weightless SCULL (or spread-eagle freefall) in space → legs DANGLE under the canopy
+    let angF, angB, lenK, widK;
+    if (o.pose === 'float') {                             // zero-g / freefall: limbs splayed and slowly sculling
+      const osc = reduce ? 0 : Math.sin(tt * 1.4) * 0.22;
+      angF = 0.7 + osc; angB = -0.65 - osc; lenK = 0.62; widK = 0.24;
+    } else if (o.pose === 'dangle') {                     // hanging under the harness: legs point down, just swaying
+      const sg = reduce ? 0 : Math.sin(tt * 1.0) * 0.12;
+      angF = sg; angB = -sg * 0.8; lenK = 0.62; widK = 0.22;
+    } else {                                              // walk/swim blend (the original ground & water pose)
+      const sw1 = reduce ? 0 : Math.sin(tortWalk), sw2 = reduce ? 0 : Math.sin(tortWalk + Math.PI);
+      const rF = reduce ? -0.1 : Math.sin(tt * 1.9) * 0.8 - 0.15, rB = reduce ? 0.1 : Math.sin(tt * 1.9 + 1.5) * 0.5;
+      angF = sw1 * 0.5 * land + rF * sw; angB = sw2 * 0.5 * land + rB * sw; lenK = 0.5 + 0.28 * sw; widK = 0.22 + 0.07 * sw;
+    }
+    angF *= (1 - tk); angB *= (1 - tk);                  // paddling stops while withdrawn
+    const len = s * lenK * (1 - 0.78 * tk), wid = s * widK;   // and limbs draw IN toward the shell as it tucks
     limb(s * 0.40, s * 0.06, -angF * 0.7, len * 0.92, wid * 0.9, skinSh);   // far pair, behind the shell
     limb(-s * 0.6, s * 0.06, -angB * 0.7, len * 0.92, wid * 0.9, skinSh);
     ctx.fillStyle = skinSh; ctx.beginPath();             // tail — retracts under the shell as it tucks
@@ -1848,13 +1980,12 @@
     limb(-s * 0.55, s * 0.16, angB, len, wid, skin);
     // ---- neck + head: morphs from a forward profile to facing you as it looks up — and
     //      withdraws into the shell when poked (slides back to the front lip, shrinks, fades) ----
-    const sgnx = sx < 0 ? -1 : 1;                         // local +x maps to this screen direction
-    const hax = (tort.aimX || 0) * sgnx * s * 0.14 * L, hay = (tort.aimY || 0) * s * 0.12 * L;  // lean the head toward the cursor while watching
+    const hax = (o.aimX || 0) * sgnx * s * 0.14 * L, hay = (o.aimY || 0) * s * 0.12 * L;  // lean the head toward the cursor while watching
     let hx = (1.12 - 0.2 * L) * s + hax, hy = (-0.02 + 0.2 * L) * s + hay;
     let hrx = (0.3 + 0.03 * L) * s, hry = (0.22 + 0.09 * L) * s;
     hx += (s * 0.7 - hx) * tk; hy += (s * 0.06 - hy) * tk;   // pull the head back to the shell's front lip
     hrx *= 1 - 0.7 * tk; hry *= 1 - 0.7 * tk;                // and shrink it as it withdraws
-    ctx.globalAlpha = a * (1 - 0.85 * tk);                   // the last of the head disappears inside the shell
+    ctx.globalAlpha = baseA * (1 - 0.85 * tk);              // the last of the head disappears inside the shell
     ctx.strokeStyle = skin; ctx.lineWidth = s * 0.34 * (1 - 0.55 * tk); ctx.lineCap = 'round';
     ctx.beginPath(); ctx.moveTo(s * 0.5, s * 0.02); ctx.lineTo(hx, hy); ctx.stroke();
     ctx.fillStyle = skin; ctx.beginPath(); ctx.ellipse(hx, hy, hrx, hry, 0, 0, 6.2832); ctx.fill();
@@ -1864,7 +1995,120 @@
       ctx.beginPath(); ctx.arc(hx - s * 0.1 * (1 - tk), hy - s * 0.04, s * 0.06 * (1 - 0.6 * tk), 0, 6.2832); ctx.fill();
       ctx.globalAlpha = ga;
     }
+    // ---- bubble helmet (space suit / dive bell), drawn over the head, fading with gearA ----
+    if (o.gear && tk < 0.7) {
+      const dive = o.gear === 'dive';
+      const cx2 = hx + s * 0.04, cy2 = hy - s * 0.04, hr = Math.max(hrx, hry) * 1.95 + s * 0.12;
+      ctx.globalAlpha = baseA * (o.gearA != null ? o.gearA : 1) * (1 - tk);
+      // a little suit collar where the neck meets the shell
+      ctx.strokeStyle = dive ? 'rgba(70,120,130,0.9)' : 'rgba(150,165,190,0.9)'; ctx.lineWidth = s * 0.16; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(s * 0.46, s * 0.1); ctx.lineTo(s * 0.62, -s * 0.06); ctx.stroke();
+      // the glass dome
+      const gg = ctx.createRadialGradient(cx2 - hr * 0.3, cy2 - hr * 0.3, hr * 0.1, cx2, cy2, hr);
+      gg.addColorStop(0, dive ? 'rgba(190,240,255,0.32)' : 'rgba(228,240,255,0.32)');
+      gg.addColorStop(0.7, dive ? 'rgba(120,200,225,0.12)' : 'rgba(185,215,255,0.12)');
+      gg.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.fillStyle = gg; ctx.beginPath(); ctx.arc(cx2, cy2, hr, 0, 6.2832); ctx.fill();
+      ctx.strokeStyle = dive ? 'rgba(150,225,235,0.6)' : 'rgba(205,230,255,0.65)'; ctx.lineWidth = Math.max(1, s * 0.06);
+      ctx.beginPath(); ctx.arc(cx2, cy2, hr, 0, 6.2832); ctx.stroke();
+      ctx.strokeStyle = 'rgba(255,255,255,0.5)'; ctx.lineWidth = Math.max(1, s * 0.05);   // a curved glint
+      ctx.beginPath(); ctx.arc(cx2, cy2, hr * 0.72, Math.PI * 1.04, Math.PI * 1.5); ctx.stroke();
+    }
+  }
+
+  // LAND / WATER / DEEP-DIVE: the body under its own pitch+rock transform. The art faces
+  // RIGHT; the eased heading (tortFaceV) mirrors it. Hands its live screen geometry to the
+  // gold catch / poke hit-test. tt = seconds, for the swimming flipper stroke.
+  function drawTortoise(a, tt) {
+    if (a <= 0.01) return;
+    const s = tort.scale, sw = tort.swim;
+    const sx = Math.abs(tortFaceV) < 0.14 ? (tortFaceV < 0 ? -0.14 : 0.14) : tortFaceV;  // never collapse to 0 mid-turn
+    if (a >= tortHit.alpha) { tortHit.x = tort.x; tortHit.y = tort.y; tortHit.r = s * 1.25; tortHit.alpha = a; }
+    ctx.save();
+    ctx.globalAlpha = a;
+    ctx.translate(tort.x, tort.y);
+    ctx.scale(sx, 1);
+    ctx.rotate(tort.pitch + (tort.rock || 0) + (tort.tilt || 0));   // dive-pitch + the gentle watery rock while it sinks in its shell
+    drawTortoiseBody(s, tt, {
+      land: 1 - sw, sw, tk: tort.tuck || 0, L: tort.look, gold: tortGold,
+      heat: tort.heat || 0, depth: tort.depth || 0, aimX: tort.aimX, aimY: tort.aimY,
+      sgnx: sx < 0 ? -1 : 1, pose: 'auto',
+      gear: tort.aDeep > 0.04 ? 'dive' : null, gearA: tort.aDeep,   // a dive bubble fades in as it dives toward the trench
+    });
     ctx.restore();
+  }
+
+  // SPACE / PARACHUTE: the traveller aloft. In space it tumbles in its suit; under the
+  // canopy it swings like a pendulum about the crown, legs dangling. Shares drawTortoiseBody.
+  function drawTortoiseAloft(a, tt, kind) {
+    if (a <= 0.01) return;
+    const s = tort.scale, tk = tort.tuck || 0;
+    const sx = Math.abs(tortFaceV) < 0.2 ? (tortFaceV < 0 ? -0.2 : 0.2) : tortFaceV;
+    if (a >= tortHit.alpha) { tortHit.x = tort.x; tortHit.y = tort.y; tortHit.r = s * 1.3; tortHit.alpha = a; }
+    ctx.save();
+    ctx.globalAlpha = a;
+    ctx.translate(tort.x, tort.y);
+    if (kind === 'chute') {
+      const open = tortChuteOpen;
+      const pivotY = -s * 3.0 * open;                    // swing the whole rig about the canopy crown
+      ctx.translate(0, pivotY); ctx.rotate(reduce ? 0 : (tort.tilt || 0)); ctx.translate(0, -pivotY);
+      if (open > 0.04) drawCanopy(s, open);              // canopy + suspension lines (behind the body)
+      ctx.save(); ctx.scale(sx, 1);
+      drawTortoiseBody(s, tt, { tk, gold: tortGold, sgnx: sx < 0 ? -1 : 1, pose: open > 0.5 ? 'dangle' : 'float', shadow: false });
+      ctx.restore();
+      if (open > 0.2) drawHarness(s);                    // risers from the shell up to the lines
+    } else {
+      if (tortTether) drawTether(s);                     // a slack tether trailing up off-screen (un-rotated, so it hangs straight)
+      ctx.rotate(reduce ? 0 : (tort.tilt || 0));         // the slow zero-g tumble
+      ctx.save(); ctx.scale(sx, 1);
+      drawTortoiseBody(s, tt, { tk, L: tort.look, gold: tortGold, aimX: tort.aimX, aimY: tort.aimY, sgnx: sx < 0 ? -1 : 1, pose: 'float', shadow: false, gear: 'space', gearA: 1 });
+      ctx.restore();
+    }
+    ctx.restore();
+  }
+
+  // the parachute canopy + suspension lines, drawn at the rig origin (the body sits below).
+  // `open` 0→1 blooms it; tortChuteBillow puffs it briefly on a tug or as it snaps open.
+  function drawCanopy(s, open) {
+    const crownY = -s * 3.1 * open, halfW = s * 2.6 * open * (1 + 0.1 * tortChuteBillow), top = crownY - s * 1.9 * open, lipY = crownY + s * 0.5 * open, conv = -s * 0.55;
+    ctx.strokeStyle = 'rgba(38,44,58,0.6)'; ctx.lineWidth = Math.max(0.8, s * 0.04);    // suspension lines (behind the fill), fanning to the risers
+    for (const f of [-0.92, -0.6, -0.28, 0.28, 0.6, 0.92]) { ctx.beginPath(); ctx.moveTo(f * halfW, lipY + Math.abs(f) * s * 0.18 * open); ctx.lineTo(0, conv); ctx.stroke(); }
+    ctx.beginPath();                                     // the dome
+    ctx.moveTo(-halfW, lipY);
+    ctx.quadraticCurveTo(-halfW * 0.95, top, 0, top);
+    ctx.quadraticCurveTo(halfW * 0.95, top, halfW, lipY);
+    ctx.quadraticCurveTo(halfW * 0.5, lipY + s * 0.4 * open, 0, lipY);                  // scalloped skirt
+    ctx.quadraticCurveTo(-halfW * 0.5, lipY + s * 0.4 * open, -halfW, lipY);
+    ctx.closePath();
+    const cg = ctx.createLinearGradient(0, top, 0, lipY);
+    cg.addColorStop(0, '#f29360'); cg.addColorStop(1, '#cf5c39');
+    ctx.fillStyle = cg; ctx.fill();
+    ctx.fillStyle = 'rgba(245,227,208,0.85)';            // a cream centre gore
+    ctx.beginPath();
+    ctx.moveTo(-halfW * 0.2, lipY); ctx.quadraticCurveTo(0, top, halfW * 0.2, lipY);
+    ctx.quadraticCurveTo(halfW * 0.1, lipY + s * 0.2 * open, 0, lipY);
+    ctx.quadraticCurveTo(-halfW * 0.1, lipY + s * 0.2 * open, -halfW * 0.2, lipY);
+    ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = 'rgba(120,50,34,0.5)'; ctx.lineWidth = Math.max(0.6, s * 0.028);  // gore seams
+    for (const f of [-0.62, -0.34, 0.34, 0.62]) { ctx.beginPath(); ctx.moveTo(f * halfW, lipY); ctx.quadraticCurveTo(f * halfW * 0.55, crownY - s * 1.1 * open, 0, top); ctx.stroke(); }
+  }
+
+  // the harness: risers from the shell up to where the lines converge, plus a chest strap
+  function drawHarness(s) {
+    ctx.strokeStyle = 'rgba(38,44,58,0.7)'; ctx.lineCap = 'round';
+    ctx.lineWidth = Math.max(1, s * 0.09);
+    ctx.beginPath(); ctx.moveTo(-s * 0.5, -s * 0.08); ctx.lineTo(0, -s * 0.55); ctx.lineTo(s * 0.5, -s * 0.08); ctx.stroke();
+    ctx.lineWidth = Math.max(1, s * 0.08);
+    ctx.beginPath(); ctx.moveTo(-s * 0.55, -s * 0.18); ctx.quadraticCurveTo(0, s * 0.06, s * 0.55, -s * 0.18); ctx.stroke();
+  }
+
+  // a slack safety tether floating up and off the top of the screen (some visits only)
+  function drawTether(s) {
+    ctx.strokeStyle = 'rgba(210,225,255,0.45)'; ctx.lineWidth = Math.max(1, s * 0.06); ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(s * 0.15, -s * 0.5);
+    ctx.quadraticCurveTo(s * 0.9, -s * 2.0, -s * 0.3, -s * 3.6);
+    ctx.quadraticCurveTo(-s * 1.0, -s * 5.0, s * 0.2, -s * 6.5);
+    ctx.stroke();
   }
 
   // catch the rare golden tortoise: a tap on (or near) it while it's clearly visible
@@ -1886,6 +2130,27 @@
     if (tortHit.alpha < 0.3) return false;               // only when it's clearly drawn this frame
     if (Math.hypot(cx - tortHit.x, cy - tortHit.y) > tortHit.r + 16) return false;
     tortTuckHold = 300;                                  // hold the tuck a good while (~5s) before it cautiously comes back out
+    return true;
+  }
+
+  // SHOVE the floating tortoise: a tap on (or near) it while it drifts weightless in
+  // space gives it a push — it sails off the way you knocked it and starts tumbling.
+  function pushTortoise(cx, cy) {
+    if (tort.space < 0.4 || tortHit.alpha < 0.3) return false;
+    if (Math.hypot(cx - tortHit.x, cy - tortHit.y) > tortHit.r + 24) return false;
+    const dx = tortHit.x - cx, dy = tortHit.y - cy, d = Math.hypot(dx, dy) || 1, kick = Math.min(W, H) * 0.02;
+    tortVX += dx / d * kick; tortVY += dy / d * kick;    // sail away from the prod
+    tortSpinV += (cx < tortHit.x ? -1 : 1) * 0.07;       // and set it tumbling the natural way
+    return true;
+  }
+
+  // TUG the parachute: a tap on (or near) the parachutist swings it toward the tug and
+  // puffs the canopy (tortChuteBillow eases back out in stepTortoise / drawCanopy).
+  function tugChute(cx, cy) {
+    if (tort.chute < 0.4 || tortHit.alpha < 0.3) return false;
+    if (Math.hypot(cx - tortHit.x, cy - tortHit.y) > tortHit.r + 26) return false;
+    tortSway += (cx < tortHit.x ? 0.5 : -0.5);           // give it a shove into a swing
+    tortChuteBillow = 1;
     return true;
   }
 
@@ -1995,7 +2260,7 @@
       // environmental gate: a sprite's `vis()` returns 0..1 for the time/weather/season —
       // the raptor & swifts fade out at night, the bat by day, the warm-season flyers in
       // winter, and all of them in foul weather (see flyWeather / summerAmount).
-      if (sp.vis) op *= sp.vis();
+      if (sp.vis && !(EGG_FORCE && sp.egg)) op *= sp.vis();   // ?eggs ignores the time/weather/season gate so every egg can be found on demand
       if (sp.egg) {
         // once caught, stay burst-away until this pass leaves the view (op→0), then
         // return as plain scenery; clickable only while clearly visible & not yet caught
@@ -2026,7 +2291,6 @@
       fill: g.querySelector('.g-fill'), dot: g.querySelector('.g-dot'), read: g.querySelector('.g-read'),
       v: g.querySelector('.g-v'), u: g.querySelector('.g-u'),
       dir: g.querySelector('.g-dir'), zone: g.querySelector('.g-zone'), jp: g.querySelector('.g-jp'),
-      prog: document.getElementById('progress'),   // the top scroll bar — tinted to the current temperature below
     };
     // Mobile mirror: phones show one gauge per view, so the right-hand track is
     // hidden (CSS) and the live sphere + depth ride in the nav bar instead — the
@@ -2091,14 +2355,8 @@
       gEls.ngU.textContent = u;
       gEls.ngDir.textContent = am < 1 ? '' : (m > 0 ? ' ↑' : ' ↓');
     }
-    // the top scroll bar IS the gauge on phones, so it carries the temperature too:
-    // the filled portion runs from a faded trail to the current sphere's colour, and
-    // glows in it — matching the gauge dot. (Width is still scroll-driven, in theme.js.)
-    if (gEls.prog) {
-      const trail = c.replace('rgb(', 'rgba(').replace(')', ',0.25)');
-      gEls.prog.style.backgroundImage = `linear-gradient(to right, ${trail}, ${c})`;
-      gEls.prog.style.boxShadow = `0 0 8px ${c.replace('rgb(', 'rgba(').replace(')', ',0.55)')}`;
-    }
+    // (the top progress bar carries the temperature too, but declaratively: a
+    // viewport-fixed gradient in descent.css whose stops line up with each zone.)
     // publish the adaptive UI accent for this depth — theme.css routes --cyan and
     // its rgba(var(--accent-rgb),…) tokens through these, so the page's text/UI
     // palette retints with the scene. Only written when it actually changes (i.e.
@@ -2115,9 +2373,349 @@
   /* ---------- render ---------- */
   let mx = 0.5, my = 0.5, clickPulse = 0, lastT = 0, idleT = 0, curious = 0, pointerHere = false, schoolForgotten = false;
   window.addEventListener('mousemove', e => { mx = e.clientX / W; my = e.clientY / H; idleT = 0; pointerHere = true; });
+
+  /* =====================================================================
+     DRAGONS — three legendary, puzzle-gated finds, one per realm of the
+     fall: DRACO written in the stars (deep space), the STORM WYVERN asleep
+     in a thundercloud (the high sky), and the TRENCH LEVIATHAN circling
+     unseen in the dark (the deep). Each is RARE even to MEET — a per-visit
+     roll, the wyvern's odds lifted by the visitor's real weather — and each
+     needs a small PUZZLE: connect its stars, strike it thrice with lightning,
+     follow its lure. A solve bursts in sparks and fires the matching
+     `easteregg` (draco / storm-wyvern / leviathan); each is caught once per
+     browser (window.EasterEggs). Canvas-drawn and hit-tested on pointerdown
+     like the tortoise & vent shrimp, and stilled-but-still-solvable for
+     reduced motion. To force one present (skipping the rare roll) for testing
+     or a showcase: ?dragon=draco|storm|leviathan|all, or
+     DESCENT_CONFIG.dragon = 'draco'|'storm'|'leviathan'|'all'. ============= */
+  const _eggHas = (id) => !!(window.EasterEggs && window.EasterEggs.has(id));
+  const DRAGON_FORCE = (() => {
+    let f = typeof cfg.dragon === 'string' ? cfg.dragon : null;
+    const q = new URLSearchParams(location.search).get('dragon');
+    if (q) f = q;
+    return (f || '').toLowerCase();
+  })();
+  const dragonForced = (k) => DRAGON_FORCE === k || DRAGON_FORCE === 'all';
+  // a small shower of sparks (lighter than burstAt's full catch burst) for the
+  // per-step feedback as a star lights / a strike lands / a lure is reached
+  function sparkAt(cx, cy, n, warm) {
+    for (let i = 0, m = N(n); i < m; i++) {
+      const a = Math.random() * 6.2832, sp = rnd(1.0, 3.6);
+      burst.push({ x: cx, y: cy, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, r: rnd(0.8, 2.0), life: 1, warm: warm, alt: Math.random() < 0.5 });
+    }
+  }
+
+  /* ---- DRACO · the star dragon (deep space) ----
+     ~9 anchor stars sit a touch brighter & golder than the field in the shape
+     of a winding dragon. Click each to light it; lit neighbours link with a
+     glowing line (order doesn't matter, generous hit ring, no timer). Light
+     them all and the figure blooms — an eye opens, wings and a forked tail
+     trace in — then it uncoils and flies off up into the dark. */
+  const DRACO_ID = 'draco';
+  let dracoCaught = _eggHas(DRACO_ID);
+  const dracoPresent = !dracoCaught && (dragonForced('draco') || Math.random() < 0.085);
+  // the figure: an ordered chain (head → tail) in viewport fractions, biased to
+  // the upper sky clear of the hero text. The chain only sets which neighbours
+  // draw a connecting line — you may light the stars in any order.
+  const DRACO_NODES = [
+    { x: 0.16, y: 0.16 }, { x: 0.25, y: 0.13 }, { x: 0.34, y: 0.175 },
+    { x: 0.43, y: 0.25 }, { x: 0.52, y: 0.225 }, { x: 0.61, y: 0.15 },
+    { x: 0.70, y: 0.135 }, { x: 0.79, y: 0.20 }, { x: 0.86, y: 0.31 },
+  ];
+  let dracoLit = DRACO_NODES.map(() => 0);    // 0 = unlit, else the ms timestamp it caught
+  let dracoFieldA = 0;                         // live visibility, published for the hit-test
+  let dracoSolving = false, dracoSolveT = 0;   // reveal / fly-off timeline (seconds)
+  const dracoNodePx = (i) => ({ x: DRACO_NODES[i].x * W, y: DRACO_NODES[i].y * H });
+  function lightDraco(cx, cy) {
+    if (!dracoPresent || dracoSolving || dracoFieldA < 0.25) return false;
+    let best = -1, bestD = Infinity;
+    for (let i = 0; i < DRACO_NODES.length; i++) {
+      if (dracoLit[i]) continue;
+      const n = dracoNodePx(i), d = Math.hypot(cx - n.x, cy - n.y);
+      if (d < 36 && d < bestD) { best = i; bestD = d; }      // forgiving ring on small targets
+    }
+    if (best < 0) return false;
+    dracoLit[best] = performance.now();
+    const n = dracoNodePx(best);
+    sparkAt(n.x, n.y, 7, false);                              // a small twinkle as the star catches
+    if (dracoLit.every(v => v > 0)) {                         // figure complete → the dragon wakes
+      dracoSolving = true; dracoSolveT = 0; dracoCaught = true;
+      const h = dracoNodePx(0);
+      burstAt(h.x, h.y, false);
+      window.dispatchEvent(new CustomEvent('easteregg', { detail: { id: DRACO_ID } }));
+    }
+    return true;
+  }
+  function drawDraco(p, t, dt) {
+    if (!dracoPresent) return;
+    const a = Math.max(0, 1 - p / 0.13);                     // through the deep-space field, gone before the sky brightens
+    dracoFieldA = dracoSolving ? 0 : a;                      // not catchable once it's waking/flying off
+    if (a <= 0.01) return;
+    const px = (mx - 0.5) * 24, py = (my - 0.5) * 16;
+    let figA = a, ox = 0, oy = 0, traceK = 0;
+    if (dracoSolving) {
+      dracoSolveT += dt / 60 * (reduce ? 0.7 : 1);           // dt is in 60fps-frames → seconds
+      const T = dracoSolveT;
+      traceK = Math.min(1, T / 1.0);                         // 0→1s: glow runs head→tail, flourish blooms
+      const lift = Math.max(0, Math.min(1, (T - 1.0) / 2.0)); // 1→3s: lifts away and fades
+      const e = lift * lift * (3 - 2 * lift);
+      if (!reduce) { ox = -e * W * 0.55; oy = -e * H * 0.45; }
+      figA = a * (1 - e);
+    }
+    if (figA <= 0.01) return;
+    const len = DRACO_NODES.length;
+    ctx.save();
+    ctx.translate(px * 0.3 + ox, py * 0.3 + oy);
+    ctx.lineCap = 'round';
+    // connecting lines between lit (or, while waking, all) neighbours
+    for (let i = 0; i < len - 1; i++) {
+      if (!((dracoLit[i] || dracoSolving) && (dracoLit[i + 1] || dracoSolving))) continue;
+      const n0 = dracoNodePx(i), n1 = dracoNodePx(i + 1);
+      let lineA = 0.5;
+      if (dracoSolving) { const headSeg = traceK * (len - 1); lineA = headSeg >= i + 0.5 ? 0.9 : 0.25; }
+      ctx.strokeStyle = `rgba(180,212,255,${lineA * figA})`;
+      ctx.lineWidth = 1.5; ctx.shadowColor = 'rgba(150,200,255,0.8)'; ctx.shadowBlur = 8 * figA;
+      ctx.beginPath(); ctx.moveTo(n0.x, n0.y); ctx.lineTo(n1.x, n1.y); ctx.stroke();
+    }
+    ctx.shadowBlur = 0;
+    // the dragon flourish — wings, a forked tail and an open eye — only once it wakes
+    if (dracoSolving) {
+      const wA = traceK * figA;
+      const spur = (i, ex, ey) => {
+        const n = dracoNodePx(i);
+        ctx.strokeStyle = `rgba(200,225,255,${0.7 * wA})`; ctx.lineWidth = 1.3;
+        ctx.shadowColor = 'rgba(150,200,255,0.8)'; ctx.shadowBlur = 7 * wA;
+        ctx.beginPath(); ctx.moveTo(n.x, n.y); ctx.lineTo(n.x + ex * W, n.y + ey * H); ctx.stroke();
+        ctx.fillStyle = `rgba(230,240,255,${wA})`; ctx.shadowBlur = 0;
+        ctx.beginPath(); ctx.arc(n.x + ex * W, n.y + ey * H, 1.6, 0, 6.2832); ctx.fill();
+      };
+      spur(3, -0.05, 0.11); spur(4, 0.05, 0.12);             // two wings off the body
+      spur(8, -0.035, 0.07); spur(8, 0.035, 0.06);           // a forked tail
+      const h = dracoNodePx(0);                              // the eye opens at the head
+      ctx.fillStyle = `rgba(255,226,150,${wA})`; ctx.shadowColor = 'rgba(255,210,120,0.9)'; ctx.shadowBlur = 12 * wA;
+      ctx.beginPath(); ctx.arc(h.x, h.y, 2.6, 0, 6.2832); ctx.fill(); ctx.shadowBlur = 0;
+    }
+    // the anchor stars themselves
+    const now = performance.now();
+    for (let i = 0; i < len; i++) {
+      const n = dracoNodePx(i), lit = dracoLit[i] || dracoSolving;
+      const tw = 0.7 + 0.3 * Math.sin(t * 0.004 + i * 1.7);
+      if (lit) {
+        ctx.fillStyle = `rgba(255,236,190,${figA})`; ctx.shadowColor = 'rgba(255,214,140,0.9)'; ctx.shadowBlur = 10 * figA;
+        ctx.beginPath(); ctx.arc(n.x, n.y, 2.4, 0, 6.2832); ctx.fill(); ctx.shadowBlur = 0;
+        const since = (now - (dracoLit[i] || now)) / 1000;   // a quick ring the moment it catches
+        if (since < 0.5 && !reduce) {
+          ctx.strokeStyle = `rgba(255,226,160,${(1 - since / 0.5) * 0.7 * figA})`;
+          ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(n.x, n.y, 4 + since * 36, 0, 6.2832); ctx.stroke();
+        }
+      } else {
+        // unlit anchor: a touch brighter & golder than the field, with a soft hint of halo
+        ctx.fillStyle = `rgba(255,226,170,${(0.5 + 0.4 * tw) * a})`;
+        ctx.shadowColor = 'rgba(255,210,130,0.7)'; ctx.shadowBlur = 6 * a * tw;
+        ctx.beginPath(); ctx.arc(n.x, n.y, 1.7, 0, 6.2832); ctx.fill(); ctx.shadowBlur = 0;
+      }
+    }
+    ctx.restore();
+  }
+
+  /* ---- STORM WYVERN · asleep in a thundercloud (the high sky) ----
+     Hidden as a darker, denser cloud with two amber eyes. Its odds of lurking
+     ride the visitor's REAL weather (rare in clear air, likely in a storm).
+     Tap the cloud to call down lightning; three strikes wake it and it tears
+     out of the cloud, wings spread, banks across the sky and is gone. */
+  const STORM_ID = 'storm-wyvern';
+  let stormCaught = _eggHas(STORM_ID);
+  let stormPresent = null;                     // undecided until the weather has had a chance to land
+  let stormStrikes = 0, stormFlash = 0, stormBolt = null, stormWake = false, stormWakeT = 0;
+  const stormPos = { x: 0.66, y: 0.30 };       // cloud anchor (viewport fractions)
+  const stormHit = { x: 0, y: 0, r: 0, alpha: 0 };
+  function stormDecide() {
+    if (stormPresent !== null) return;
+    if (stormCaught) { stormPresent = false; return; }
+    if (dragonForced('storm')) { stormPresent = true; return; }
+    const w = WEATHER;
+    const storminess = w.ready ? Math.min(1, w.cloud * 0.45 + w.precip * 0.9 + Math.max(0, w.wind - 0.4) * 0.7) : 0.2;
+    stormPresent = Math.random() < (0.05 + 0.6 * storminess);   // rare in clear skies, likely in real foul weather
+  }
+  function wakeStorm(cx, cy) {
+    if (!stormPresent || stormWake || stormHit.alpha < 0.3) return false;
+    if (Math.hypot(cx - stormHit.x, cy - stormHit.y) > stormHit.r + 28) return false;
+    stormStrikes++;
+    stormFlash = 1;
+    if (!reduce) {                              // a jagged bolt from the top of the frame into the cloud
+      const pts = [{ x: stormHit.x + rnd(-W * 0.1, W * 0.1), y: 0 }];
+      let yy = 0; while (yy < stormHit.y) { yy += rnd(20, 60); pts.push({ x: stormHit.x + rnd(-30, 30), y: Math.min(stormHit.y, yy) }); }
+      stormBolt = { pts, life: 1 };
+    }
+    sparkAt(stormHit.x, stormHit.y, 8, false);
+    if (stormStrikes >= 3) {                    // woken
+      stormWake = true; stormWakeT = 0; stormCaught = true;
+      burstAt(stormHit.x, stormHit.y, false);
+      window.dispatchEvent(new CustomEvent('easteregg', { detail: { id: STORM_ID } }));
+    }
+    return true;
+  }
+  // a storm-lit flying wyvern, drawn facing LEFT (the way it banks away): dark
+  // body with an electric rim, wings flapping on a vertical squash
+  function drawWyvern(cx, cy, s, t, alpha) {
+    const flap = reduce ? 0.5 : (Math.sin(t * 0.012) * 0.5 + 0.5);   // 0 wings down … 1 up
+    const body = `rgba(20,24,36,${alpha})`, rim = `rgba(150,205,255,${0.9 * alpha})`;
+    ctx.save(); ctx.translate(cx, cy); ctx.scale(s, s); ctx.lineJoin = 'round';
+    ctx.fillStyle = body; ctx.strokeStyle = rim; ctx.lineWidth = 2;
+    // tail trailing back to the right
+    ctx.beginPath(); ctx.moveTo(10, 2); ctx.quadraticCurveTo(56, 6, 92, 24);
+    ctx.lineTo(96, 20); ctx.quadraticCurveTo(60, -2, 14, -6); ctx.closePath(); ctx.fill(); ctx.stroke();
+    // far wing (dimmer, behind)
+    const wy = -10 - flap * 26;
+    ctx.fillStyle = `rgba(24,30,46,${alpha})`;
+    ctx.beginPath(); ctx.moveTo(-4, -3); ctx.quadraticCurveTo(-34, wy * 0.8, -56, -4); ctx.quadraticCurveTo(-38, 6, -28, 10); ctx.quadraticCurveTo(-16, 2, -4, -3); ctx.closePath(); ctx.fill(); ctx.stroke();
+    // body
+    ctx.fillStyle = body; ctx.beginPath(); ctx.ellipse(0, 0, 16, 8, 0, 0, 6.2832); ctx.fill(); ctx.stroke();
+    // near wing (over the body)
+    ctx.fillStyle = `rgba(30,36,54,${alpha})`;
+    ctx.beginPath(); ctx.moveTo(-2, -2); ctx.quadraticCurveTo(-30, wy, -60, -6 - flap * 8); ctx.quadraticCurveTo(-40, 6, -30, 12); ctx.quadraticCurveTo(-16, 4, -2, -2); ctx.closePath(); ctx.fill(); ctx.stroke();
+    // neck + head up-left (the direction of travel)
+    ctx.fillStyle = body; ctx.beginPath(); ctx.moveTo(-10, -2); ctx.quadraticCurveTo(-26, -10, -36, -18); ctx.lineTo(-31, -21); ctx.quadraticCurveTo(-22, -12, -8, -6); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = `rgba(255,190,100,${alpha})`;                    // eye
+    ctx.beginPath(); ctx.arc(-32, -18, 1.7, 0, 6.2832); ctx.fill();
+    ctx.restore();
+  }
+  function drawStorm(p, t, dt) {
+    if (stormPresent === null) stormDecide();
+    if (!stormPresent) return;
+    const a = band(p, 0.36, 0.13);             // lives in the cloud band
+    if (a <= 0.01) { stormHit.alpha = 0; return; }
+    const px = (mx - 0.5) * 24, py = (my - 0.5) * 16;
+    const cx = stormPos.x * W + px * 0.5;
+    const cy = stormPos.y * H + py * 0.5 + riseAt(p, 0.36, 0.12, 0.8);   // rides up with the clouds
+    if (stormFlash > 0) stormFlash = Math.max(0, stormFlash - 0.04 * dt);
+    if (stormBolt) { stormBolt.life -= 0.05 * dt; if (stormBolt.life <= 0) stormBolt = null; }
+    if (!stormWake) {
+      // ---- sleeping: a dark, dense storm cloud, bruising darker with each strike ----
+      stormHit.x = cx; stormHit.y = cy; stormHit.r = Math.min(W, H) * 0.085; stormHit.alpha = a;
+      const r = stormHit.r, dark = Math.min(1, 0.55 + 0.15 * stormStrikes);
+      for (let i = 0; i < 5; i++) {
+        const ang = i / 5 * 6.2832, rr = r * (1.1 + 0.25 * Math.sin(t * 0.001 + i));
+        const lx = cx + Math.cos(ang) * r * 0.7, ly = cy + Math.sin(ang) * r * 0.35;
+        const g = ctx.createRadialGradient(lx, ly, 0, lx, ly, rr);
+        g.addColorStop(0, `rgba(44,50,66,${0.5 * a * dark})`); g.addColorStop(1, 'rgba(44,50,66,0)');
+        ctx.fillStyle = g; ctx.beginPath(); ctx.ellipse(lx, ly, rr, rr * 0.6, 0, 0, 6.2832); ctx.fill();
+      }
+      const eyeA = (0.35 + 0.22 * stormStrikes) * a * (0.8 + 0.2 * Math.sin(t * 0.005));   // brighten per strike
+      ctx.fillStyle = `rgba(255,182,90,${eyeA})`; ctx.shadowColor = 'rgba(255,170,70,0.9)'; ctx.shadowBlur = 12 * a;
+      for (const sgn of [-1, 1]) { ctx.beginPath(); ctx.arc(cx + sgn * r * 0.28, cy, r * 0.07 + 1.5, 0, 6.2832); ctx.fill(); }
+      ctx.shadowBlur = 0;
+    } else {
+      // ---- woken: tears out of the cloud and banks up & off to the left ----
+      stormHit.alpha = 0;
+      stormWakeT += dt / 60 * (reduce ? 0.6 : 1);
+      const T = stormWakeT, fly = Math.max(0, Math.min(1, T / 2.6)), e = fly * fly * (3 - 2 * fly);
+      const wx = cx - 0.7 * W * e, wy = cy - 0.45 * H * e;
+      const sc = Math.min(W, H) * 0.0016 * (1 + 0.2 * e);
+      const flA = a * (1 - Math.max(0, (T - 1.8) / 0.8));
+      if (flA > 0.01) drawWyvern(wx, wy, sc, t, flA);
+    }
+    if (stormBolt) {                            // the bolt, over the cloud
+      ctx.strokeStyle = `rgba(210,232,255,${stormBolt.life})`; ctx.lineWidth = 2.2;
+      ctx.shadowColor = 'rgba(180,220,255,0.95)'; ctx.shadowBlur = 12; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(stormBolt.pts[0].x, stormBolt.pts[0].y);
+      for (const pt of stormBolt.pts) ctx.lineTo(pt.x, pt.y);
+      ctx.stroke(); ctx.shadowBlur = 0;
+    }
+    if (stormFlash > 0.01 && !reduce) { ctx.fillStyle = `rgba(220,235,255,${0.12 * stormFlash * a})`; ctx.fillRect(0, 0, W, H); }
+  }
+
+  /* ---- TRENCH LEVIATHAN · circling unseen in the dark (the deep) ----
+     Far down in the black water only a single glowing lure drifts; the beast
+     itself is invisible. Tap the lure to follow it — each follow kindles one
+     more length of its bioluminescent body out of the dark and the lure bobs
+     onward down its spine. Reach the end and the whole leviathan ignites,
+     uncoils and surges away into the trench. */
+  const LEV_ID = 'leviathan';
+  let levCaught = _eggHas(LEV_ID);
+  const levPresent = !levCaught && (dragonForced('leviathan') || Math.random() < 0.075);
+  const LEV_FOLLOWS = 4, LEV_SEG = 26;         // taps from first lure to full reveal; body resolution
+  let levFollow = 0, levWake = false, levWakeT = 0, levLurePh = 0;
+  const levHit = { x: 0, y: 0, r: 0, alpha: 0 };
+  // the body's resting curve across the deep — a big living S (head at the left)
+  function levBodyPt(i, t) {
+    const f = i / (LEV_SEG - 1);
+    const x = 0.22 + f * 0.58;
+    const y = 0.46 + Math.sin(f * Math.PI * 1.6 + 0.4) * 0.16 + (reduce ? 0 : Math.sin(t * 0.0012 + f * 6) * 0.012);
+    return { x: x * W, y: y * H };
+  }
+  function followLure(cx, cy) {
+    if (!levPresent || levWake || levHit.alpha < 0.3) return false;
+    if (Math.hypot(cx - levHit.x, cy - levHit.y) > levHit.r + 26) return false;
+    levFollow++;
+    sparkAt(levHit.x, levHit.y, 7, false);
+    if (levFollow >= LEV_FOLLOWS) {            // fully drawn out → it surges away
+      levWake = true; levWakeT = 0; levCaught = true;
+      burstAt(levHit.x, levHit.y, false);
+      window.dispatchEvent(new CustomEvent('easteregg', { detail: { id: LEV_ID } }));
+    }
+    return true;
+  }
+  function drawLeviathan(p, t, dt) {
+    if (!levPresent) return;
+    const a = Math.max(0, Math.min(1, (p - 0.84) / 0.06));   // fades in deep, holds to the bottom
+    if (a <= 0.01) { levHit.alpha = 0; return; }
+    levLurePh += reduce ? 0 : 0.03 * dt;
+    if (!levWake) {
+      const fi = Math.min(LEV_SEG - 1, Math.round((levFollow / LEV_FOLLOWS) * (LEV_SEG - 1)));
+      if (fi > 0) {                            // a faint body glow once partly revealed
+        ctx.strokeStyle = `rgba(80,170,210,${0.22 * a})`; ctx.lineWidth = 6; ctx.lineCap = 'round';
+        ctx.beginPath(); for (let i = 0; i <= fi; i++) { const pt = levBodyPt(i, t); i ? ctx.lineTo(pt.x, pt.y) : ctx.moveTo(pt.x, pt.y); } ctx.stroke();
+      }
+      for (let i = 0; i <= fi; i++) {          // photophores kindled so far
+        const pt = levBodyPt(i, t), dim = 0.5 + 0.5 * Math.sin(t * 0.004 + i * 0.6);
+        ctx.fillStyle = `rgba(150,240,255,${(0.5 + 0.4 * dim) * a})`; ctx.shadowColor = 'rgba(120,230,255,0.9)'; ctx.shadowBlur = 6 * a;
+        ctx.beginPath(); ctx.arc(pt.x, pt.y, 2.2, 0, 6.2832); ctx.fill();
+      }
+      ctx.shadowBlur = 0;
+      if (levFollow >= 1) {                    // eyes at the head once you've started following
+        const h = levBodyPt(0, t);
+        ctx.fillStyle = `rgba(190,250,255,${a})`; ctx.shadowColor = 'rgba(150,240,255,0.9)'; ctx.shadowBlur = 8 * a;
+        ctx.beginPath(); ctx.arc(h.x - 6, h.y - 4, 2, 0, 6.2832); ctx.fill();
+        ctx.beginPath(); ctx.arc(h.x - 2, h.y - 7, 2, 0, 6.2832); ctx.fill(); ctx.shadowBlur = 0;
+      }
+      // the lure — a bright esca on a thin stalk at the reveal frontier, beckoning on
+      const fr = levBodyPt(fi, t);
+      const lx = fr.x + 22 + Math.cos(levLurePh * 0.7) * 5, ly = fr.y - 26 + Math.sin(levLurePh) * 8;
+      ctx.strokeStyle = `rgba(150,200,210,${0.5 * a})`; ctx.lineWidth = 1.4;
+      ctx.beginPath(); ctx.moveTo(fr.x, fr.y); ctx.quadraticCurveTo(fr.x + 18, fr.y - 22, lx, ly); ctx.stroke();
+      ctx.fillStyle = `rgba(200,255,235,${a})`; ctx.shadowColor = 'rgba(170,255,225,0.95)'; ctx.shadowBlur = 14 * a;
+      ctx.beginPath(); ctx.arc(lx, ly, 4.5, 0, 6.2832); ctx.fill(); ctx.shadowBlur = 0;
+      levHit.x = lx; levHit.y = ly; levHit.r = 16; levHit.alpha = a;
+    } else {
+      // ---- woken: the whole body lights, a hot pulse runs down it, and it surges off left ----
+      levHit.alpha = 0;
+      levWakeT += dt / 60 * (reduce ? 0.6 : 1);
+      const T = levWakeT, surge = Math.max(0, Math.min(1, T / 2.4)), e = surge * surge * (3 - 2 * surge);
+      const shift = -e * W * 0.9, flA = a * (1 - Math.max(0, (T - 1.6) / 0.8));
+      if (flA > 0.01) {
+        ctx.lineCap = 'round'; ctx.strokeStyle = `rgba(120,210,240,${0.4 * flA})`; ctx.lineWidth = 8;
+        ctx.beginPath(); for (let i = 0; i < LEV_SEG; i++) { const pt = levBodyPt(i, t), x = pt.x + shift; i ? ctx.lineTo(x, pt.y) : ctx.moveTo(x, pt.y); } ctx.stroke();
+        for (let i = 0; i < LEV_SEG; i++) {
+          const pt = levBodyPt(i, t), x = pt.x + shift;
+          const sweep = Math.max(0, 1 - Math.abs(e * (LEV_SEG + 6) - i) / 4);   // a bright pulse running down the spine
+          ctx.fillStyle = `rgba(200,250,255,${(0.6 + 0.4 * sweep) * flA})`; ctx.shadowColor = 'rgba(150,240,255,0.9)'; ctx.shadowBlur = (6 + sweep * 10) * flA;
+          ctx.beginPath(); ctx.arc(x, pt.y, 2.4 + sweep * 2, 0, 6.2832); ctx.fill();
+        }
+        ctx.shadowBlur = 0;
+        const h = levBodyPt(0, t);             // eyes lead the surge
+        ctx.fillStyle = `rgba(210,255,255,${flA})`; ctx.shadowColor = 'rgba(150,240,255,0.95)'; ctx.shadowBlur = 12 * flA;
+        ctx.beginPath(); ctx.arc(h.x + shift - 6, h.y - 4, 2.4, 0, 6.2832); ctx.fill();
+        ctx.beginPath(); ctx.arc(h.x + shift - 2, h.y - 7, 2.4, 0, 6.2832); ctx.fill(); ctx.shadowBlur = 0;
+      }
+    }
+  }
+
   // fish are click-shy: a tap/click scatters the ones nearby (clickPulse fuels the flee burst);
   // with no click they cruise past the cursor — and if it sits still a while, the nosy ones drift over
-  window.addEventListener('pointerdown', e => { mx = e.clientX / W; my = e.clientY / H; clickPulse = 1; idleT = 0; pointerHere = true; catchGoldFish(e.clientX, e.clientY); if (!catchTortoise(e.clientX, e.clientY)) pokeTortoise(e.clientX, e.clientY); catchShrimp(e.clientX, e.clientY); relightFire(e.clientX, e.clientY); });
+  // tortoise taps cascade by where it is in its journey: the gold catch wins (Oct 30),
+  // then a SHOVE in space, a TUG under the canopy, else a POKE → shell-tuck (ashore / at sea).
+  window.addEventListener('pointerdown', e => { mx = e.clientX / W; my = e.clientY / H; clickPulse = 1; idleT = 0; pointerHere = true; catchGoldFish(e.clientX, e.clientY); if (!catchTortoise(e.clientX, e.clientY) && !pushTortoise(e.clientX, e.clientY) && !tugChute(e.clientX, e.clientY)) pokeTortoise(e.clientX, e.clientY); catchShrimp(e.clientX, e.clientY); relightFire(e.clientX, e.clientY); lightDraco(e.clientX, e.clientY); wakeStorm(e.clientX, e.clientY); followLure(e.clientX, e.clientY); });
   window.addEventListener('mouseout', e => { if (!e.relatedTarget && !e.toElement) pointerHere = false; });
   window.addEventListener('blur', () => { pointerHere = false; });
 
@@ -2213,6 +2811,15 @@
       ctx.strokeStyle = lgr; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(s.x, s.y); ctx.stroke();
     }
 
+    // DRACO — the star dragon written in the field: anchor stars to connect, drawn
+    // over the stars so its lines and lit nodes read against them (see drawDraco)
+    drawDraco(p, t, dt);
+
+    // the traveller adrift in space — suited, helmeted, tumbling slowly among the stars,
+    // curious about your cursor (drifts toward it; shove it and it sails off). Frontmost in
+    // the space pass so it reads clearly against the star field. (See stepTortoise / aloft.)
+    if (tort.aSpace > 0.01) drawTortoiseAloft(tort.aSpace, t * 0.001, 'space');
+
     // ── STRATOSPHERE sky-body: the same sun (day) / moon (night) the biosphere shows,
     //    seen from high altitude. The high sky obeys the same device-clock day/night
     //    rules, and the lit body rides the SAME arc (sunPos/moonPos) as the beach body,
@@ -2252,6 +2859,15 @@
       rg.addColorStop(0, `rgba(245,238,250,${c.a * cloudA * cloudThick})`); rg.addColorStop(1, 'rgba(245,238,250,0)');
       ctx.fillStyle = rg; ctx.beginPath(); ctx.ellipse(c.x * W, cy, c.w, c.h, 0, 0, 6.2832); ctx.fill();
     }
+
+    // STORM WYVERN — asleep in a thundercloud among the clouds: strike it thrice to
+    // wake it. Drawn after the clouds so it lurks among them (see drawStorm)
+    drawStorm(p, t, dt);
+
+    // the traveller parachuting down through the high sky toward the camp — drawn AFTER the
+    // clouds so it floats in front of them, swaying on the live wind (and on some visits it
+    // skydives spread-eagle for a beat before the canopy snaps open). Tug it and it swings.
+    if (tort.aSky > 0.01) drawTortoiseAloft(tort.aSky, t * 0.001, 'chute');
 
     // ── BIOSPHERE TABLEAU: a beach by the camp, held as one scene ──
     // The whole coastal scene shares one envelope (bioVis): a sun (or moon) over
@@ -2356,9 +2972,10 @@
         // the camp tucked in the clearing — drawn BEFORE the framing conifers and grass
         // so the foreground trees/blades overlap it for depth (the fire is a later pass)
         drawCamp(t, Math.min(1, landA * 1.3), campGy);
-        // the tortoise padding through the clearing — drawn AFTER the camp (so it reads as
-        // crawling out of the tent) but BEFORE the framing conifers; fades with the scene as
-        // the tide floods over it
+        // the tortoise emerging from the tent — drawn AFTER (in FRONT of) the camp so it never
+        // slides around behind the narrow tent silhouette; instead it steps OUT of the dark tent
+        // mouth at the base and ambles into the clearing. Its emerge x is anchored to the tent's
+        // live position (see tortoisePath) so it comes from the tent, not out beside it.
         drawTortoise(tort.aLand * landA, t * 0.001);
         // big conifers framing the scene from the foreground edges (swaying in the wind),
         // IN FRONT of the camp so the nearest trees overlap it instead of it looming over them
@@ -2556,9 +3173,10 @@
       ctx.strokeStyle = `rgba(180,235,255,${0.25 * waterA})`; ctx.lineWidth = 1; ctx.stroke();
     }
 
-    // the tortoise gliding off into the open water after a fish — drawn just BEFORE
-    // the shoal so the scattering fish read as being in front of the big shadow they
-    // flee (its swim threat is published by stepTortoise above)
+    // the tortoise gliding through the open water after a fish — and DIVING ON past the
+    // shoal toward the trench (a dive bubble + its vent-warmed shell fade in deep). Drawn
+    // just BEFORE the shoal so the scattering fish read as being in front of the big shadow
+    // they flee (its swim threat is published by stepTortoise above).
     drawTortoise(tort.aWater, t * 0.001);
 
     // fish school (water → trench) — a lively, continuously-swimming shoal:
@@ -2644,7 +3262,13 @@
           // it just ran, so it keeps heading the way it bolted: the cruise above only eases the dart's vertical
           // tilt back to level, it never about-faces, and it won't wheel around to investigate the thing it
           // fled from — it only gets nosy again if the cursor later drifts back into its forward view
-          if (curious > 0.01 && f.nosy > 0.68 && (f.curEngaged || canSee)) {
+          // ── FEAR TAKES OVER CURIOSITY: re-engaging needs the fright essentially CLEAR (fear < 0.012),
+          //    a hysteresis floor well under the 0.03 flee gate. Without the gap a fish whose fright
+          //    hovers right at the threshold — e.g. the sea turtle gliding through a held-still, curious
+          //    shoal, its squared-falloff scare grazing 0.03 as it passes — flickered between darting away
+          //    (fear) and whipping back to face the cursor (curiosity). Now it just CALMS in plain cruise
+          //    through that band and only gets nosy once the fright has truly faded.
+          if (curious > 0.01 && f.fear < 0.012 && f.nosy > 0.68 && (f.curEngaged || canSee)) {
             f.curEngaged = true;                      // only fish that SAW it engage; then they see it through
             desired = toCur;                          // always face what it's watching — never flips around
             f.pokePh += 0.05 * dt;
@@ -2689,6 +3313,11 @@
       ctx.shadowBlur = 6; ctx.shadowColor = b.hue === 'c' ? 'rgba(0,220,255,.8)' : 'rgba(255,150,200,.8)';
       ctx.fill(); ctx.shadowBlur = 0;
     }
+
+    // TRENCH LEVIATHAN — circling unseen in the dark, lit only by the lure it dangles:
+    // follow the lure to draw it out. Drawn over the bioluminescence, before the trench
+    // walls/floor occlude the lower water (see drawLeviathan)
+    drawLeviathan(p, t, dt);
 
     // marine snow + trench walls (trench)
     const trA = Math.max(0, Math.min(1, (p - 0.85) / 0.1));
@@ -2791,6 +3420,8 @@
     if (q) f = q;
     switch ((f || '').toLowerCase()) {
       case 'rain':  return { ready: true, cloud: 0.90, wind: 0.40, precip: 0.7, kind: 'rain' };
+      // a passing sun-shower: light rain under a breaking sky — the look that brings out the rainbow
+      case 'showers': return { ready: true, cloud: 0.55, wind: 0.30, precip: 0.25, kind: 'rain' };
       case 'storm': return { ready: true, cloud: 1.00, wind: 0.90, precip: 1.0, kind: 'rain' };
       case 'snow':  return { ready: true, cloud: 0.85, wind: 0.30, precip: 0.8, kind: 'snow' };
       case 'clear': return { ready: true, cloud: 0.08, wind: 0.12, precip: 0.0, kind: 'none' };

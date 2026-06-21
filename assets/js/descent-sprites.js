@@ -43,15 +43,40 @@ window.DESCENT_SPRITES = {
 
   '🎈': '<svg viewBox="0 0 60 104"><path d="M30 4 Q53 4 53 35 Q53 60 30 70 Q7 60 7 35 Q7 4 30 4 Z" fill="#ff8fb8"/><path d="M26 69 L34 69 L30 78 Z" fill="#ff8fb8"/><path d="M30 78 q7 9 -2 22" stroke="#aebfe2" stroke-width="2" fill="none"/><ellipse cx="22" cy="26" rx="6" ry="10" fill="#ffd0e0" opacity=".6"/></svg>',
 
+  /* rainbow — the seven concentric arcs (red outermost → violet innermost), drawn as
+     stroked semicircles sharing one centre on the baseline. Anchors the catchable
+     rainbow egg that arcs over the bay after a passing daytime shower (see the
+     `rainbow` sprite + rainbowWeather() in the engine). Airy and slightly translucent
+     so it reads as light, not a painted band; the box is wide (it's a big, still arc). */
+  'rainbow': '<svg viewBox="0 0 200 116"><g fill="none" stroke-linecap="round" opacity=".85"><path d="M8 110 A92 92 0 0 1 192 110" stroke="#ff6b6b" stroke-width="7"/><path d="M15 110 A85 85 0 0 1 185 110" stroke="#ffb454" stroke-width="7"/><path d="M22 110 A78 78 0 0 1 178 110" stroke="#ffe05a" stroke-width="7"/><path d="M29 110 A71 71 0 0 1 171 110" stroke="#6fcf7f" stroke-width="7"/><path d="M36 110 A64 64 0 0 1 164 110" stroke="#5aa9ff" stroke-width="7"/><path d="M43 110 A57 57 0 0 1 157 110" stroke="#6f6fe0" stroke-width="7"/><path d="M50 110 A50 50 0 0 1 150 110" stroke="#b56fe0" stroke-width="7"/></g></svg>',
+
   /* ---- forest ---- */
   '⛺': '<svg viewBox="0 0 130 92"><path d="M65 8 L122 82 L8 82 Z" fill="#c9a47e"/><path d="M65 8 L83 82 L47 82 Z" fill="#a87c54"/><path d="M65 30 L78 82 L52 82 Z" fill="#241a10"/><line x1="65" y1="8" x2="65" y2="2" stroke="#c9a47e" stroke-width="3"/></svg>',
 
   '🔥': '<svg viewBox="0 0 72 100"><path d="M36 6 Q54 30 47 50 Q62 45 57 71 Q57 95 36 96 Q15 95 15 71 Q13 51 27 53 Q18 32 36 6 Z" fill="#f0a878"/><path d="M36 36 Q47 51 43 67 Q43 85 36 88 Q29 85 29 67 Q27 55 36 36 Z" fill="#ffe0b0"/></svg>',
 
+  /* owl — the dusk/night watcher perched in the camp treeline (see the `owl` sprite,
+     night-gated, in the engine). A dark, symmetric silhouette (no facing flip needed)
+     with two ear tufts and a pair of big amber eyes that BLINK now and then — the only
+     warm thing in the dark conifers. Scoped blink animation, stilled for reduced motion. */
+  'owl': '<svg viewBox="0 0 80 98"><style>.dowl-eye{transform-box:fill-box;transform-origin:50% 50%;animation:dowlBlink 5.4s ease-in-out infinite}@keyframes dowlBlink{0%,90%,100%{transform:scaleY(1)}95%{transform:scaleY(.08)}}@media (prefers-reduced-motion:reduce){.dowl-eye{animation:none}}</style><path d="M40 16 L20 4 L27 23 Z" fill="#2b3346"/><path d="M40 16 L60 4 L53 23 Z" fill="#2b3346"/><path d="M40 14 C59 14 65 36 65 56 C65 80 54 92 40 92 C26 92 15 80 15 56 C15 36 21 14 40 14 Z" fill="#2b3346"/><g stroke="#1d2330" stroke-width="2" fill="none" stroke-linecap="round" opacity=".5"><path d="M31 68 Q34 74 31 80"/><path d="M40 70 Q43 76 40 82"/><path d="M49 68 Q52 74 49 80"/></g><circle cx="30" cy="46" r="12" fill="#1d2330"/><circle cx="50" cy="46" r="12" fill="#1d2330"/><g class="dowl-eye"><circle cx="30" cy="46" r="8" fill="#ffce54"/><circle cx="50" cy="46" r="8" fill="#ffce54"/><circle cx="30" cy="46" r="3.4" fill="#06121c"/><circle cx="50" cy="46" r="3.4" fill="#06121c"/></g><path d="M40 52 L35 61 L45 61 Z" fill="#e09a3a"/><path d="M30 90 L25 97 M30 90 L34 97 M50 90 L46 97 M50 90 L55 97" stroke="#e09a3a" stroke-width="2.4" stroke-linecap="round"/></svg>',
+
   /* ---- sea ---- */
   '🐟': '<svg viewBox="0 0 120 70"><path d="M104 35 L120 18 L114 35 L120 52 Z" fill="#9fe9ff"/><path d="M42 35 Q70 13 106 35 Q70 57 42 35 Z" fill="#9fe9ff"/><path d="M70 20 L78 12 L80 26 Z" fill="#7fd0ee"/><circle cx="56" cy="32" r="3.5" fill="#06121c"/></svg>',
 
   '🐠': '<svg viewBox="0 0 120 80"><path d="M96 40 L118 16 L110 40 L118 64 Z" fill="#ff8fb8"/><path d="M38 40 Q66 14 98 40 Q66 66 38 40 Z" fill="#7fd8ff"/><path d="M62 22 L70 9 L78 24 Z" fill="#bfe9ff"/><path d="M58 58 L66 70 L74 56 Z" fill="#bfe9ff"/><g stroke="#0c1428" stroke-width="3" opacity=".35"><path d="M60 30 L60 52"/><path d="M72 27 L72 54"/></g><circle cx="50" cy="37" r="3.5" fill="#06121c"/></svg>',
+
+  /* message in a bottle — a corked green bottle lying on the wet sand with a rolled
+     note showing through the glass. Washed up on the tide line (see the `bottle`
+     sprite + its tide placement in the engine); tap to open it. A still object, so
+     no facing/animation — just a soft shine down the glass. */
+  'bottle': '<svg viewBox="0 0 94 52"><rect x="6" y="19" width="13" height="18" rx="3" fill="#c9a47e"/><rect x="16" y="22" width="6" height="12" fill="#a87c54"/><rect x="20" y="21" width="14" height="14" rx="3" fill="#8fbf9b"/><path d="M30 14 H80 a10 10 0 0 1 10 10 v6 a10 10 0 0 1 -10 10 H30 Z" fill="#7fae8f" opacity=".9"/><g transform="rotate(-6 60 28)"><rect x="44" y="19" width="30" height="18" rx="2" fill="#f0e6cf"/><g stroke="#b9a884" stroke-width="1.4" stroke-linecap="round"><path d="M48 24 H70"/><path d="M48 28 H68"/><path d="M48 32 H65"/></g></g><path d="M35 19 q6 9 0 18" stroke="#eafff2" stroke-width="2.4" fill="none" opacity=".5"/></svg>',
+
+  /* sea sparkle — bioluminescent surf: a low foam edge sprinkled with cold blue-white
+     specks that twinkle out of step. Anchors the night/summer `sea-sparkle` egg that
+     glows in the breaking waves (the engine gives it a cool glow); the dots pulse on
+     three staggered cycles, and hold steady for reduced motion. */
+  'sea-sparkle': '<svg viewBox="0 0 116 64"><style>.dsp-a{animation:dspTwk 1.8s ease-in-out infinite}.dsp-b{animation:dspTwk 2.4s ease-in-out infinite}.dsp-b{animation-delay:-.6s}.dsp-c{animation:dspTwk 1.4s ease-in-out infinite}.dsp-c{animation-delay:-.9s}@keyframes dspTwk{0%,100%{opacity:.3}50%{opacity:1}}@media (prefers-reduced-motion:reduce){.dsp-a,.dsp-b,.dsp-c{animation:none;opacity:.8}}</style><g fill="none" stroke-linecap="round"><path d="M4 42 Q30 28 58 38 Q86 48 112 34" stroke="#bfeefe" stroke-width="3" opacity=".55"/><path d="M8 51 Q34 40 60 49 Q88 59 110 47" stroke="#9fdcff" stroke-width="2" opacity=".38"/></g><g fill="#cffaff"><circle class="dsp-a" cx="16" cy="40" r="2.4"/><circle class="dsp-b" cx="28" cy="34" r="1.8" fill="#9fe9ff"/><circle class="dsp-c" cx="40" cy="39" r="2.6"/><circle class="dsp-a" cx="50" cy="44" r="1.6" fill="#bff3ff"/><circle class="dsp-b" cx="60" cy="40" r="2.2" fill="#9fe9ff"/><circle class="dsp-c" cx="70" cy="45" r="1.7"/><circle class="dsp-a" cx="80" cy="42" r="2.4" fill="#bff3ff"/><circle class="dsp-b" cx="90" cy="38" r="1.6" fill="#9fe9ff"/><circle class="dsp-c" cx="100" cy="44" r="2"/><circle class="dsp-b" cx="22" cy="49" r="1.5" fill="#9fe9ff"/><circle class="dsp-c" cx="46" cy="51" r="1.6" fill="#bff3ff"/><circle class="dsp-a" cx="66" cy="52" r="1.5" fill="#9fe9ff"/><circle class="dsp-b" cx="86" cy="51" r="1.7"/><circle class="dsp-c" cx="106" cy="40" r="1.8" fill="#9fe9ff"/></g></svg>',
 
   /* the rare golden fish — keyed by name (no gold-fish emoji), used as the egg
      icon for the catchable gold specimen that turns up in the passing shoal
@@ -126,4 +151,22 @@ window.DESCENT_SPRITES = {
      animation as the gold (shared classes, identical keyframes), recoloured to a
      natural dusky terracotta so it reads as "just a seahorse", not a dim gold one. */
   'seahorse-natural': '<svg viewBox="0 0 70 112"><style>.dsea-fin{transform-box:fill-box;transform-origin:0 50%;animation:dsFin .4s ease-in-out infinite}.dsea-tail{transform-box:fill-box;transform-origin:100% 0;animation:dsTail 3.8s ease-in-out infinite}@keyframes dsFin{0%,100%{transform:scaleX(1)}50%{transform:scaleX(.62)}}@keyframes dsTail{0%,100%{transform:rotate(-5deg)}50%{transform:rotate(6deg)}}@media (prefers-reduced-motion:reduce){.dsea-fin,.dsea-tail{animation:none}}</style><g class="dsea-tail"><path d="M34 82 C33 95 25 101 18 98 C12 95 13 87 20 87 C25 87 26 92 24 95" fill="none" stroke="#9a5a40" stroke-width="6" stroke-linecap="round"/></g><g class="dsea-fin"><path d="M48 30 Q61 33 57 40 Q63 44 56 47 Q61 52 48 53 Z" fill="#e0a07e" opacity=".9"/></g><path d="M41 13 C50 14 51 24 49 32 C47 44 43 52 41 63 C40 72 41 78 38 83 L29 83 C27 76 30 66 29 56 C28 47 27 40 29 33 C30 27 27 25 24 25 C30 16 35 13 41 13 Z" fill="#c47a5a"/><path d="M25 21 L5 27 L25 31 Z" fill="#c47a5a"/><g fill="#c47a5a"><path d="M37 12 L34 5 L41 11 Z"/><path d="M42 11 L43 4 L47 10 Z"/></g><g stroke="#8a4f38" stroke-width="1.4" stroke-linecap="round" opacity=".75"><path d="M31 39 L38 40"/><path d="M30 48 L40 49"/><path d="M30 57 L40 58"/><path d="M31 66 L39 67"/></g><circle cx="33" cy="24" r="2.4" fill="#06121c"/><circle cx="34" cy="23.2" r=".8" fill="#fff" opacity=".8"/></svg>',
+
+  /* ── the three legendary DRAGONS, one per realm of the descent — collection /
+     toast art only; the live creatures are canvas-painted in descent-engine.js
+     (see its DRAGONS block). Each wears its realm's palette: Draco a gold-and-
+     white constellation line-figure, the storm wyvern a dark storm-lit silhouette
+     with a bolt, the leviathan a cool bioluminescent serpent trailing its lure. */
+
+  /* DRACO — the star dragon: a constellation figure of star nodes joined by faint
+     lines, with a gold "eye" star at the head. (Egg id `draco`.) */
+  'draco': '<svg viewBox="0 0 130 90"><g fill="none" stroke="#9fc0ff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" opacity=".9"><polyline points="16,40 32,30 50,34 66,48 84,40 102,28 118,40"/><line x1="66" y1="48" x2="58" y2="22"/><line x1="66" y1="48" x2="80" y2="20"/><line x1="118" y1="40" x2="126" y2="30"/><line x1="118" y1="40" x2="126" y2="52"/></g><g fill="#e8f0ff"><circle cx="32" cy="30" r="2"/><circle cx="50" cy="34" r="2"/><circle cx="66" cy="48" r="2.4"/><circle cx="84" cy="40" r="2"/><circle cx="102" cy="28" r="2"/><circle cx="118" cy="40" r="2.2"/><circle cx="58" cy="22" r="1.8"/><circle cx="80" cy="20" r="1.8"/><circle cx="126" cy="30" r="1.6"/><circle cx="126" cy="52" r="1.6"/></g><circle cx="16" cy="40" r="4" fill="none" stroke="#ffd98a" stroke-width="1.4"/><circle cx="16" cy="40" r="2.2" fill="#ffce54"/></svg>',
+
+  /* STORM WYVERN — a dark, storm-lit dragon banking left with a lightning bolt
+     above and an amber eye. (Egg id `storm-wyvern`.) */
+  'storm-wyvern': '<svg viewBox="0 0 130 90"><polyline points="92,8 82,32 93,32 84,56" fill="none" stroke="#ffe27a" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round" opacity=".95"/><g fill="#1c2436" stroke="#8fc4ff" stroke-width="1.6" stroke-linejoin="round"><path d="M80 54 Q104 46 124 56 Q104 52 86 60 Z"/><path d="M62 50 Q48 22 22 26 Q42 34 36 48 Q50 44 66 54 Z" fill="#222b40"/><ellipse cx="66" cy="54" rx="15" ry="8"/><path d="M64 50 Q50 22 26 32 Q46 40 40 54 Q54 48 68 56 Z" fill="#2a3450"/><path d="M54 52 Q42 46 32 38 L36 35 Q47 44 60 50 Z"/></g><circle cx="34" cy="37" r="1.9" fill="#ffb45a"/></svg>',
+
+  /* TRENCH LEVIATHAN — a long bioluminescent deep-sea serpent with photophores
+     down its spine and a glowing lure on a stalk at its head. (Egg id `leviathan`.) */
+  'leviathan': '<svg viewBox="0 0 140 80"><path d="M18 46 Q42 22 66 42 Q90 62 114 42 Q128 32 136 42" fill="none" stroke="#163141" stroke-width="13" stroke-linecap="round"/><path d="M18 46 Q42 22 66 42 Q90 62 114 42 Q128 32 136 42" fill="none" stroke="#1f4a5e" stroke-width="5" stroke-linecap="round" opacity=".75"/><g fill="#9fe9ff"><circle cx="30" cy="40" r="2"/><circle cx="46" cy="32" r="2"/><circle cx="62" cy="40" r="2"/><circle cx="78" cy="50" r="2"/><circle cx="94" cy="48" r="2"/><circle cx="110" cy="42" r="2"/><circle cx="126" cy="40" r="2"/></g><path d="M18 46 Q9 30 19 18" fill="none" stroke="#7fb0c0" stroke-width="1.6"/><circle cx="19" cy="17" r="5" fill="#cffff0"/><circle cx="19" cy="17" r="2" fill="#fff"/><circle cx="15" cy="44" r="2.2" fill="#bdf2ff"/></svg>',
 };
