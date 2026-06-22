@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="The science of falling asleep faster and sleeping better — light, temperature, breathing, and the mind-tricks that actually work — plus a playful counting-sheep playground.">
+<meta name="theme-color" content="#060B1C">
+<link rel="canonical" href="https://captchakri.github.io/blog/2026/06/21/the-art-of-falling-asleep/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="The Art of Falling Asleep · Chakri's World">
+<meta property="og:description" content="What the research says about sleeping faster and better — and a little counting-sheep playground to wind down with.">
+<meta property="og:url" content="https://captchakri.github.io/blog/2026/06/21/the-art-of-falling-asleep/">
+<meta property="og:site_name" content="Chakri's World">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="The Art of Falling Asleep · Chakri's World">
+<meta name="twitter:description" content="What the research says about sleeping faster and better — and a little counting-sheep playground to wind down with.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<title>The Art of Falling Asleep · Chakri's World</title>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap"></noscript>
+<link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+<link rel="stylesheet" href="/assets/css/theme.css">
+<link rel="stylesheet" href="/assets/css/sheep-counter.css">
+<style>
+/* the embedded playground sits in a softly-framed panel inside the article */
+.sleep-play {
+  margin: 2.5rem 0 1rem; padding: 1.25rem;
+  background: var(--navy2); border: 1px solid var(--border); border-radius: 1rem;
+}
+.sleep-play-head { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem; }
+.sleep-play-head .eyebrow {
+  font-family: 'JetBrains Mono', monospace; font-size: 0.62rem; letter-spacing: 0.2em;
+  text-transform: uppercase; color: var(--cyan);
+}
+.sleep-play-head a { font-size: 0.8rem; color: var(--cyan); text-decoration: none; white-space: nowrap; }
+.sleep-play-head a:hover { text-decoration: underline; }
+/* the references list at the foot of the post */
+.post-refs { margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid var(--border); }
+.post-refs h2 { font-size: 1.1rem; margin-bottom: 1rem; }
+.post-refs ol { padding-left: 1.4rem; }
+.post-refs li { font-size: 0.84rem; color: var(--gray); line-height: 1.7; margin-bottom: 0.55rem; }
+.post-refs a { color: var(--cyan); text-decoration: none; }
+.post-refs a:hover { text-decoration: underline; }
+.post-disclaimer { font-size: 0.84rem; color: var(--gray); font-style: italic; margin-top: 1.5rem; }
+/* Each margin note hangs beside the paragraph it annotates: wrapping that
+   paragraph + the note in .annot gives a local positioning context, so notes
+   from different sections don't pile up at the top of the article (they're
+   position:absolute relative to the nearest positioned ancestor). Below 1260px
+   the theme folds them into inline cards — handled in theme.css. */
+.post-article .annot { position: relative; }
+.post-article .annot > .mnote,
+.post-article .annot > .mstat { top: 0; }
+</style>
+</head>
+<body>
+
+<a class="skip-link" href="#main-content">Skip to main content</a>
+
+<div id="intro" aria-hidden="true">
+  <div class="intro-logo">CK<span class="dot">.</span></div>
+  <div class="intro-bar"></div>
+</div>
+
+<div id="cursor-ring" aria-hidden="true"></div>
+<div id="cursor-dot" aria-hidden="true"></div>
+<div id="progress" aria-hidden="true"></div>
+<canvas id="starfield" aria-hidden="true"></canvas>
+
+<nav aria-label="Primary navigation">
+  <a href="/" class="nav-logo">CK<span>.</span></a>
+  <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="primary-links" aria-label="Open navigation menu">
+    <span></span><span></span><span></span>
+  </button>
+  <ul class="nav-links" id="primary-links">
+    <li><a href="/#about">About</a></li>
+    <li><a href="/#experience">Experience</a></li>
+    <li><a href="/#projects">Projects</a></li>
+    <li><a href="/blog/" class="active">Blog</a></li>
+    <li><a href="/#contact">Contact</a></li>
+  </ul>
+</nav>
+
+<main id="main-content" tabindex="-1">
+<div class="post-layout">
+
+  <aside class="post-side">
+    <a href="/blog/" class="side-back">← all posts</a>
+    <div class="toc-head">CONTENTS</div>
+    <nav id="post-toc" aria-label="Table of contents"></nav>
+  </aside>
+
+  <div class="post-main">
+
+    <header class="post-header">
+      <div class="section-tag rv">// blog post</div>
+      <h1 class="post-title rv">The Art of Falling Asleep</h1>
+      <div class="post-meta rv">
+        <time class="post-date" datetime="2026-06-21">Jun 21, 2026</time>
+        <span>· 8 min read</span>
+      </div>
+      <div class="blog-tags rv">
+        <span class="tag">sleep</span>
+        <span class="tag">health</span>
+        <span class="tag">interactive</span>
+      </div>
+    </header>
+
+    <article class="post-article">
+
+      <p class="rv">Most nights my body has a clean off-switch. Around 10 p.m.,
+      almost to the minute, the lights in my head start dimming whether I agree or
+      not. There's exactly one reliable exception: when I'm deep in something I
+      genuinely love — a problem I can't put down, a thing I'm building — 10 quietly
+      becomes 1, 1 becomes 4, and I'll happily ride it to 5 a.m. until what's in
+      front of me finally looks the way I wanted it. I've made peace with those
+      nights; some of my favourite work lives in them.</p>
+
+      <p class="rv">What unsettles me is everything in between. I watch friends pull
+      all-nighters like the hours are free, and I've had my own — usually on the road,
+      in a strange bed with a clock three time zones behind my body — where sleep just
+      won't come and I lie there negotiating with the ceiling. So I got curious: how
+      does this thing actually work, and could I build a little visual to ease myself
+      down faster on the nights my body forgets how? I went and read what the science
+      says, threw out the folklore, and built a toy to wind down with. Here's the
+      useful half of what I found.</p>
+
+      <h2 class="rv" data-type="Why your brain begs for it"></h2>
+      <div class="annot">
+      <p class="rv">Sleep isn't downtime; it's maintenance you can't run while the
+      machine is on. During deep, slow-wave sleep the brain's
+      <strong>glymphatic system</strong> opens up and flushes out metabolic waste
+      that accumulates while you're awake — including the amyloid-&beta; proteins
+      tied to Alzheimer's. The clearing happens far more efficiently asleep than
+      awake.<a href="#ref-3">[3]</a> Meanwhile your brain is <em>replaying</em> the
+      day, moving memories from fragile short-term storage into long-term ones —
+      which is why a night of real sleep beats an all-nighter before an exam every
+      time.<a href="#ref-4">[4]</a></p>
+
+      <aside class="mnote">
+        <span class="mnum">★</span> Think of slow-wave sleep as the dishwasher cycle
+        for your head. Skip it for long enough and the sink just keeps filling.
+      </aside>
+      </div>
+
+      <p class="rv">The flip side is grim and well-documented. Routinely sleeping
+      under seven hours is linked to higher risk of obesity, type-2 diabetes, high
+      blood pressure, heart disease, stroke, depression, and a shorter life
+      overall.<a href="#ref-1">[1]</a> Good sleep is the cheapest performance drug
+      there is, and the only one your doctor actively wants you on.</p>
+
+      <h2 class="rv" data-type="How much is enough"></h2>
+      <div class="annot">
+      <p class="rv">The boring, evidence-backed answer: <strong>adults need at least
+      seven hours a night</strong>, and most do best with seven to nine. That's the
+      joint recommendation of the American Academy of Sleep Medicine and the Sleep
+      Research Society, echoed by the CDC.<a href="#ref-1">[1]</a><a href="#ref-2">[2]</a>
+      More isn't automatically better, but chronically less is reliably worse.</p>
+
+      <aside class="mstat">
+        <div class="mstat-n">7+</div>
+        <div class="mstat-l">hours a night, for adults 18&ndash;60</div>
+      </aside>
+      </div>
+
+      <h2 class="rv" data-type="Falling asleep faster"></h2>
+      <p class="rv">Most "I can't fall asleep" problems are really "my body has no
+      idea it's night" problems. A few levers move the needle far more than the rest:</p>
+      <ul class="rv">
+        <li><strong>Win the light war.</strong> Light is the master dial on your
+        body clock. Bright light — especially the blue-rich light from phones and
+        laptops — suppresses melatonin and pushes your clock later. Harvard
+        researchers found blue light held melatonin down about twice as long as
+        equally bright green light and shifted circadian timing by three
+        hours.<a href="#ref-5">[5]</a> Dim the room and put the screens down an hour
+        before bed; get bright daylight in the <em>morning</em> instead.</li>
+        <li><strong>Get cold.</strong> Falling asleep requires your core temperature
+        to drop. A cool bedroom (around 18&nbsp;°C / 65&nbsp;°F) and a warm shower
+        beforehand — which paradoxically helps by dumping heat from your skin
+        afterward — both nudge that along.<a href="#ref-2">[2]</a></li>
+        <li><strong>Mind the caffeine clock.</strong> Caffeine has a half-life of
+        roughly five to six hours, so an afternoon coffee is still half-present at
+        bedtime. Push your last cup to the morning and skip the late-night
+        nightcap — alcohol knocks you out but wrecks the second half of your
+        night.<a href="#ref-2">[2]</a></li>
+        <li><strong>Keep the schedule boringly fixed.</strong> Same bedtime, same
+        wake time, weekends included. Your circadian system is a creature of habit
+        and rewards consistency with sleepiness that arrives on
+        time.<a href="#ref-2">[2]</a></li>
+      </ul>
+
+      <h2 class="rv" data-type="Tricks for a racing mind"></h2>
+      <p class="rv">When the environment is right but your head won't shut up, the
+      goal is to give the mind something gently absorbing — enough to crowd out the
+      anxious chatter, not so much that it wakes you up. Three that hold up:</p>
+
+      <p class="rv"><strong>4&ndash;7&ndash;8 breathing.</strong> Inhale through the
+      nose for 4, hold for 7, exhale through the mouth for 8. Popularised by Dr.
+      Andrew Weil, it works by leaning on the long exhale to nudge you out of
+      fight-or-flight and into the parasympathetic "rest" state — heart rate and
+      tension ease off.<a href="#ref-6">[6]</a> The direct sleep-onset trials are
+      still thin, but slow-breathing's calming effect is on solid ground.</p>
+
+      <p class="rv"><strong>The cognitive shuffle.</strong> Cognitive scientist Luc
+      Beaudoin's trick: picture a random, unrelated word, see it for a moment, then
+      jump to another — <em>apple… violin… harbour… pencil…</em> The deliberate
+      nonsense mimics the loose, drifting imagery your brain produces naturally as
+      it falls asleep, and it's almost impossible to ruminate while doing
+      it.<a href="#ref-7">[7]</a></p>
+
+      <div class="annot">
+      <p class="rv"><strong>Vivid imagery beats counting.</strong> This is the finding
+      that sold me on building something. In a 2002 Oxford study, people with insomnia
+      who imagined a genuinely absorbing scene — a beach, a waterfall — fell asleep about
+      <strong>20 minutes faster</strong> than on nights they counted sheep. Counting,
+      it turns out, is too dull to hold the mind, leaving the back door open for
+      worries to wander in.<a href="#ref-8">[8]</a></p>
+
+      <aside class="mnote">
+        <span class="mnum">☾</span> Counting sheep is ancient — it shows up in
+        <em>Don Quixote</em> in 1605, and a 12th-century text before that. Old habits,
+        it seems, die hard even when they don't work.<a href="#ref-9">[9]</a>
+      </aside>
+      </div>
+
+      <blockquote class="rv">The harder you chase sleep, the faster it runs. The
+      job isn't to force it — it's to bore the anxious part of your brain into
+      letting go.</blockquote>
+
+      <h2 class="rv" data-type="So… do you count sheep?"></h2>
+      <p class="rv">Knowing all that, I still wanted the sheep — because they're cosy,
+      and because I'd come for a visual to fall asleep to. So I built a version that
+      cheats in my favour: it leans on the things that <em>do</em> work. The scene is
+      a calm, vivid bit of imagery instead of a bare number. The sheep arrive slower
+      and amble slower the longer you watch, pulling your attention down with them.
+      There's a breathing pacer if you want the 4&ndash;7&ndash;8 rhythm, a dusk-dimmer,
+      and a soft Korean lullaby &mdash; <em>jajang jajang, uri agi</em>. And every so often
+      a sheep shows up in sunglasses, because a sleepy brain likes a little wit.</p>
+
+      <div class="sleep-play rv">
+        <div class="sleep-play-head">
+          <span class="eyebrow">// counting-sheep playground</span>
+          <a href="/playground/counting-sheep/">Open full-screen ↗</a>
+        </div>
+        <div data-sheep-counter></div>
+      </div>
+
+      <p class="rv">Let it run, slow your breathing to match the ring, and don't try
+      to win. If your eyelids start arguing with you, the playground is doing its job
+      — go to bed.</p>
+
+      <p class="post-disclaimer rv">A friendly disclaimer: I'm an engineer, not a
+      doctor, and this is general well-being writing, not medical advice. If you've
+      been struggling with sleep for weeks, or you suspect something like sleep apnea
+      or chronic insomnia, talk to a clinician — the most effective long-term fix for
+      insomnia is a structured therapy (CBT-I), not a breathing trick or a flock of
+      cartoon sheep.</p>
+
+      <section class="post-refs rv">
+        <h2 style="--no-type:1">Sources</h2>
+        <ol>
+          <li id="ref-1">American Academy of Sleep Medicine &amp; Sleep Research Society,
+            <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC4434546/" target="_blank" rel="noopener noreferrer">“Recommended Amount of Sleep for a Healthy Adult: A Joint Consensus Statement”</a> (2015).</li>
+          <li id="ref-2">CDC,
+            <a href="https://www.cdc.gov/sleep/about/index.html" target="_blank" rel="noopener noreferrer">“About Sleep”</a> — sleep duration and sleep-hygiene guidance.</li>
+          <li id="ref-3">Eide &amp; Ringstad et al.,
+            <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC10452251/" target="_blank" rel="noopener noreferrer">“The Glymphatic System, Aging, Memory, and Sleep”</a> (review, 2023).</li>
+          <li id="ref-4">Harvard Medical School, Division of Sleep Medicine,
+            <a href="https://sleep.hms.harvard.edu/education-training/public-education/sleep-and-health-education-program/sleep-health-education-41" target="_blank" rel="noopener noreferrer">“Why Sleep Matters: Benefits of Sleep”</a>.</li>
+          <li id="ref-5">Harvard Health Publishing,
+            <a href="https://www.health.harvard.edu/staying-healthy/blue-light-has-a-dark-side" target="_blank" rel="noopener noreferrer">“Blue light has a dark side”</a>.</li>
+          <li id="ref-6">Cleveland Clinic,
+            <a href="https://health.clevelandclinic.org/4-7-8-breathing" target="_blank" rel="noopener noreferrer">“4-7-8 Breathing: How It Works and How to Do It”</a>.</li>
+          <li id="ref-7">Beaudoin, L. P. et al., on the cognitive shuffle —
+            <a href="https://en.wikipedia.org/wiki/Cognitive_shuffle" target="_blank" rel="noopener noreferrer">overview</a>.</li>
+          <li id="ref-8">Harvey, A. G. &amp; Payne, S., “The management of unwanted pre-sleep thoughts in insomnia,”
+            <em>Behaviour Research and Therapy</em> 40(3): 267&ndash;277 (2002) — the Oxford imagery-vs-counting study.</li>
+          <li id="ref-9">Wikipedia,
+            <a href="https://en.wikipedia.org/wiki/Counting_sheep" target="_blank" rel="noopener noreferrer">“Counting sheep”</a> — history and the evidence on its (in)effectiveness.</li>
+        </ol>
+      </section>
+
+    </article>
+
+    <div class="post-nav rv">
+      <a href="/blog/">← Back to all posts</a>
+    </div>
+
+  </div><!-- /.post-main -->
+</div><!-- /.post-layout -->
+</main>
+
+<footer>© <span data-year>2026</span> Chakri · All rights reserved · <a href="/">Home</a></footer>
+
+<script src="/assets/js/theme.js"></script>
+<script defer src="/assets/js/sheep-counter.js"></script>
+
+</body>
+</html>

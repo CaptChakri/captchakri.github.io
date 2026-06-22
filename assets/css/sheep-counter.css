@@ -1,0 +1,399 @@
+/* =====================================================================
+   COUNTING-SHEEP PLAYGROUND — a calm bedtime scene where woolly sheep
+   trot in from the right and hop a fence, ticking up a counter with the
+   odd witty remark. Built entirely by assets/js/sheep-counter.js into any
+   element carrying [data-sheep-counter]; this file styles that DOM.
+
+   Tokens (var(--cyan) etc.) come from theme.css. The scene paints its own
+   night sky so it reads as "bedtime" regardless of the page behind it.
+   Honours prefers-reduced-motion: no drifting sheep, no twinkle, no glow.
+   ===================================================================== */
+
+.sheepc { display: flex; flex-direction: column; gap: 1rem; }
+
+/* ---- the night stage: a fixed-ratio window into the meadow ---- */
+.sheepc-stage {
+  --ground-h: 24%;                  /* how tall the grassy meadow sits at the foot (lifted on small/short screens) */
+  position: relative; width: 100%;
+  height: clamp(320px, 52vw, 460px);
+  border-radius: 0.85rem; overflow: hidden;
+  border: 1px solid var(--border);
+  background:
+    radial-gradient(120% 80% at 80% -10%, #1b2650 0%, transparent 55%),
+    linear-gradient(180deg, #050a1d 0%, #091029 42%, #0f1636 100%);
+  box-shadow: inset 0 -60px 90px -40px rgba(0,0,0,0.7), 0 24px 60px -30px rgba(0,0,0,0.6);
+  isolation: isolate;
+}
+
+/* the moon, low and pale with a soft halo */
+.sheepc-moon {
+  position: absolute; top: 12%; right: 12%; z-index: 2;
+  width: 64px; height: 64px; border-radius: 50%;
+  background: radial-gradient(circle at 38% 36%, #d3d1bf 0%, #b6b4a1 55%, #8f8d7e 100%);
+  box-shadow: 0 0 24px 4px rgba(214,210,186,0.16), 0 0 64px 14px rgba(120,150,255,0.06);
+}
+.sheepc-moon::before,
+.sheepc-moon::after { /* faint craters */
+  content: ''; position: absolute; border-radius: 50%;
+  background: rgba(160,158,138,0.45);
+}
+.sheepc-moon::before { width: 12px; height: 12px; top: 16px; left: 16px; }
+.sheepc-moon::after  { width: 8px;  height: 8px;  top: 36px; left: 34px; }
+/* time-aware moon: the JS draws tonight's real phase as an SVG shadow over the
+   disc and slides the moon along a gentle arc near the top by the visitor's
+   local clock. The phased moon paints its own face, so we drop the flat disc +
+   CSS craters; the slow transition lets it drift as the night wears on. */
+.sheepc-moon { transition: top 2.4s linear, left 2.4s linear; }
+.sheepc-moon--phased { background: none; }
+.sheepc-moon--phased::before, .sheepc-moon--phased::after { display: none; }
+.sheepc-moon svg { width: 100%; height: 100%; display: block; overflow: visible; }
+
+/* twinkling starfield (dots are injected by JS) */
+.sheepc-stars { position: absolute; inset: 0; pointer-events: none; }
+.sheepc-star {
+  position: absolute; width: 2px; height: 2px; border-radius: 50%;
+  background: #dbe3f5; opacity: 0.5;
+  animation: sheepcTwinkle 4s ease-in-out infinite;
+}
+@keyframes sheepcTwinkle { 0%, 100% { opacity: 0.12; } 50% { opacity: 0.62; } }
+
+/* ---- the meadow ground: a moonlit grassy clearing borrowed from the descent
+   biosphere's night camp, standing in for the old rounded hill silhouettes. A
+   green turf gradient, a short blade fringe along the horizon (its top edge), and
+   a taller foreground fringe at the very base — both leaning on a slow breeze. ---- */
+.sheepc-ground {
+  position: absolute; left: 0; right: 0; bottom: 0; height: var(--ground-h); z-index: 2;
+  background: linear-gradient(180deg, #1d3d26 0%, #163020 45%, #0e2417 100%);
+  box-shadow: inset 0 28px 38px -30px rgba(120,150,255,0.10);   /* faint moonlight on the turf */
+}
+/* the far grass: short blades poking up from the turf's top edge (the horizon) */
+.sheepc-ground::before {
+  content: ''; position: absolute; left: -2%; right: -2%;
+  bottom: 100%; height: 20px; margin-bottom: -7px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='22' viewBox='0 0 48 22' preserveAspectRatio='none'%3E%3Cpath fill='rgb(24,52,32)' d='M0,22 L2,9 L4,22 L6,4 L8,22 L10,12 L12,22 L14,7 L16,22 L18,11 L20,22 L22,3 L24,22 L26,13 L28,22 L30,8 L32,22 L34,12 L36,22 L38,5 L40,22 L42,10 L44,22 L46,7 L48,22 Z'/%3E%3C/svg%3E") repeat-x bottom center;
+  background-size: 46px 100%;
+  transform-origin: bottom; will-change: transform;
+}
+/* the near grass: taller, brighter blades framing the foreground base for depth */
+.sheepc-grass-near {
+  position: absolute; left: -2%; right: -2%; bottom: 0; z-index: 7;   /* nearest layer — occludes the hooves of a near-side (front) sheep for depth */
+  height: clamp(26px, 8%, 52px); pointer-events: none;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='40' viewBox='0 0 56 40' preserveAspectRatio='none'%3E%3Cpath fill='rgb(38,72,44)' d='M0,40 L2,16 L4,40 L6,6 L8,40 L11,20 L13,40 L15,10 L17,40 L20,4 L22,40 L24,18 L26,40 L29,9 L31,40 L33,22 L35,40 L38,7 L40,40 L42,17 L44,40 L47,11 L49,40 L52,5 L54,40 L56,40 Z'/%3E%3C/svg%3E") repeat-x bottom center;
+  background-size: 60px 100%;
+  transform-origin: bottom; will-change: transform;
+}
+/* low fog hugging the horizon — drifting cloud-stuff at grass height so the turf
+   melts into the night sky instead of meeting it on a hard line */
+.sheepc-mist {
+  position: absolute; left: -10%; right: -10%; z-index: 2; pointer-events: none;
+  bottom: calc(var(--ground-h) - 5%); height: 16%;
+  background:
+    radial-gradient(50% 80% at 18% 60%, rgba(150,170,215,0.10), transparent 72%),
+    radial-gradient(60% 90% at 52% 48%, rgba(165,185,225,0.13), transparent 74%),
+    radial-gradient(46% 78% at 86% 64%, rgba(140,162,205,0.09), transparent 72%);
+  filter: blur(7px);
+}
+
+/* the fence the sheep clear, dead centre so the hop apex lands on it. Each sheep
+   CROSSES the fence: it rises on the far side BEHIND the rails (z-index 3, so the
+   fence occludes its legs as it comes up), then at the apex flips IN FRONT
+   (z-index 6) and lands on the near side — that occlusion-then-reveal is what
+   reads as hopping OVER (vital on mobile, where the fence fills much of the
+   width). The JS toggles each sheep's z-index at the top of its arc; see frame().
+   The owl stays on the rail (z-index 4), the foreground grass in front (7). */
+.sheepc-fence {
+  position: absolute; left: 50%; bottom: 19%; transform: translateX(-50%);
+  width: 104px; height: 50px; z-index: 4;
+  background:
+    /* three rails (rows) — a moonlit top edge fading to shadow below */
+    linear-gradient(180deg, #8a6848, #6a4f34 55%, #4d3823) left 5px  / 100% 7px no-repeat,
+    linear-gradient(180deg, #8a6848, #6a4f34 55%, #4d3823) left 19px / 100% 7px no-repeat,
+    linear-gradient(180deg, #8a6848, #6a4f34 55%, #4d3823) left 33px / 100% 7px no-repeat;
+}
+.sheepc-fence::before, .sheepc-fence::after { /* two posts */
+  content: ''; position: absolute; top: 0; width: 8px; height: 100%;
+  background: linear-gradient(180deg, #6b5238, #4a3826); border-radius: 2px 2px 0 0;
+}
+.sheepc-fence::before { left: 6px; }
+.sheepc-fence::after  { right: 6px; }
+
+/* the lane the sheep travel along. Deliberately NOT a stacking context (no
+   z-index) so each sheep can sit behind the fence (z 3) on the way up and in
+   front of it (z 6) on the way down — the JS sets that per sheep, see frame(). */
+.sheepc-track { position: absolute; inset: 0; pointer-events: none; }
+
+/* a single sheep; JS sets transform every frame (translate + hop + lean) */
+.sheepc-sheep {
+  position: absolute; bottom: 17%; left: 0;
+  width: 70px; height: 50px; will-change: transform;
+  filter: drop-shadow(0 6px 5px rgba(0,0,0,0.35));
+}
+.sheepc-sheep svg { width: 100%; height: 100%; overflow: visible; display: block; }
+.sg-wool { fill: #f4f6fb; }
+.sg-wool-2 { fill: #dfe4f0; }
+.sg-face { fill: #2b2f3a; }
+.sg-leg { stroke: #2b2f3a; stroke-width: 3; stroke-linecap: round; }
+/* the legs actually trot now: each swings about where it meets the body, the
+   four staggered by a quarter-cycle so it reads as a rolling gait rather than
+   a stiff cut-out sliding past. transform-box:view-box lets the origins be set
+   in the sheep's own viewBox units (0 0 70 50). */
+.sg-leg { transform-box: view-box; animation: sgTrot 0.46s ease-in-out infinite; }
+.sheepc-sheep svg line.sg-leg:nth-of-type(1) { transform-origin: 26px 38px; animation-delay: 0s; }
+.sheepc-sheep svg line.sg-leg:nth-of-type(2) { transform-origin: 34px 39px; animation-delay: -0.115s; }
+.sheepc-sheep svg line.sg-leg:nth-of-type(3) { transform-origin: 44px 39px; animation-delay: -0.23s; }
+.sheepc-sheep svg line.sg-leg:nth-of-type(4) { transform-origin: 52px 38px; animation-delay: -0.345s; }
+@keyframes sgTrot { 0%, 100% { transform: rotate(19deg); } 50% { transform: rotate(-19deg); } }
+.sg-eye { fill: #fff; }
+/* variant-only bits, hidden until the sheep wears that costume */
+.sg-shades, .sg-pillow, .sg-wolf-ear, .sg-wolf-tail, .sg-crown { display: none; }
+.sheepc-sheep.is-vip   .sg-shades   { display: block; }
+.sheepc-sheep.is-sleepy .sg-pillow  { display: block; }
+.sheepc-sheep.is-king  .sg-crown    { display: block; }
+.sheepc-sheep.is-wolf  .sg-wolf-ear,
+.sheepc-sheep.is-wolf  .sg-wolf-tail { display: block; }
+.sheepc-sheep.is-wolf  .sg-wool   { fill: #79808f; }
+.sheepc-sheep.is-wolf  .sg-wool-2 { fill: #5d646f; }
+.sheepc-sheep.is-wolf  .sg-face   { fill: #20242c; }
+
+/* big soft counter, top-left of the stage */
+.sheepc-readout { position: absolute; top: 1.1rem; left: 1.25rem; z-index: 8; }
+.sheepc-num {
+  font-family: 'Space Grotesk', sans-serif; font-weight: 700;
+  font-size: clamp(2.6rem, 9vw, 4rem); line-height: 1; color: var(--white);
+  text-shadow: 0 0 28px rgba(0,200,240,0.25); transition: transform 0.18s ease;
+}
+.sheepc-num.pulse { animation: sheepcPulse 0.4s ease; }
+@keyframes sheepcPulse { 0% { transform: scale(1); } 35% { transform: scale(1.16); color: var(--cyan); } 100% { transform: scale(1); } }
+.sheepc-unit {
+  font-family: 'JetBrains Mono', monospace; font-size: 0.66rem; letter-spacing: 0.22em;
+  text-transform: uppercase; color: var(--cyan); margin-top: 0.35rem;
+}
+
+/* witty / soothing one-liner, lower-left, fades on change */
+.sheepc-quip {
+  position: absolute; left: 1.25rem; right: 1.25rem; bottom: 1.1rem; z-index: 8;
+  max-width: 30rem; color: var(--text); font-size: 0.92rem; line-height: 1.5;
+  font-style: italic; opacity: 0; transform: translateY(6px);
+}
+.sheepc-quip.show { animation: sheepcQuipIn 0.6s ease forwards; }
+@keyframes sheepcQuipIn { to { opacity: 0.92; transform: none; } }
+
+/* breathing pacer — a ring that swells on the in-breath, settles on the out */
+.sheepc-breath {
+  position: absolute; inset: 0; z-index: 7; pointer-events: none;   /* the breathing ring rides above the sheep, below the dusk overlay */
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 1rem;
+}
+.sheepc-breath[hidden] { display: none; }
+.sheepc-breath-ring {
+  width: 130px; height: 130px; border-radius: 50%;
+  border: 2px solid rgba(0,200,240,0.55);
+  background: radial-gradient(circle, rgba(0,200,240,0.18), transparent 70%);
+  box-shadow: 0 0 50px rgba(0,200,240,0.25);
+  transform: scale(0.55); transition: transform 4s ease-in-out;
+}
+.sheepc-breath[data-phase="inhale"] .sheepc-breath-ring { transform: scale(1);    transition-duration: 4s; }
+.sheepc-breath[data-phase="hold"]   .sheepc-breath-ring { transform: scale(1);    transition-duration: 0.4s; }
+.sheepc-breath[data-phase="exhale"] .sheepc-breath-ring { transform: scale(0.55); transition-duration: 6s; }
+.sheepc-breath-label {
+  font-family: 'Space Grotesk', sans-serif; font-size: 1rem; letter-spacing: 0.04em;
+  color: var(--white); text-shadow: 0 0 18px rgba(0,0,0,0.6);
+}
+/* while breathing, the meadow recedes so the ring leads the eye */
+.sheepc-stage.is-breathing .sheepc-track { opacity: 0.35; transition: opacity 0.6s ease; }
+
+/* "dim" overlay — a deepening dusk for when you're nearly under */
+.sheepc-dim {
+  position: absolute; inset: 0; z-index: 9; pointer-events: none;
+  background: radial-gradient(120% 90% at 50% 40%, rgba(4,7,18,0.35), rgba(2,4,12,0.86));
+  opacity: 0; transition: opacity 0.8s ease;
+}
+.sheepc-stage.is-dim .sheepc-dim { opacity: 1; }
+
+/* =====================================================================
+   AMBIENCE — extra depth & life that make the meadow feel alive and calm.
+   All of these layers are injected by the JS and live inside the stage, so
+   they enhance both the small blog embed and the full-screen page. Every
+   animation here is slow, low-contrast, and switched off for reduced motion.
+   ===================================================================== */
+
+/* a gentle one-time settle as the scene arrives. Animates only a subtle
+   scale — never opacity — so the stage can never be left washed-out if the
+   animation is interrupted or the compositor stalls (the .rv wrapper on the
+   blog embed already handles the fade-in). */
+.sheepc-stage { animation: sheepcStageIn 1.3s ease both; }
+@keyframes sheepcStageIn { from { transform: scale(1.02); } to { transform: none; } }
+
+/* the moon breathes — its halo swells and settles on a long, slow cycle */
+.sheepc-moon { animation: sheepcMoonGlow 11s ease-in-out infinite; }
+@keyframes sheepcMoonGlow {
+  0%, 100% { box-shadow: 0 0 24px 4px  rgba(214,210,186,0.15), 0 0 64px 14px rgba(120,150,255,0.06); }
+  50%      { box-shadow: 0 0 36px 9px  rgba(214,210,186,0.22), 0 0 92px 24px rgba(120,150,255,0.10); }
+}
+
+/* the grass leans on a slow, shared breeze — the whole sward tilts a touch one way
+   then the other, the foreground a hair faster so it reads as nearer */
+.sheepc-ground::before { animation: sheepcGrassSway 7.5s ease-in-out infinite; }
+.sheepc-grass-near    { animation: sheepcGrassSway 5.5s ease-in-out infinite; }
+@keyframes sheepcGrassSway { 0%, 100% { transform: skewX(-2.4deg); } 50% { transform: skewX(2.4deg); } }
+
+/* the horizon fog drifts gently sideways, blending sky and turf */
+.sheepc-mist { animation: sheepcMistDrift 30s ease-in-out infinite alternate; }
+@keyframes sheepcMistDrift { from { transform: translateX(-3%); } to { transform: translateX(3%); } }
+
+/* soft clouds drifting right-to-left across the sky (sit behind the hills) */
+.sheepc-clouds { position: absolute; inset: 0; pointer-events: none; }
+.sheepc-cloud {
+  position: absolute; border-radius: 50%;
+  background: radial-gradient(60% 100% at 50% 50%,
+    rgba(70,88,150,0.34) 0%, rgba(44,58,108,0.16) 60%, transparent 76%);
+  filter: blur(7px);
+  animation: sheepcDrift linear infinite;
+}
+@keyframes sheepcDrift { from { transform: translateX(118%); } to { transform: translateX(-135%); } }
+
+/* a soft vignette so the eye settles toward the centre */
+.sheepc-vignette {
+  position: absolute; inset: 0; z-index: 1; pointer-events: none;
+  background: radial-gradient(130% 110% at 50% 40%, transparent 62%, rgba(2,4,12,0.34) 100%);
+}
+
+/* progressive dusk: the sky quietly deepens the longer you watch (set by JS
+   at count milestones) to nudge you further down toward sleep */
+.sheepc-deepen {
+  position: absolute; inset: 0; z-index: 1; pointer-events: none;
+  background: radial-gradient(125% 115% at 50% 28%, rgba(3,6,18,0) 0%, rgba(2,4,12,0.72) 100%);
+  opacity: 0; transition: opacity 7s ease;
+}
+.sheepc-stage.is-deep-1 .sheepc-deepen { opacity: 0.30; }
+.sheepc-stage.is-deep-2 .sheepc-deepen { opacity: 0.55; }
+.sheepc-stage.is-deep-3 .sheepc-deepen { opacity: 0.80; }
+
+/* the layer the odd shooting star streaks through (JS spawns them) */
+.sheepc-sky-fx { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
+.sheepc-shoot {
+  position: absolute; width: 2px; height: 2px; border-radius: 50%;
+  background: #fff; box-shadow: 0 0 6px 1px rgba(255,255,255,0.9); opacity: 0;
+}
+.sheepc-shoot::after {
+  content: ''; position: absolute; right: 2px; top: 50%;
+  width: 64px; height: 1px; transform: translateY(-50%);
+  background: linear-gradient(to left, rgba(255,255,255,0.85), transparent);
+}
+@keyframes sheepcShoot {
+  0%   { opacity: 0; transform: translate(0, 0); }
+  12%  { opacity: 1; }
+  100% { opacity: 0; transform: translate(-230px, 128px); }
+}
+
+/* the site's tortoise (its avatar) wanders into the meadow now and then: it
+   trundles in, pauses to crane its neck up and peek at the flock, then ambles
+   off. JS sets the travel distances (--tStart/--tMid/--tEnd) and the matching
+   animation duration so the head's peek lines up with the pause. */
+.sheepc-tortoise {
+  position: absolute; bottom: 15%; left: 0;
+  width: 62px; height: 40px; z-index: 3; will-change: transform;
+  filter: drop-shadow(0 5px 4px rgba(0,0,0,0.40));
+}
+.sheepc-tortoise svg { width: 100%; height: 100%; display: block; overflow: visible; }
+.sheepc-tortoise.face-right svg { transform: scaleX(-1); }   /* heading the other way */
+.tort-head { transform-box: fill-box; transform-origin: 92% 78%; }
+.tort-legs { transform-box: fill-box; animation: sheepcTortWaddle 0.55s ease-in-out infinite; }
+@keyframes sheepcTortRoam {
+  0%   { transform: translateX(var(--tStart)); }
+  20%  { transform: translateX(var(--tMid)); }
+  66%  { transform: translateX(var(--tMid)); }   /* the pause where it peeks */
+  100% { transform: translateX(var(--tEnd)); }
+}
+@keyframes sheepcTortPeek {
+  0%, 17%   { transform: translateY(0) rotate(0); }
+  28%, 40%  { transform: translateY(-4px) rotate(-11deg); } /* crane up, look at the sheep */
+  47%       { transform: translateY(-3px) rotate(-6deg); }  /* settle… */
+  55%, 62%  { transform: translateY(-4px) rotate(-13deg); } /* …then look again */
+  70%, 100% { transform: translateY(0) rotate(0); }
+}
+@keyframes sheepcTortWaddle { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(1.6px); } }
+/* a paused scene freezes the tortoise mid-stride rather than leaving it walking */
+.sheepc-stage.is-paused .sheepc-tortoise,
+.sheepc-stage.is-paused .tort-head,
+.sheepc-stage.is-paused .tort-legs,
+.sheepc-stage.is-paused .sg-leg { animation-play-state: paused; }
+
+/* ---- biosphere life borrowed from the main page's night camp ---- */
+/* fireflies: warm motes drifting low over the grass, each blinking and
+   wandering on its own rhythm (JS sets --dx/--dy/--blink/--drift per mote). */
+.sheepc-bio { position: absolute; inset: 0; z-index: 3; pointer-events: none; }
+.sheepc-fly {
+  position: absolute; width: 4px; height: 4px; border-radius: 50%;
+  background: radial-gradient(circle, #fff4c8 0%, #ffcf5e 55%, transparent 72%);
+  box-shadow: 0 0 7px 2px rgba(255,201,92,0.55); opacity: 0;
+  animation: sheepcFlyBlink var(--blink, 3s) ease-in-out infinite,
+             sheepcFlyDrift var(--drift, 7s) ease-in-out infinite alternate;
+}
+@keyframes sheepcFlyBlink { 0%, 100% { opacity: 0.04; } 45% { opacity: 0.9; } 72% { opacity: 0.45; } }
+@keyframes sheepcFlyDrift { from { transform: translate(0, 0); } to { transform: translate(var(--dx, 0), var(--dy, 0)); } }
+
+/* the owl — the camp's night watcher — perched on the fence, blinking now and
+   then. Sits in front of the fence (z 4) on the left post, clear of the hop. */
+.sheepc-owl {
+  position: absolute; left: calc(50% - 42px); transform: translateX(-50%);
+  bottom: calc(19% + 40px); width: 30px; height: 34px; z-index: 4;
+  filter: drop-shadow(0 3px 3px rgba(0,0,0,0.45));
+}
+.sheepc-owl svg { width: 100%; height: 100%; display: block; }
+.owl-eyes { transform-box: fill-box; transform-origin: 50% 50%; animation: sheepcOwlBlink 5.5s ease-in-out infinite; }
+@keyframes sheepcOwlBlink { 0%, 92%, 100% { transform: scaleY(1); } 96% { transform: scaleY(0.08); } }
+.sheepc-stage.is-paused .owl-eyes { animation-play-state: paused; }
+.sheepc-stage.is-paused .sheepc-fly { animation-play-state: paused; }
+
+/* ---- controls below the stage ---- */
+.sheepc-controls { display: flex; flex-wrap: wrap; gap: 0.6rem; }
+.sheepc-btn {
+  display: inline-flex; align-items: center; gap: 0.4rem;
+  padding: 0.55rem 1rem; cursor: pointer;
+  font-family: 'JetBrains Mono', monospace; font-size: 0.74rem; letter-spacing: 0.04em;
+  color: var(--text); background: var(--navy2);
+  border: 1px solid var(--border); border-radius: 999px;
+  transition: border-color 0.2s ease, color 0.2s ease, background 0.2s ease, transform 0.2s ease;
+}
+.sheepc-btn:hover { border-color: var(--cyan); color: var(--white); transform: translateY(-1px); }
+.sheepc-btn[aria-pressed="true"] {
+  background: rgba(0,200,240,0.14); border-color: var(--cyan); color: var(--white);
+}
+.sheepc-btn:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+
+/* visually-hidden description for assistive tech (self-contained, no global dep) */
+.sheepc-sr {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+@media (max-width: 560px) {
+  .sheepc-moon { width: 48px; height: 48px; }
+  .sheepc-num { text-shadow: 0 0 20px rgba(0,200,240,0.22); }
+  .sheepc-quip { font-size: 0.85rem; }
+  .sheepc-breath-ring { width: 104px; height: 104px; }
+}
+
+/* respect a reduced-motion preference: still a quiet, working counter,
+   just without drifting sheep, twinkle, or glowing animation */
+@media (prefers-reduced-motion: reduce) {
+  .sheepc-star { animation: none; opacity: 0.6; }
+  .sheepc-num.pulse { animation: none; }
+  .sheepc-quip { transition: opacity 0.4s ease; }
+  .sheepc-quip.show { animation: none; opacity: 0.92; transform: none; }
+  .sheepc-sheep { transition: opacity 0.6s ease; }
+  .sheepc-breath-ring { transition: none; }
+  /* keep the ambience still and calm — no drift, glow, sway, or settle */
+  .sheepc-stage { animation: none; }
+  .sheepc-moon { animation: none; transition: none; }   /* phase still shows; just no drift */
+  .sheepc-ground::before, .sheepc-grass-near { animation: none; transform: none; }
+  .sheepc-mist { animation: none; }
+  .sheepc-cloud { display: none; }
+  .sheepc-deepen { transition: opacity 0.6s ease; }
+  .tort-legs, .tort-head { animation: none; }
+  .sheepc-tortoise { transition: opacity 0.7s ease; }
+  .sg-leg { animation: none; }
+  .sheepc-fly { display: none; }
+  .owl-eyes { animation: none; }
+}

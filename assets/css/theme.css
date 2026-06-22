@@ -544,7 +544,17 @@ html.vt-in h1 .w { opacity: 1 !important; transform: none !important; filter: no
 }
 .side-back:hover { text-decoration: underline; }
 .toc-head { font-family: 'JetBrains Mono', monospace; font-size: 0.65rem; letter-spacing: 0.18em; color: var(--gray2); margin-bottom: 0.8rem; }
-#post-toc { display: flex; flex-direction: column; }
+/* #post-toc is a <nav>, so the global header `nav` rule (position:fixed,
+   full-width, padded, with a translateY/drop animation and a blurred ::before
+   scrim) leaks onto it and yanks the TOC to the top of the page. Reset those
+   so the table of contents stays in the sticky sidebar's normal flow. */
+#post-toc {
+  display: flex; flex-direction: column;
+  position: static; inset: auto; z-index: auto;
+  padding: 0; transform: none; animation: none;
+  justify-content: flex-start; align-items: stretch; background: none;
+}
+#post-toc::before { content: none; display: none; }
 #post-toc a {
   font-family: 'JetBrains Mono', monospace; font-size: 0.78rem;
   color: var(--gray); text-decoration: none; padding: 0.32rem 0;
@@ -567,7 +577,11 @@ html.vt-in h1 .w { opacity: 1 !important; transform: none !important; filter: no
 .mnote strong, .mnote b { color: var(--text); font-weight: 500; }
 .mstat .mstat-n { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 2rem; color: var(--cyan); line-height: 1.15; }
 .mstat .mstat-l { font-family: 'JetBrains Mono', monospace; font-size: 0.68rem; color: var(--gray); letter-spacing: 0.06em; }
-@media (max-width: 1260px) {
+/* Fold margin notes into inline cards until the viewport is genuinely wide
+   enough to hold them in the right margin. A note hangs 48px past the 680px
+   column and is 210px wide, so it only clears the viewport edge around 1490px;
+   below that it would overflow off-screen, so keep it inline. */
+@media (max-width: 1489px) {
   .mnote, .mstat {
     position: static; width: auto; margin: 1.2rem 0 0;
     background: var(--navy2); border: 1px solid var(--border);
