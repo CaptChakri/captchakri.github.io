@@ -86,16 +86,10 @@
       tease: 'After dark, two amber eyes blink in the trees by the camp.',
       fact: "An owl can't move its eyes in their sockets at all — they're locked facing forward — so to look around it swivels its whole head, up to about 270°, on a neck with twice as many bones as yours. Its hunt is near-silent too: a fine comb along the leading edge of each wing feather breaks up the rush of air, so the mouse never hears it coming.",
     },
-    {
-      id: 'message-bottle', rarity: 'rare',
-      icon: '🍾', svg: 'bottle',
-      label: 'Opened the message in a bottle',
-      hint: 'Found a corked bottle on the tide line with a note still inside.',
-      where: 'The descent · the tide line',
-      note: "Now and then the rising tide leaves one on the wet sand as the sea floods the camp — a green bottle, still corked, a curl of paper inside. It's luck that it washes up at your feet at all; tap it while it lies clear of the next wave and open it.",
-      tease: 'Something the sea carried in is lying on the sand, corked tight.',
-      fact: "A bottle set adrift can outlive the hand that threw it: the oldest ever recovered had spent 132 years at sea. They ride the great ocean gyres — slow, wheeling currents the width of oceans — which is how a note dropped off one continent can wash up, lifetimes later, on the shore of another.",
-    },
+    /* (the message in a bottle USED to be an egg here; it's now a sealed personal
+       note — not a find — washed up on the shore. See assets/js/bottle-message.js.
+       Removed so the registry only lists eggs that can actually be found right now;
+       any 'message-bottle' left in a browser's storage is ignored as an unknown id.) */
     {
       id: 'sea-sparkle', rarity: 'epic',
       icon: '✨', svg: 'sea-sparkle',

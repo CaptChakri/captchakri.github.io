@@ -34,7 +34,7 @@
       const words = document.querySelectorAll('#headline .w');
       words.forEach((w, i) => setTimeout(() => w.classList.add('show'), i * 80));
       const after = words.length * 80 + 250;
-      ['.hero-intro', '.hero-cta', '.hero-status', '#hero-journal'].forEach((sel, i) => {
+      ['.hero-intro', '.hero-cta', '#hero-journal'].forEach((sel, i) => {
         const node = document.querySelector(sel); if (node) setTimeout(() => node.classList.add('show'), after + i * 170);
       });
     }

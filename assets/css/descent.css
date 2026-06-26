@@ -208,9 +208,6 @@ nav { z-index: 100; }
 .hero-intro { font-size: 1.08rem; color: var(--text); max-width: 600px; margin-bottom: 1.5rem; line-height: 1.75; }
 .hero-intro strong { color: var(--white); font-weight: 500; }
 .hero-cta { display: flex; gap: 1rem; flex-wrap: wrap; }
-.hero-status { margin-top: 1.3rem; padding-top: 1rem; border-top: 1px solid var(--border); display: flex; align-items: center; gap: .6rem; font-size: .85rem; color: var(--gray); }
-.status-dot { width: 8px; height: 8px; border-radius: 50%; background: #22d97a; box-shadow: 0 0 8px rgba(34,217,122,.6); animation: blink 2s ease-in-out infinite; }
-@keyframes blink { 50% { opacity: .4; } }
 /* pinned to the viewport bottom (not the hero section, which overflows past
    100vh on shorter laptops/phones and used to push the hint off-screen); JS
    fades it out once the visitor starts to fall. */
@@ -238,7 +235,6 @@ nav { z-index: 100; }
   .greeting-line { margin-bottom: .7rem; }
   .dz-hero h1 { margin-bottom: .85rem; }
   .hero-intro { font-size: 1rem; line-height: 1.58; margin-bottom: 1.05rem; }
-  .hero-status { margin-top: 1rem; padding-top: .85rem; }
   .scroll-hint { bottom: 1rem; gap: .3rem; font-size: .62rem; }
   .scroll-hint::after { height: 16px; }
 }

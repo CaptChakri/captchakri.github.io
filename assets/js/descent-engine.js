@@ -16,11 +16,14 @@
   const preview = cfg.preview || new URLSearchParams(location.search).has('preview');
   const INT = (cfg.intensity != null ? cfg.intensity : 1) * (preview ? 0.5 : 1);
   // ?eggs (or DESCENT_CONFIG.eggs) — a testing/showcase force for the SPRITE eggs that
-  // only turn up by luck and/or the right time/season/weather (rainbow, owl, bottle,
+  // only turn up by luck and/or the right time/season/weather (rainbow, owl,
   // sea-sparkle): it makes every egg sprite PRESENT (skips the per-load `rare` roll) and
   // IGNORES its `vis` gate, so all of them can be found on demand whatever the clock or
   // sky says. Mirrors ?dragon=all for the canvas dragons; off by default.
   const EGG_FORCE = cfg.eggs === true || new URLSearchParams(location.search).has('eggs');
+  // ?bottle — skip the message-in-a-bottle's 3s shore dwell so it washes up at once
+  // (for testing/sealing the note); see the `msg` sprite in updateSprites.
+  const BOTTLE_FORCE = new URLSearchParams(location.search).has('bottle');
 
   // A page can PIN the descent to a single sphere (cfg.pin) so the scene HOLDS that
   // zone as a fixed, living backdrop instead of being driven by scroll — used by blog
@@ -54,6 +57,7 @@
     precip: 0,               // 0 none … 1 heavy
     kind: 'none',            // 'none' | 'rain' | 'snow'
     south: false,            // visitor in the southern hemisphere? (coarse flag → flips the season; never a coordinate)
+    korea: false,            // visitor in/around Korea? (coarse box flag → lifts the dragon meet-odds; never a coordinate)
   };
 
   const canvas = document.getElementById('descent-canvas');
@@ -1451,12 +1455,13 @@
        way each one heads so they don't move in lockstep. */
     // washed up on the TIDE LINE as the beach floods (just before flood at p≈0.59): a
     // MESSAGE IN A BOTTLE on the wet sand (yb sets it near the waterline) and, on warm
-    // nights, the bioluminescent SEA SPARKLE in the surf. Both are catchable eggs. The
-    // bottle is luck-only (the `rare` roll — a lucky wash-up, any time); the sea sparkle
-    // needs a real summer NIGHT (nightAmount × summerAmount) on top of its roll, so it's
-    // the rarer of the two, and wears a cool glow. Tap either to catch (catchEgg).
-    { e: 'bottle', p: 0.585, x: 30, s: 60, w: 0.05, m: 'sway', yb: 0.32, rare: 0.14, egg: 'message-bottle' },
-    { e: 'sea-sparkle', p: 0.59, x: 72, s: 96, w: 0.05, m: 'flicker', yb: 0.31, glow: 'cool', rare: 0.25, vis: () => nightAmount() * summerAmount(), egg: 'sea-sparkle' },
+    // nights, the bioluminescent SEA SPARKLE in the surf. The sea sparkle is a catchable
+    // egg (a real summer NIGHT on top of its roll). The bottle is NOT an egg and NOT
+    // luck-gated — it's a sealed personal note: it WASHES UP after the visitor lingers
+    // at the shore (~3s dwell; see the `msg` branch in updateSprites), then a TRIPLE-TAP
+    // uncorks it (wireBottleTap → the `bottle-open` event → bottle-message.js).
+    { e: 'bottle', p: 0.585, x: 30, s: 64, w: 0.07, m: 'sway', yb: 0.32, msg: true },
+    { e: 'sea-sparkle', p: 0.59, x: 72, s: 96, w: 0.05, m: 'flicker', yb: 0.35, glow: 'cool', rare: 0.25, vis: () => nightAmount() * summerAmount(), egg: 'sea-sparkle' },   // yb drops its peak just INTO the wash (~0.85H), not above the foam line (shoreY≈0.84H)
     { e: 'seahorse-natural', p: 0.78, x: 30, s: 44, w: 0.08, m: 'seahorse', dir: 1 },
     { e: 'seahorse', p: 0.80, x: 76, s: 48, w: 0.075, glow: 'warm', m: 'seahorse', dir: -1, rare: 0.07, egg: 'seahorse' }, // a rare catch (~1 in 14 visits; see catchEgg)
     /* the deep dwellers (whale → octopus) carry NO time/weather/season gate on purpose:
@@ -1466,7 +1471,6 @@
     { e: '🐋', p: 0.815, x: 54, s: 132, w: 0.15, glow: 'cool', m: 'swim' },
     { e: '🦑', p: 0.875, x: 64, s: 54, w: 0.09, glow: 'cool', m: 'swim' },
     { e: '🪼', p: 0.915, x: 38, s: 72, w: 0.10, glow: 'cool', m: 'pulse' },
-    { e: '🐙', p: 0.965, x: 56, s: 64, w: 0.11, glow: 'cool', m: 'swim' },
   ];
   let spriteEls = [];
   function buildSprites() {
@@ -1510,11 +1514,16 @@
     // (top/left positioning is unchanged: both layers are fixed, full-viewport.)
     let eggLayer = null;
     SPRITES.forEach((sp, i) => {
-      if (!sp.egg) return;
+      if (!sp.egg && !sp.msg) return;
       const el = spriteEls[i];
-      el.classList.add('egg-catch');
-      sp._caught = !!(window.EasterEggs && window.EasterEggs.has(sp.egg));
-      el.addEventListener('pointerdown', (e) => { e.stopPropagation(); catchEgg(sp, el); });
+      if (sp.egg) {
+        el.classList.add('egg-catch');
+        sp._caught = !!(window.EasterEggs && window.EasterEggs.has(sp.egg));
+        el.addEventListener('pointerdown', (e) => { e.stopPropagation(); catchEgg(sp, el); });
+      } else { // the message in a bottle — a triple-tap uncorks it (see wireBottleTap)
+        el.classList.add('msg-bottle');
+        wireBottleTap(el);
+      }
       if (!eggLayer) {
         eggLayer = document.getElementById('egg-layer');
         if (!eggLayer) {
@@ -1547,6 +1556,21 @@
     burstAt(r.left + r.width / 2, r.top + r.height / 2, sp.egg === 'seahorse');  // viewport px == canvas px (canvas is fixed, full-viewport)
     el.style.opacity = '0'; el.style.pointerEvents = 'none';
     window.dispatchEvent(new CustomEvent('easteregg', { detail: { id: sp.egg } }));
+  }
+
+  /* the message in a bottle is NOT an egg — it's a sealed personal note. A TRIPLE
+     tap uncorks it (three pointerdowns inside ~700ms, so a stray click while reading
+     the shore won't pop it); the third tap fires `bottle-open`, which bottle-message.js
+     catches to raise the password / decrypt dialog. Each tap gives a little wobble so
+     it's clear something's loose inside (and that there's more than one tap to it). */
+  function wireBottleTap(el) {
+    let taps = 0, timer = 0;
+    el.addEventListener('pointerdown', (e) => {
+      e.stopPropagation();
+      if (!reduce) { el.classList.remove('bottle-nudge'); void el.offsetWidth; el.classList.add('bottle-nudge'); }
+      if (++taps >= 3) { taps = 0; clearTimeout(timer); window.dispatchEvent(new CustomEvent('bottle-open')); }
+      else { clearTimeout(timer); timer = setTimeout(() => { taps = 0; }, 700); }
+    });
   }
 
   /* the golden fish is a catchable egg too: a tap on (or near) a rare gold
@@ -1614,6 +1638,19 @@
   let tortPh = 0, tortSpin = 0, tortSpinV = 0, tortChuteOpen = tortFreefall ? 0 : 1, tortSway = 0, tortChuteBillow = 0;
   const tort = { x: 0, y: 0, scale: 14, swim: 0, look: 0, pitch: 0, tilt: 0, aSpace: 0, aSky: 0, aLand: 0, aWater: 0, aDeep: 0, aimX: 0, aimY: 0, tuck: 0, rock: 0, depth: 0, heat: 0, space: 0, chute: 0, deep: 0 };
   const tortHit = { x: 0, y: 0, r: 0, alpha: 0 };         // live screen geometry for the gold catch / poke / shove
+
+  /* ---------- the hidden ROMANCE: the space turtle & Draco ----------
+     A wordless love story for the rarest of meetings. When Draco is present in the
+     deep-space field, the curious zero-g turtle follows your cursor FAR more eagerly
+     — lead it star to star and, as it drifts onto each unlit anchor, it KINDLES the
+     star itself (no clicking). Trace the whole constellation with the turtle nestled
+     in the figure and the dragon wakes AROUND it: rather than flying off alone, Draco
+     gathers the turtle onto its neck and they uncoil and lift away together into the
+     dark. Set by the Draco block below, read by stepTortoise to relinquish the drift
+     and ride the turtle off; the space draw fades it out with the dragon. (`active`
+     latches on for the exit — afterwards the turtle is simply gone from space, having
+     left with Draco; the lower legs of the descent are untouched.) */
+  const tortLove = { active: false, tx: 0, ty: 0, fade: 1 };
 
   /* ---------- the drowned campfire: a hidden relight ----------
      As the tide floods in it reaches the fire and DOUSES it in a hiss of steam.
@@ -1751,10 +1788,23 @@
       //    perpetual gentle bob, is CURIOUS about your cursor (drifts toward it in zero-g),
       //    and tumbles — a slow barrel roll on lucky visits, faster for a beat after a shove
       //    (tortSpinV, kicked by pushTortoise). The velocity carries shoves; drag bleeds them off.
-      const maxS = Math.min(W, H) * 0.004;
-      const pull = pointerHere ? 0.45 : 0;                                       // how far it leans off the anchor toward you
+      if (tortLove.active) {
+        // ── RIDING OFF WITH THE DRAGON: Draco has gathered it; ease onto the dragon's
+        //    exit (target + fade published by drawDraco) while the space draw fades it out
+        tortSimX += (tortLove.tx - tortSimX) * Math.min(1, 0.14 * dt);
+        tortSimY += (tortLove.ty - tortSimY) * Math.min(1, 0.14 * dt);
+        tortVX = 0; tortVY = 0;
+        if (!reduce) { tortSpin += 0.02 * dt; tort.tilt = tortSpin; }            // a happy little spin as it's swept away
+        tort.look = 0.85; tortFallV = 0; tortQuarry = null; tortWanderX = null;
+      } else {
+      // while Draco lies unsolved in the field the curious turtle follows your cursor FAR
+      // more closely (and a touch faster), so you can LEAD it star to star to trace the
+      // constellation; otherwise it just potters about on the lazy drift below
+      const leading = (dracoPresent === true) && !dracoSolving && dracoFieldA > 0.2 && pointerHere;
+      const maxS = Math.min(W, H) * (leading ? 0.009 : 0.004);
+      const pull = leading ? 0.92 : (pointerHere ? 0.45 : 0);                    // how far it leans off the anchor toward you
       const wantX = pathX + (mx * W - pathX) * pull, wantY = pathY + (my * H - pathY) * pull;
-      const k = 0.0009 + 0.0016 * (pointerHere ? 1 : 0);
+      const k = (leading ? 0.004 : 0.0009) + 0.0016 * (pointerHere ? 1 : 0);
       const idle = reduce ? 0 : 1;                                                // reduced-motion: no perpetual idle drift, just ride the anchor / cursor
       let ax = (wantX - tortSimX) * k + Math.cos(tortPh * 0.03) * maxS * 0.05 * idle;   // spring + a slow orbital drift so it's never dead still
       let ay = (wantY - tortSimY) * k + Math.sin(tortPh * 0.024 + 1.3) * maxS * 0.05 * idle;
@@ -1770,6 +1820,7 @@
       tort.tilt = reduce ? 0 : tortSpin;
       tort.look = pointerHere ? 0.8 : 0.25;                                       // it keeps an eye on you out here
       tortFallV = 0; tortQuarry = null; tortWanderX = null;
+      }
     } else if (c.chute > 0.02 && c.swim < 0.05) {
       // ── PARACHUTE: the anchor LEADS the descent; the live wind nudges it sideways and it
       //    swings under the canopy like a pendulum. On freefall visits the canopy stays shut
@@ -2182,8 +2233,18 @@
     for (let i = 0; i < SPRITES.length; i++) {
       const sp = SPRITES[i], el = spriteEls[i];
       if (sp._present === false) { el.style.opacity = '0'; continue; } // rare sprite that didn't roll in this load
+      if (sp.msg && !sp._revealed) {
+        // the message bottle isn't luck-gated: it WASHES UP once the visitor lingers at
+        // the shore. Count dwell only while the beach scene holds; once it's been ~3s,
+        // latch it revealed (remembering when, for the wash-in). ?bottle skips the wait.
+        if (BOTTLE_FORCE) { sp._revealed = true; sp._washT = t; }
+        else if (p > 0.52 && p < 0.66) {
+          if (sp._dwellT == null) sp._dwellT = t;
+          else if (t - sp._dwellT >= 3000) { sp._revealed = true; sp._washT = t; }
+        } else sp._dwellT = null;
+      }
       const d = p - sp.p;
-      if (Math.abs(d) > sp.w) { el.style.opacity = '0'; if (sp.egg) { el.style.pointerEvents = 'none'; sp._suppress = false; } continue; }
+      if (Math.abs(d) > sp.w) { el.style.opacity = '0'; if (sp.egg) { el.style.pointerEvents = 'none'; sp._suppress = false; } else if (sp.msg) el.style.pointerEvents = 'none'; continue; }
       const k = d / sp.w;                         // -1 (below, approaching) … +1 (above, passed)
       let yPx = -k * 0.78 * H + (sp.yb || 0) * H;  // descend → object rises; yb fixes its resting height in the frame (− = higher)
       let op = (1 - Math.abs(k)) * (preview ? 0.9 : 1);
@@ -2266,6 +2327,16 @@
         // return as plain scenery; clickable only while clearly visible & not yet caught
         if (sp._suppress) { if (op <= 0.02) sp._suppress = false; else op = 0; }
         el.style.pointerEvents = (!sp._caught && op > 0.12) ? 'auto' : 'none';
+      } else if (sp.msg) {
+        // revealed: a wave carries it in — fade up and ride down onto the sand over
+        // ~1.1s, then it behaves like ordinary scroll-faded scenery; tap-able while
+        // clearly visible. Unrevealed, it stays hidden (the dwell hasn't elapsed).
+        if (sp._revealed) {
+          const wEase = 1 - Math.pow(1 - Math.min(1, (t - (sp._washT || t)) / 1100), 3);
+          op *= wEase;
+          dy += (1 - wEase) * H * 0.05;       // lifted by the incoming wave, settling onto the sand
+          el.style.pointerEvents = op > 0.12 ? 'auto' : 'none';
+        } else { op = 0; el.style.pointerEvents = 'none'; }
       }
       const total = sc * lifeScale;
       el.style.opacity = op.toFixed(3);
@@ -2396,6 +2467,24 @@
     return (f || '').toLowerCase();
   })();
   const dragonForced = (k) => DRAGON_FORCE === k || DRAGON_FORCE === 'all';
+
+  /* Korea is dragon country: when the visitor's coarse locale lands inside the
+     Korea box (WEATHER.korea, set from geolocation), every dragon's rare per-visit
+     MEET-roll is lifted by KOREA_DRAGON_BOOST. Forced for testing via ?korea=1 or
+     DESCENT_CONFIG.korea — independent of the live weather fetch. The roll is held
+     until the locale has had a chance to land (localeSettled), so the boost can
+     actually apply before the once-per-visit decision fires; a short grace keeps a
+     denied/blocked geolocation from stalling the rare find forever. */
+  const KOREA_DRAGON_BOOST = 3;                  // ~3× more likely to meet a dragon while in Korea
+  const KOREA_FORCED = cfg.korea === true
+    || ['1', 'true', 'yes'].indexOf((new URLSearchParams(location.search).get('korea') || '').toLowerCase()) >= 0;
+  const inKorea = () => WEATHER.korea || KOREA_FORCED;
+  const dragonOdds = (base) => Math.min(1, base * (inKorea() ? KOREA_DRAGON_BOOST : 1));
+  const LOCALE_GRACE = 6000;                     // ms — give geolocation/weather a chance before the locale-sensitive roll
+  const dragonBootT = (window.performance && performance.now) ? performance.now() : Date.now();
+  const localeSettled = () => WEATHER.ready || KOREA_FORCED
+    || ((window.performance && performance.now ? performance.now() : Date.now()) - dragonBootT) > LOCALE_GRACE;
+
   // a small shower of sparks (lighter than burstAt's full catch burst) for the
   // per-step feedback as a star lights / a strike lands / a lure is reached
   function sparkAt(cx, cy, n, warm) {
@@ -2410,10 +2499,22 @@
      of a winding dragon. Click each to light it; lit neighbours link with a
      glowing line (order doesn't matter, generous hit ring, no timer). Light
      them all and the figure blooms — an eye opens, wings and a forked tail
-     trace in — then it uncoils and flies off up into the dark. */
+     trace in — then it uncoils and flies off up into the dark.
+     A SECOND, hidden way in (the ROMANCE): rather than clicking, lead the
+     curious space turtle through the stars so IT kindles them — finish the
+     figure with the turtle nestled inside it and Draco gathers it up and they
+     fly off TOGETHER (fires draco-and-turtle as well). See tortLove above. */
   const DRACO_ID = 'draco';
+  const DRACO_LOVE_ID = 'draco-and-turtle';    // the romance: traced by the turtle → they leave together
   let dracoCaught = _eggHas(DRACO_ID);
-  const dracoPresent = !dracoCaught && (dragonForced('draco') || Math.random() < 0.085);
+  let dracoPresent = null;                     // undecided until the locale has had a chance to land (see dragonOdds)
+  function dracoDecide() {
+    if (dracoPresent !== null) return;
+    if (dracoCaught) { dracoPresent = false; return; }
+    if (dragonForced('draco')) { dracoPresent = true; return; }
+    if (!localeSettled()) return;              // hold the once-per-visit roll so Korea's boost can apply
+    dracoPresent = Math.random() < dragonOdds(0.085);
+  }
   // the figure: an ordered chain (head → tail) in viewport fractions, biased to
   // the upper sky clear of the hero text. The chain only sets which neighbours
   // draw a connecting line — you may light the stars in any order.
@@ -2447,6 +2548,7 @@
     return true;
   }
   function drawDraco(p, t, dt) {
+    if (dracoPresent === null) dracoDecide();
     if (!dracoPresent) return;
     const a = Math.max(0, 1 - p / 0.13);                     // through the deep-space field, gone before the sky brightens
     dracoFieldA = dracoSolving ? 0 : a;                      // not catchable once it's waking/flying off
@@ -2533,9 +2635,10 @@
     if (stormPresent !== null) return;
     if (stormCaught) { stormPresent = false; return; }
     if (dragonForced('storm')) { stormPresent = true; return; }
+    if (!localeSettled()) return;               // hold for the real weather/locale so foul skies & Korea both count
     const w = WEATHER;
     const storminess = w.ready ? Math.min(1, w.cloud * 0.45 + w.precip * 0.9 + Math.max(0, w.wind - 0.4) * 0.7) : 0.2;
-    stormPresent = Math.random() < (0.05 + 0.6 * storminess);   // rare in clear skies, likely in real foul weather
+    stormPresent = Math.random() < dragonOdds(0.05 + 0.6 * storminess);   // rare in clear skies, likely in real foul weather, likelier still in Korea
   }
   function wakeStorm(cx, cy) {
     if (!stormPresent || stormWake || stormHit.alpha < 0.3) return false;
@@ -2555,29 +2658,106 @@
     }
     return true;
   }
-  // a storm-lit flying wyvern, drawn facing LEFT (the way it banks away): dark
-  // body with an electric rim, wings flapping on a vertical squash
+  // a storm-lit flying DRAGON, banking up-left (the way it tears off): a beefy
+  // arched body on broad membranous bat wings (finger struts + scalloped trailing
+  // edge), a long S-neck into a horned head with an ember eye and a fire-lit maw,
+  // a taloned hind leg tucked under, and a barbed spade tail trailing right. Dark
+  // body with an electric storm rim; the wings beat on `flap`.
   function drawWyvern(cx, cy, s, t, alpha) {
     const flap = reduce ? 0.5 : (Math.sin(t * 0.012) * 0.5 + 0.5);   // 0 wings down … 1 up
-    const body = `rgba(20,24,36,${alpha})`, rim = `rgba(150,205,255,${0.9 * alpha})`;
-    ctx.save(); ctx.translate(cx, cy); ctx.scale(s, s); ctx.lineJoin = 'round';
+    const body  = `rgba(17,21,33,${alpha})`;
+    const belly = `rgba(36,44,66,${alpha})`;                         // lit underside
+    const rim   = `rgba(150,205,255,${0.9 * alpha})`;
+    const dim   = `rgba(120,165,210,${0.5 * alpha})`;                // far-wing rim
+    ctx.save(); ctx.translate(cx, cy); ctx.scale(s, s);
+    ctx.lineJoin = 'round'; ctx.lineCap = 'round'; ctx.lineWidth = 2;
+
+    // a broad bat wing fanned from the shoulder; `raise` 0..1 lifts the whole span
+    function wing(raise, fill, stroke) {
+      const L = raise * 34;
+      ctx.fillStyle = fill; ctx.strokeStyle = stroke; ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(-6, -4);                                            // shoulder
+      ctx.quadraticCurveTo(2, -30 - L, 26, -42 - L * 1.15);          // leading edge → wingtip
+      ctx.quadraticCurveTo(22, -24 - L * 0.6, 30, -18 - L * 0.55);   // membrane scallop → tip 1
+      ctx.quadraticCurveTo(24, -10 - L * 0.42, 28, -3 - L * 0.32);   // tip 2
+      ctx.quadraticCurveTo(20, 1 - L * 0.18, 24, 9);                 // tip 3
+      ctx.quadraticCurveTo(12, 9, 0, 2);                             // back into the flank
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.strokeStyle = stroke; ctx.lineWidth = 1.1;                 // finger bones
+      ctx.beginPath();
+      ctx.moveTo(-6, -4); ctx.lineTo(26, -42 - L * 1.15);
+      ctx.moveTo(-2, -2); ctx.lineTo(30, -18 - L * 0.55);
+      ctx.moveTo(-2, -2); ctx.lineTo(28, -3 - L * 0.32);
+      ctx.moveTo(-2, -2); ctx.lineTo(24, 9);
+      ctx.stroke(); ctx.lineWidth = 2;
+    }
+
+    // far wing (behind), lifted a touch less, dimmer & set back for depth
+    ctx.save(); ctx.translate(8, -2); ctx.scale(0.88, 0.88);
+    wing(flap * 0.8 + 0.05, `rgba(20,26,40,${alpha})`, dim);
+    ctx.restore();
+
+    // thick tail rooted in the rump, tapering back-right to a spade barb
     ctx.fillStyle = body; ctx.strokeStyle = rim; ctx.lineWidth = 2;
-    // tail trailing back to the right
-    ctx.beginPath(); ctx.moveTo(10, 2); ctx.quadraticCurveTo(56, 6, 92, 24);
-    ctx.lineTo(96, 20); ctx.quadraticCurveTo(60, -2, 14, -6); ctx.closePath(); ctx.fill(); ctx.stroke();
-    // far wing (dimmer, behind)
-    const wy = -10 - flap * 26;
-    ctx.fillStyle = `rgba(24,30,46,${alpha})`;
-    ctx.beginPath(); ctx.moveTo(-4, -3); ctx.quadraticCurveTo(-34, wy * 0.8, -56, -4); ctx.quadraticCurveTo(-38, 6, -28, 10); ctx.quadraticCurveTo(-16, 2, -4, -3); ctx.closePath(); ctx.fill(); ctx.stroke();
-    // body
-    ctx.fillStyle = body; ctx.beginPath(); ctx.ellipse(0, 0, 16, 8, 0, 0, 6.2832); ctx.fill(); ctx.stroke();
-    // near wing (over the body)
-    ctx.fillStyle = `rgba(30,36,54,${alpha})`;
-    ctx.beginPath(); ctx.moveTo(-2, -2); ctx.quadraticCurveTo(-30, wy, -60, -6 - flap * 8); ctx.quadraticCurveTo(-40, 6, -30, 12); ctx.quadraticCurveTo(-16, 4, -2, -2); ctx.closePath(); ctx.fill(); ctx.stroke();
-    // neck + head up-left (the direction of travel)
-    ctx.fillStyle = body; ctx.beginPath(); ctx.moveTo(-10, -2); ctx.quadraticCurveTo(-26, -10, -36, -18); ctx.lineTo(-31, -21); ctx.quadraticCurveTo(-22, -12, -8, -6); ctx.closePath(); ctx.fill(); ctx.stroke();
-    ctx.fillStyle = `rgba(255,190,100,${alpha})`;                    // eye
-    ctx.beginPath(); ctx.arc(-32, -18, 1.7, 0, 6.2832); ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(18, -6);
+    ctx.quadraticCurveTo(58, -2, 92, 8);
+    ctx.quadraticCurveTo(112, 13, 126, 9);
+    ctx.lineTo(138, 3); ctx.lineTo(124, 12);                        // upper spade barb
+    ctx.lineTo(134, 20); ctx.lineTo(118, 17);                       // lower spade barb
+    ctx.quadraticCurveTo(102, 20, 88, 18);
+    ctx.quadraticCurveTo(54, 12, 20, 10);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+
+    // hind leg tucked under the haunch, three talons splayed
+    ctx.fillStyle = body; ctx.beginPath();
+    ctx.moveTo(14, 6); ctx.quadraticCurveTo(22, 14, 18, 24);
+    ctx.quadraticCurveTo(13, 18, 10, 12); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(18, 24); ctx.lineTo(24, 27); ctx.moveTo(18, 24); ctx.lineTo(16, 30);
+    ctx.moveTo(18, 24); ctx.lineTo(11, 27); ctx.stroke();
+
+    // muscular body: arched back, deep chest & belly
+    ctx.fillStyle = body; ctx.beginPath();
+    ctx.moveTo(-18, -3);
+    ctx.quadraticCurveTo(-6, -17, 12, -12);                         // arched back
+    ctx.quadraticCurveTo(30, -6, 24, 11);                          // haunch → rump
+    ctx.quadraticCurveTo(6, 19, -11, 12);                          // belly
+    ctx.quadraticCurveTo(-23, 6, -18, -3);                         // chest
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = belly; ctx.beginPath();                        // lit belly sheen
+    ctx.moveTo(-14, 7); ctx.quadraticCurveTo(4, 15, 20, 7);
+    ctx.quadraticCurveTo(4, 12, -12, 9); ctx.closePath(); ctx.fill();
+
+    // beefy S-neck flowing into a horned head, up-left (the way it travels)
+    ctx.fillStyle = body; ctx.strokeStyle = rim; ctx.beginPath();
+    ctx.moveTo(-14, -7);                                           // back-of-neck base
+    ctx.quadraticCurveTo(-30, -16, -45, -27);                     // up to the skull
+    ctx.quadraticCurveTo(-55, -34, -65, -30);                     // skull → brow
+    ctx.quadraticCurveTo(-64, -25, -62, -22);                     // blunt snout tip
+    ctx.lineTo(-52, -21);                                          // upper lip
+    ctx.lineTo(-54, -17);                                          // jaw corner (open maw)
+    ctx.quadraticCurveTo(-44, -14, -34, -12);                     // lower jaw → throat
+    ctx.quadraticCurveTo(-24, -6, -12, 1);                        // throat into chest
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+
+    // two swept-back horns
+    ctx.beginPath();
+    ctx.moveTo(-47, -28); ctx.lineTo(-38, -42); ctx.lineTo(-41, -26); ctx.closePath();
+    ctx.moveTo(-42, -26); ctx.lineTo(-34, -38); ctx.lineTo(-36, -24); ctx.closePath();
+    ctx.fill(); ctx.stroke();
+
+    // ember eye + a faint warm glow at the maw (the fire-breather)
+    ctx.save();
+    ctx.fillStyle = `rgba(255,150,70,${0.5 * alpha})`; ctx.shadowColor = 'rgba(255,140,60,0.9)'; ctx.shadowBlur = 8;
+    ctx.beginPath(); ctx.arc(-60, -20, 2.4, 0, 6.2832); ctx.fill();
+    ctx.restore();
+    ctx.fillStyle = `rgba(255,200,110,${alpha})`;
+    ctx.beginPath(); ctx.arc(-52, -25, 2, 0, 6.2832); ctx.fill();
+
+    // near wing last, over the body, the brightest
+    wing(flap, `rgba(28,34,52,${alpha})`, rim);
     ctx.restore();
   }
   function drawStorm(p, t, dt) {
@@ -2633,7 +2813,14 @@
      uncoils and surges away into the trench. */
   const LEV_ID = 'leviathan';
   let levCaught = _eggHas(LEV_ID);
-  const levPresent = !levCaught && (dragonForced('leviathan') || Math.random() < 0.075);
+  let levPresent = null;                       // undecided until the locale has had a chance to land (see dragonOdds)
+  function levDecide() {
+    if (levPresent !== null) return;
+    if (levCaught) { levPresent = false; return; }
+    if (dragonForced('leviathan')) { levPresent = true; return; }
+    if (!localeSettled()) return;              // hold the once-per-visit roll so Korea's boost can apply
+    levPresent = Math.random() < dragonOdds(0.075);
+  }
   const LEV_FOLLOWS = 4, LEV_SEG = 26;         // taps from first lure to full reveal; body resolution
   let levFollow = 0, levWake = false, levWakeT = 0, levLurePh = 0;
   const levHit = { x: 0, y: 0, r: 0, alpha: 0 };
@@ -2657,6 +2844,7 @@
     return true;
   }
   function drawLeviathan(p, t, dt) {
+    if (levPresent === null) levDecide();
     if (!levPresent) return;
     const a = Math.max(0, Math.min(1, (p - 0.84) / 0.06));   // fades in deep, holds to the bottom
     if (a <= 0.01) { levHit.alpha = 0; return; }
@@ -3403,6 +3591,8 @@
         if (!j || !j.current) return Promise.reject('shape');    // malformed 200 response → fail
         const w = classifyWeather(j.current);
         w.south = lat < 0;                                       // coarse hemisphere only (for the season) — not a coordinate
+        // coarse "in Korea?" box (lifts the dragon meet-odds below) — a single boolean, not a coordinate
+        w.korea = (lat >= 33 && lat <= 43 && lon >= 124 && lon <= 132);
         Object.assign(WEATHER, w);
         wxSave({ t: Date.now(), w });                            // cache the good reading
       })

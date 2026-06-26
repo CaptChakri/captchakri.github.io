@@ -23,6 +23,7 @@
 <link rel="stylesheet" href="assets/css/theme.css">
 <link rel="stylesheet" href="assets/css/descent.css">
 <link rel="stylesheet" href="assets/css/easter-eggs.css">
+<link rel="stylesheet" href="assets/css/bottle-message.css">
 <link rel="preload" as="script" href="assets/js/descent-engine.js">
 <style>
 /* ===== DIRECTION B — FIELD NOTES : warm, journal-like, camping-forward ===== */
@@ -82,7 +83,7 @@
   /* without JS: drop the loader + reveal everything so the page is readable */
   #intro { display: none !important; }
   .rise, .dz-hero h1 .w { opacity: 1 !important; transform: none !important; filter: none !important; }
-  .hero-intro, .hero-cta, .hero-status, #hero-journal { opacity: 1 !important; }
+  .hero-intro, .hero-cta, #hero-journal { opacity: 1 !important; }
   /* no JS to fade it, so keep the hint tied to the hero instead of floating over every section */
   .scroll-hint { position: absolute !important; }
   #descent-canvas, #descent-sprites, #descent-gauge { display: none !important; }
@@ -142,10 +143,6 @@
         <div class="hero-cta rise">
           <a href="/blog/" class="btn-primary">Read the journal →</a>
           <a href="#about" class="btn-secondary">Begin the descent ↓</a>
-        </div>
-        <div class="hero-status rise">
-          <span class="status-dot"></span>
-          Available for interesting conversations · Dublin, Ireland
         </div>
       </div>
       <aside class="hero-journal glass rise" id="hero-journal">
@@ -318,5 +315,6 @@
 <script defer src="assets/js/descent-sprites.js"></script>
 <script defer src="assets/js/descent-engine.js"></script>
 <script defer src="assets/js/descent-content.js"></script>
+<script defer src="assets/js/bottle-message.js"></script>
 </body>
 </html>

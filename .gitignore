@@ -22,6 +22,7 @@ venv/
 _ui_review/
 _verify_*.cjs
 *.local.png
+_edge_tmp*
 
 # Logs
 *.log

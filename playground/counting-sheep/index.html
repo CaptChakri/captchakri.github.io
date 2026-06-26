@@ -63,6 +63,15 @@ body.imm .sheepc-quip {
   bottom: calc(env(safe-area-inset-bottom, 0px) + clamp(5.6rem, 17vh, 8rem));
   transition: opacity 1.1s ease;
 }
+/* on bigger screens the meadow fills the lower scene, so float the one-liner up
+   into the open upper sky instead of letting it sit over the fence and flock.
+   (Phones/short landscape keep it low — see the small/short override below.) */
+@media (min-width: 561px) and (min-height: 561px) {
+  body.imm .sheepc-quip {
+    top: clamp(8rem, 16vh, 11rem); bottom: auto;
+    max-width: 42rem; margin-inline: auto;
+  }
+}
 
 /* ---- minimal top chrome: home mark + an info toggle ---- */
 .imm-top {
@@ -306,10 +315,18 @@ body.imm.is-idle .sheepc-quip { opacity: 0.32; }
   };
   var langBtn = document.querySelector('[data-lang-btn]');
   function curLang() {
-    var l = null;
-    try { l = localStorage.getItem('ck-lang'); } catch (e) {}
-    if (!l) l = ((navigator.language || '').slice(0, 2) === 'ko') ? 'ko' : 'en';
-    return CHROME[l] ? l : 'en';
+    // an explicit choice (the toggle, saved) always wins…
+    var saved = null;
+    try { saved = localStorage.getItem('ck-lang'); } catch (e) {}
+    if (saved && CHROME[saved]) return saved;
+    // …otherwise follow the device: scan the full preferred-language list so
+    // Korean is picked up even when it's set as a secondary device language.
+    var prefs = (navigator.languages && navigator.languages.length)
+      ? navigator.languages : [navigator.language || ''];
+    for (var i = 0; i < prefs.length; i++) {
+      if ((prefs[i] || '').slice(0, 2).toLowerCase() === 'ko') return 'ko';
+    }
+    return 'en';
   }
   function applyChrome(l) {
     var d = CHROME[l] || CHROME.en;

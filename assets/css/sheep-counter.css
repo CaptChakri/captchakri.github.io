@@ -94,28 +94,59 @@
   filter: blur(7px);
 }
 
-/* the fence the sheep clear, dead centre so the hop apex lands on it. Each sheep
-   CROSSES the fence: it rises on the far side BEHIND the rails (z-index 3, so the
-   fence occludes its legs as it comes up), then at the apex flips IN FRONT
-   (z-index 6) and lands on the near side — that occlusion-then-reveal is what
-   reads as hopping OVER (vital on mobile, where the fence fills much of the
-   width). The JS toggles each sheep's z-index at the top of its arc; see frame().
-   The owl stays on the rail (z-index 4), the foreground grass in front (7). */
-.sheepc-fence {
-  position: absolute; left: 50%; bottom: 19%; transform: translateX(-50%);
-  width: 104px; height: 50px; z-index: 4;
-  background:
-    /* three rails (rows) — a moonlit top edge fading to shadow below */
-    linear-gradient(180deg, #8a6848, #6a4f34 55%, #4d3823) left 5px  / 100% 7px no-repeat,
-    linear-gradient(180deg, #8a6848, #6a4f34 55%, #4d3823) left 19px / 100% 7px no-repeat,
-    linear-gradient(180deg, #8a6848, #6a4f34 55%, #4d3823) left 33px / 100% 7px no-repeat;
+/* ---- the farmstead on the horizon: a sleeping gambrel-roofed barn with a grain
+   silo and a round hay bale, off to the right, and a slow water-pumping windmill
+   off to the left — distant night silhouettes that anchor the scene as a farm.
+   Both sit AT the grass line (bottom pinned to --ground-h, so they ride up with
+   the meadow on small screens) and BEHIND the fence and flock; the mist layer is
+   painted right after them, so the night haze drifts across their feet. One
+   hayloft window glows warm, and the windmill's wheel turns slowly. ---- */
+.sheepc-farm { position: absolute; inset: 0; z-index: 2; pointer-events: none; }
+.sheepc-barn, .sheepc-windmill {
+  position: absolute; bottom: var(--ground-h); margin-bottom: -6px;   /* nestle the base a touch into the turf */
+  filter: drop-shadow(0 4px 7px rgba(0,0,0,0.45));
 }
-.sheepc-fence::before, .sheepc-fence::after { /* two posts */
-  content: ''; position: absolute; top: 0; width: 8px; height: 100%;
-  background: linear-gradient(180deg, #6b5238, #4a3826); border-radius: 2px 2px 0 0;
+.sheepc-barn svg, .sheepc-windmill svg { width: 100%; height: 100%; display: block; overflow: visible; }
+
+.sheepc-barn     { right: 6%;  width: clamp(92px, 25%, 124px); aspect-ratio: 130 / 92; }
+.sheepc-windmill { right: 28%; width: clamp(44px, 12%, 54px);  aspect-ratio: 64 / 120; }
+
+/* the forest on the LEFT — a stand of dark pines at the grass line, behind the
+   flock; anchored to --ground-h so it rides up with the meadow on small screens */
+.sheepc-forest {
+  position: absolute; left: -2%; bottom: var(--ground-h); margin-bottom: -4px;
+  width: clamp(150px, 42%, 230px); aspect-ratio: 210 / 140; z-index: 2;
+  pointer-events: none; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.5));
 }
-.sheepc-fence::before { left: 6px; }
-.sheepc-fence::after  { right: 6px; }
+.sheepc-forest svg { width: 100%; height: 100%; display: block; overflow: visible; }
+
+/* the warm hayloft window breathes a slow, cosy glow */
+.barn-glow { transform-box: fill-box; transform-origin: 50% 50%; animation: sheepcBarnGlow 9s ease-in-out infinite; }
+@keyframes sheepcBarnGlow { 0%, 100% { opacity: 0.5; } 50% { opacity: 0.95; } }
+
+/* the windmill wheel turns slowly on the breeze (origin = the hub, in viewBox units) */
+.mill-fan { transform-box: view-box; transform-origin: 32px 34px; animation: sheepcMillSpin 11s linear infinite; }
+@keyframes sheepcMillSpin { to { transform: rotate(360deg); } }
+
+/* ---- the paddock fence: ONE continuous post-and-rail run bent into a half circle
+   around the front of the farm (drawn by the JS as the front half of a flat ellipse,
+   nearest at the centre and fading back to either side — that curve is the depth).
+   Three rails; whole all along except the centre, where the top rail is snapped out
+   — the broken span the flock hops. A full-width layer at z-index 4: each sheep
+   rises BEHIND it (z 3, so the rails occlude its legs as it comes up), then at the
+   apex flips IN FRONT (z 6) and lands on the near side — that occlusion-then-reveal
+   is what reads as hopping OVER. preserveAspectRatio="none" lets it stretch flat
+   without letterboxing — the posts are vertical lines, so they stay upright.
+   Anchored to --ground-h so it rides up with the meadow on small screens. ---- */
+.sheepc-pen, .sheepc-fence {
+  position: absolute; left: 50%; transform: translateX(-50%);
+  bottom: calc(var(--ground-h) - 9%);
+  width: 106%; height: 24%; pointer-events: none;
+  filter: drop-shadow(0 3px 4px rgba(0,0,0,0.34));
+}
+.sheepc-pen   { z-index: 2; }   /* the receding arc — BEHIND the flock, so sheep never read as under it */
+.sheepc-fence { z-index: 4; }   /* the gate — IN FRONT, the one span a sheep hops (rising behind, landing ahead) */
+.sheepc-pen svg, .sheepc-fence svg { width: 100%; height: 100%; display: block; overflow: visible; }
 
 /* the lane the sheep travel along. Deliberately NOT a stacking context (no
    z-index) so each sheep can sit behind the fence (z 3) on the way up and in
@@ -127,6 +158,7 @@
   position: absolute; bottom: 17%; left: 0;
   width: 70px; height: 50px; will-change: transform;
   filter: drop-shadow(0 6px 5px rgba(0,0,0,0.35));
+  transform-origin: 50% 100%;   /* pivot the lean + squash-&-stretch at the hooves, so it coils and lands on the ground rather than about its middle */
 }
 .sheepc-sheep svg { width: 100%; height: 100%; overflow: visible; display: block; }
 .sg-wool { fill: #f4f6fb; }
@@ -144,6 +176,13 @@
 .sheepc-sheep svg line.sg-leg:nth-of-type(4) { transform-origin: 52px 38px; animation-delay: -0.345s; }
 @keyframes sgTrot { 0%, 100% { transform: rotate(19deg); } 50% { transform: rotate(-19deg); } }
 .sg-eye { fill: #fff; }
+/* a forward-facing pair of eyes, revealed once a sheep has landed and settled to
+   watch you (.is-watching, set by the JS the moment it stops on the field). Until
+   then it keeps its single profile eye and trotting legs; settled, its legs still. */
+.sg-look { display: none; fill: #fff; }
+.sheepc-sheep.is-watching .sg-look { display: block; }
+.sheepc-sheep.is-watching .sg-eye  { display: none; }
+.sheepc-sheep.is-watching .sg-leg  { animation-play-state: paused; }
 /* variant-only bits, hidden until the sheep wears that costume */
 .sg-shades, .sg-pillow, .sg-wolf-ear, .sg-wolf-tail, .sg-crown { display: none; }
 .sheepc-sheep.is-vip   .sg-shades   { display: block; }
@@ -154,6 +193,46 @@
 .sheepc-sheep.is-wolf  .sg-wool   { fill: #79808f; }
 .sheepc-sheep.is-wolf  .sg-wool-2 { fill: #5d646f; }
 .sheepc-sheep.is-wolf  .sg-face   { fill: #20242c; }
+
+/* ---- a dragon passing over: the flock spooks, and the fright scales with how
+   close it gets. The JS sets .is-spooked plus --spook (0..1, by proximity) on each
+   sheep; here that drives a shiver, a quicker gait, and eyes blown wide. The shiver
+   rides the inner <svg> (transform) so it never fights the per-frame transform the
+   JS sets on the sheep element, and its amplitude grows with --spook. ---- */
+.sheepc-sheep.is-spooked svg {
+  transform-origin: 50% 85%;                  /* rock about the hooves */
+  animation: sheepcSpook 0.26s ease-in-out infinite;
+}
+@keyframes sheepcSpook {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  25% { transform: translateY(calc(var(--spook, 1) * -1px)) rotate(calc(var(--spook, 1) * -4deg)); }
+  75% { transform: translateY(calc(var(--spook, 1) * -1px)) rotate(calc(var(--spook, 1) *  4deg)); }
+}
+.sheepc-sheep.is-spooked .sg-leg { animation-duration: 0.2s; }   /* legs gallop */
+.sheepc-sheep.is-spooked .sg-eye {                               /* eyes blow wide with fright */
+  transform-box: fill-box; transform-origin: center;
+  transform: scale(calc(1 + var(--spook, 1) * 0.8));
+}
+/* the owl notices too: as the dragon nears mid-stage it stops blinking and stares */
+.sheepc-stage.is-spooked .owl-eyes {
+  animation: none;
+  transform-box: fill-box; transform-origin: 50% 50%;
+  transform: scale(calc(1 + var(--spook, 0) * 0.2));
+}
+/* a pause freezes the panic mid-tremble, like everything else on the stage */
+.sheepc-stage.is-paused .sheepc-sheep.is-spooked svg { animation-play-state: paused; }
+
+/* ---- the hop's legwork: while a sheep is off the ground (.is-airborne, set by the
+   JS for the span of its leap) the legs stop trotting and pose instead — the front
+   pair reaches out and the hind pair trails on takeoff and landing, both folding in
+   under the belly at the float, for the classic mid-leap silhouette. The JS sets the
+   live angles as --legF / --legB each frame; here the legs just hang on them. This
+   sits after the spook rules so a leaping sheep poses rather than galloping its legs. */
+.sheepc-sheep.is-airborne .sg-leg { animation: none; }
+.sheepc-sheep.is-airborne svg line.sg-leg:nth-of-type(1),
+.sheepc-sheep.is-airborne svg line.sg-leg:nth-of-type(2) { transform: rotate(var(--legF, 0deg)); }
+.sheepc-sheep.is-airborne svg line.sg-leg:nth-of-type(3),
+.sheepc-sheep.is-airborne svg line.sg-leg:nth-of-type(4) { transform: rotate(var(--legB, 0deg)); }
 
 /* big soft counter, top-left of the stage */
 .sheepc-readout { position: absolute; top: 1.1rem; left: 1.25rem; z-index: 8; }
@@ -185,6 +264,12 @@
   gap: 1rem;
 }
 .sheepc-breath[hidden] { display: none; }
+/* the dial stacks the swelling ring, the countdown arc, and the seconds number
+   concentrically; the label sits below it in the breath column */
+.sheepc-breath-dial {
+  position: relative; width: 150px; height: 150px;
+  display: flex; align-items: center; justify-content: center;
+}
 .sheepc-breath-ring {
   width: 130px; height: 130px; border-radius: 50%;
   border: 2px solid rgba(0,200,240,0.55);
@@ -195,12 +280,34 @@
 .sheepc-breath[data-phase="inhale"] .sheepc-breath-ring { transform: scale(1);    transition-duration: 4s; }
 .sheepc-breath[data-phase="hold"]   .sheepc-breath-ring { transform: scale(1);    transition-duration: 0.4s; }
 .sheepc-breath[data-phase="exhale"] .sheepc-breath-ring { transform: scale(0.55); transition-duration: 6s; }
+/* the countdown arc — a ring that drains over each phase (JS sets the dash offset),
+   starting at 12 o'clock, so you can watch the time left run down */
+.sheepc-breath-progress {
+  position: absolute; width: 144px; height: 144px;
+  transform: rotate(-90deg); overflow: visible; pointer-events: none;
+}
+.sheepc-breath-track { fill: none; stroke: rgba(0,200,240,0.12); stroke-width: 2; }
+.sheepc-breath-bar {
+  fill: none; stroke: rgba(0,200,240,0.7); stroke-width: 3; stroke-linecap: round;
+  filter: drop-shadow(0 0 6px rgba(0,200,240,0.45));
+}
+/* the seconds-remaining number, dead centre */
+.sheepc-breath-count {
+  position: absolute; z-index: 1;
+  font-family: 'Space Grotesk', sans-serif; font-weight: 700;
+  font-size: 2.5rem; line-height: 1; color: var(--white);
+  text-shadow: 0 0 20px rgba(0,200,240,0.4); font-variant-numeric: tabular-nums;
+}
 .sheepc-breath-label {
   font-family: 'Space Grotesk', sans-serif; font-size: 1rem; letter-spacing: 0.04em;
   color: var(--white); text-shadow: 0 0 18px rgba(0,0,0,0.6);
 }
-/* while breathing, the meadow recedes so the ring leads the eye */
-.sheepc-stage.is-breathing .sheepc-track { opacity: 0.35; transition: opacity 0.6s ease; }
+/* while breathing, the flock stops on the field and turns to face you — any sheep caught
+   mid-jump first finishes its arc and lands (see the JS), then settles (.is-watching) with
+   forward-facing eyes. Only the near foreground grass recedes, so it never crops the
+   watching sheep — which also cures the old glitch where dimming the whole track (an
+   opacity stacking context) collapsed its sheep behind the fence and grass. */
+.sheepc-stage.is-breathing .sheepc-grass-near { opacity: 0.18; transition: opacity 0.6s ease; }
 
 /* "dim" overlay — a deepening dusk for when you're nearly under */
 .sheepc-dim {
@@ -297,8 +404,15 @@
 }
 .sheepc-tortoise svg { width: 100%; height: 100%; display: block; overflow: visible; }
 .sheepc-tortoise.face-right svg { transform: scaleX(-1); }   /* heading the other way */
-.tort-head { transform-box: fill-box; transform-origin: 92% 78%; }
+.tort-head { transform-box: fill-box; transform-origin: 100% 59%; }   /* pivot at the neck/shell junction (right edge of the head's box) so it crans up cleanly */
 .tort-legs { transform-box: fill-box; animation: sheepcTortWaddle 0.55s ease-in-out infinite; }
+/* the legs actually stride now, like the main-page avatar: the fore and hind pairs
+   swing fore-aft about where they meet the shell, a half-cycle apart, so it walks
+   rather than slides. (transform-box:fill-box keeps each pair's pivot at its own top.) */
+.tort-leg { transform-box: fill-box; transform-origin: 50% 0; }
+.tort-leg-f { animation: sheepcTortStep 0.55s ease-in-out infinite; }
+.tort-leg-b { animation: sheepcTortStep 0.55s ease-in-out infinite; animation-delay: -0.275s; }
+@keyframes sheepcTortStep { 0%, 100% { transform: rotate(7deg); } 50% { transform: rotate(-7deg); } }
 @keyframes sheepcTortRoam {
   0%   { transform: translateX(var(--tStart)); }
   20%  { transform: translateX(var(--tMid)); }
@@ -312,11 +426,26 @@
   55%, 62%  { transform: translateY(-4px) rotate(-13deg); } /* …then look again */
   70%, 100% { transform: translateY(0) rotate(0); }
 }
+/* the tortoise hops the fence too: it trundles up to the rail, gathers, and clears it
+   in an arc — rising BEHIND the fence (z 3) and flipping to the near side (z 6) at the
+   apex so it reads as going OVER, exactly the trick the sheep use. JS sets the travel
+   stops (--tStart/--tMid/--tApex/--tLand/--tEnd) and the clearance height (--tHop). */
+@keyframes sheepcTortJump {
+  0%   { transform: translate(var(--tStart), 0);                      z-index: 3; }
+  47%  { transform: translate(var(--tMid),   0);                      z-index: 3; }   /* trundle up to the rail */
+  49%  { transform: translate(var(--tMid),  -7px);                    z-index: 3; }   /* gather and push off */
+  52%  { transform: translate(var(--tApex),  calc(-1 * var(--tHop))); z-index: 6; }   /* crest the rail, flip to the front */
+  55%  { transform: translate(var(--tLand), -6px);                    z-index: 6; }   /* coming down on the near side */
+  57%  { transform: translate(var(--tLand),  0);                      z-index: 6; }   /* land and gather */
+  100% { transform: translate(var(--tEnd),   0);                      z-index: 6; }   /* amble off */
+}
 @keyframes sheepcTortWaddle { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(1.6px); } }
 /* a paused scene freezes the tortoise mid-stride rather than leaving it walking */
 .sheepc-stage.is-paused .sheepc-tortoise,
 .sheepc-stage.is-paused .tort-head,
 .sheepc-stage.is-paused .tort-legs,
+.sheepc-stage.is-paused .tort-leg-f,
+.sheepc-stage.is-paused .tort-leg-b,
 .sheepc-stage.is-paused .sg-leg { animation-play-state: paused; }
 
 /* ---- biosphere life borrowed from the main page's night camp ---- */
@@ -333,11 +462,12 @@
 @keyframes sheepcFlyBlink { 0%, 100% { opacity: 0.04; } 45% { opacity: 0.9; } 72% { opacity: 0.45; } }
 @keyframes sheepcFlyDrift { from { transform: translate(0, 0); } to { transform: translate(var(--dx, 0), var(--dy, 0)); } }
 
-/* the owl — the camp's night watcher — perched on the fence, blinking now and
-   then. Sits in front of the fence (z 4) on the left post, clear of the hop. */
+/* the owl — the camp's night watcher — roosting atop a pine in the forest at left,
+   its amber eyes catching the moonlight, blinking now and then. Anchored to
+   --ground-h so it rides up with the meadow on small screens. */
 .sheepc-owl {
-  position: absolute; left: calc(50% - 42px); transform: translateX(-50%);
-  bottom: calc(19% + 40px); width: 30px; height: 34px; z-index: 4;
+  position: absolute; left: 8%; transform: translateX(-50%);
+  bottom: calc(var(--ground-h) + 11%); width: 24px; height: 28px; z-index: 4;
   filter: drop-shadow(0 3px 3px rgba(0,0,0,0.45));
 }
 .sheepc-owl svg { width: 100%; height: 100%; display: block; }
@@ -345,6 +475,33 @@
 @keyframes sheepcOwlBlink { 0%, 92%, 100% { transform: scaleY(1); } 96% { transform: scaleY(0.08); } }
 .sheepc-stage.is-paused .owl-eyes { animation-play-state: paused; }
 .sheepc-stage.is-paused .sheepc-fly { animation-play-state: paused; }
+
+/* ---- the legendary dragon: a rare visitor that glides high across the sky at
+   Fibonacci milestones (see dragonAt in the script). A dark silhouette with a
+   slow-flapping wing and a gentle bob, crossing well ABOVE the meadow so it
+   never overlaps the fence or the flock. JS sets the travel (--dStart/--dEnd),
+   the top, and the fly duration; the wing-flap and bob are pure CSS. ---- */
+.sheepc-dragon {
+  position: absolute; left: 0; z-index: 5; width: 140px; height: 84px;
+  pointer-events: none; will-change: transform;
+  filter: drop-shadow(0 8px 11px rgba(0,0,0,0.5));
+}
+.drg-bob { width: 100%; height: 100%; animation: sheepcDragonBob 2.6s ease-in-out infinite; }
+.sheepc-dragon svg { width: 100%; height: 100%; display: block; overflow: visible; }
+.sheepc-dragon.face-right svg { transform: scaleX(-1); }   /* mirror to fly the other way */
+.drg-skin { fill: #0e1730; }
+.drg-wing { fill: #152038; }
+.drg-eye  { fill: #ffae3b; }
+.drg-wings {
+  transform-box: fill-box; transform-origin: 4% 92%;       /* pivot at the wing's shoulder */
+  animation: sheepcDragonFlap 0.62s ease-in-out infinite;
+}
+@keyframes sheepcDragonFly  { from { transform: translateX(var(--dStart, 0)); } to { transform: translateX(var(--dEnd, 0)); } }
+@keyframes sheepcDragonBob  { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+@keyframes sheepcDragonFlap { 0%, 100% { transform: rotate(-15deg); } 50% { transform: rotate(16deg); } }
+.sheepc-stage.is-paused .sheepc-dragon,
+.sheepc-stage.is-paused .drg-bob,
+.sheepc-stage.is-paused .drg-wings { animation-play-state: paused; }
 
 /* ---- controls below the stage ---- */
 .sheepc-controls { display: flex; flex-wrap: wrap; gap: 0.6rem; }
@@ -373,6 +530,9 @@
   .sheepc-num { text-shadow: 0 0 20px rgba(0,200,240,0.22); }
   .sheepc-quip { font-size: 0.85rem; }
   .sheepc-breath-ring { width: 104px; height: 104px; }
+  .sheepc-breath-dial { width: 124px; height: 124px; }
+  .sheepc-breath-progress { width: 118px; height: 118px; }
+  .sheepc-breath-count { font-size: 2rem; }
 }
 
 /* respect a reduced-motion preference: still a quiet, working counter,
@@ -383,6 +543,10 @@
   .sheepc-quip { transition: opacity 0.4s ease; }
   .sheepc-quip.show { animation: none; opacity: 0.92; transform: none; }
   .sheepc-sheep { transition: opacity 0.6s ease; }
+  /* the reduced-motion sheep just fade in centred (no flock loop to set .is-watching),
+     so let them face you straight away while breathing */
+  .sheepc-stage.is-breathing .sheepc-sheep .sg-look { display: block; }
+  .sheepc-stage.is-breathing .sheepc-sheep .sg-eye  { display: none; }
   .sheepc-breath-ring { transition: none; }
   /* keep the ambience still and calm — no drift, glow, sway, or settle */
   .sheepc-stage { animation: none; }
@@ -391,9 +555,12 @@
   .sheepc-mist { animation: none; }
   .sheepc-cloud { display: none; }
   .sheepc-deepen { transition: opacity 0.6s ease; }
-  .tort-legs, .tort-head { animation: none; }
+  .tort-legs, .tort-leg-f, .tort-leg-b, .tort-head { animation: none; }
   .sheepc-tortoise { transition: opacity 0.7s ease; }
   .sg-leg { animation: none; }
   .sheepc-fly { display: none; }
   .owl-eyes { animation: none; }
+  .mill-fan { animation: none; }                    /* the windmill rests, wheel still */
+  .barn-glow { animation: none; opacity: 0.72; }    /* the window holds a steady warm glow */
+  .sheepc-dragon { display: none; }   /* the dragon is pure flight; the script already skips it */
 }

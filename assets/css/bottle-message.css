@@ -1,0 +1,195 @@
+/* =====================================================================
+   MESSAGE IN A BOTTLE — the lock/decrypt dialog + the private sealing tool.
+   Pairs with assets/js/bottle-message.js. Reuses theme.css tokens so it
+   sits on the site's palette (--cyan/--white/--gray/--pink/--accent-rgb).
+   ===================================================================== */
+
+/* the bottle sprite is tap-able (triple-tap uncorks it). A generous invisible
+   hit-ring makes the small target easy to hit; a nudge wobbles it per tap. */
+.msg-bottle { cursor: pointer; }
+.msg-bottle::after { content: ''; position: absolute; inset: -22px; border-radius: 50%; }
+.msg-bottle.bottle-nudge { animation: bm-nudge .42s ease; }
+@keyframes bm-nudge {
+  0%, 100% { } 30% { filter: drop-shadow(0 0 14px rgba(var(--accent-rgb), .55)); }
+}
+
+/* ---------- the overlay ---------- */
+#bottle-overlay {
+  position: fixed; inset: 0; z-index: 9998;
+  display: flex; align-items: center; justify-content: center;
+  padding: clamp(1rem, 4vw, 2rem);
+  background: rgba(3, 7, 18, 0.62);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  opacity: 0; pointer-events: none;
+  transition: opacity .4s ease;
+}
+#bottle-overlay.show { opacity: 1; pointer-events: auto; }
+body.bm-open { overflow: hidden; }
+
+.bm-card {
+  position: relative;
+  width: min(94vw, 460px);
+  max-height: min(88vh, 720px); overflow-y: auto;
+  padding: clamp(1.4rem, 4vw, 2.2rem);
+  text-align: center;
+  background:
+    radial-gradient(120% 80% at 50% -10%, rgba(var(--accent-rgb), 0.14), transparent 60%),
+    rgba(8, 14, 30, 0.92);
+  border: 1px solid rgba(var(--accent-rgb), 0.32);
+  border-radius: 1.1rem;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6), 0 0 50px rgba(var(--accent-rgb), 0.1);
+  transform: translateY(16px) scale(.97);
+  transition: transform .45s cubic-bezier(.2, .9, .2, 1);
+}
+#bottle-overlay.show .bm-card { transform: none; }
+.bm-card.bm-shake { animation: bm-shake .42s cubic-bezier(.36, .07, .19, .97); }
+@keyframes bm-shake {
+  10%, 90% { transform: translateX(-2px); } 20%, 80% { transform: translateX(4px); }
+  30%, 50%, 70% { transform: translateX(-8px); } 40%, 60% { transform: translateX(8px); }
+}
+
+.bm-close {
+  position: absolute; top: .5rem; right: .65rem;
+  width: 2rem; height: 2rem; line-height: 1;
+  font-size: 1.4rem; color: var(--gray);
+  background: transparent; border: 0; border-radius: 50%; cursor: pointer;
+  transition: color .2s ease, background .2s ease;
+}
+.bm-close:hover { color: var(--white); background: rgba(255, 255, 255, .06); }
+.bm-close:focus-visible { outline: 2px solid var(--pink); outline-offset: 2px; }
+
+/* ---------- lock screen ---------- */
+.bm-seal { margin: .2rem auto .9rem; width: 3.4rem; height: 3.4rem; }
+.bm-wax {
+  width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;
+  font-size: 1.5rem; color: #fff;
+  background: radial-gradient(circle at 35% 30%, var(--pink), #b0436a 70%);
+  border-radius: 50%;
+  box-shadow: 0 6px 18px rgba(176, 67, 106, .45), inset 0 0 12px rgba(0, 0, 0, .25);
+}
+.bm-to {
+  font-family: 'JetBrains Mono', monospace; font-size: .72rem;
+  letter-spacing: .12em; color: var(--pink); margin-bottom: .5rem;
+}
+.bm-eyebrow {
+  font-family: 'JetBrains Mono', monospace; font-size: .62rem;
+  letter-spacing: .24em; text-transform: uppercase; color: var(--cyan);
+  margin-bottom: .5rem;
+}
+.bm-eyebrow-open { color: var(--pink); }
+.bm-title {
+  font-family: 'Space Grotesk', sans-serif; font-weight: 600;
+  font-size: clamp(1.2rem, 4vw, 1.5rem); color: var(--white);
+  margin: 0 0 .5rem;
+}
+.bm-hint { font-size: .85rem; color: var(--gray); line-height: 1.5; margin: 0 auto 1.2rem; max-width: 32ch; }
+.bm-hint code { font-family: 'JetBrains Mono', monospace; color: var(--cyan); font-size: .92em; }
+
+.bm-form { display: flex; flex-direction: column; gap: .7rem; }
+.bm-field { position: relative; display: flex; }
+.bm-pass {
+  flex: 1; width: 100%;
+  padding: .75rem 2.6rem .75rem .9rem;
+  font-family: 'JetBrains Mono', monospace; font-size: .95rem; letter-spacing: .06em;
+  color: var(--white); text-align: center;
+  background: rgba(0, 0, 0, .3);
+  border: 1px solid rgba(var(--accent-rgb), 0.3); border-radius: .65rem;
+  transition: border-color .2s ease, box-shadow .2s ease;
+}
+.bm-pass::placeholder { color: var(--gray2); letter-spacing: normal; }
+.bm-pass:focus {
+  outline: none; border-color: var(--cyan);
+  box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.15);
+}
+.bm-show {
+  position: absolute; right: .3rem; top: 50%; transform: translateY(-50%);
+  width: 2rem; height: 2rem; font-size: .95rem; line-height: 1;
+  background: transparent; border: 0; border-radius: .5rem; cursor: pointer;
+  opacity: .5; transition: opacity .2s ease;
+}
+.bm-show:hover, .bm-show.on { opacity: 1; }
+
+.bm-go {
+  padding: .72rem 1rem;
+  font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: .92rem;
+  color: var(--navy); background: var(--cyan);
+  border: 0; border-radius: .65rem; cursor: pointer;
+  transition: transform .15s ease, box-shadow .2s ease, opacity .2s ease, filter .2s ease;
+}
+.bm-go:hover { transform: translateY(-1px); box-shadow: 0 8px 22px rgba(var(--accent-rgb), 0.32); filter: brightness(1.06); }
+.bm-go:active { transform: none; }
+.bm-go:disabled { opacity: .65; cursor: progress; }
+.bm-go:focus-visible { outline: 2px solid var(--pink); outline-offset: 2px; }
+
+.bm-msg { min-height: 1.1rem; font-size: .8rem; color: var(--gray); }
+.bm-msg.bm-err { color: var(--pink); }
+
+/* ---------- revealed note ---------- */
+.bm-letter {
+  margin: .4rem 0 1.3rem; padding: 1.1rem 1.2rem;
+  text-align: left;
+  background: rgba(255, 255, 255, .03);
+  border: 1px solid rgba(var(--accent-rgb), 0.16); border-radius: .75rem;
+}
+.bm-note {
+  margin: 0;
+  font-family: 'Space Grotesk', sans-serif; font-size: 1.02rem; line-height: 1.7;
+  color: var(--white); white-space: pre-wrap; word-break: break-word;
+}
+.bm-sign {
+  margin-top: 1rem; text-align: right;
+  font-family: 'Space Grotesk', sans-serif; font-style: italic;
+  font-size: .92rem; color: var(--pink);
+}
+.bm-done {
+  padding: .6rem 1.1rem; font-family: 'JetBrains Mono', monospace; font-size: .78rem;
+  letter-spacing: .04em; color: var(--text);
+  background: transparent; border: 1px solid rgba(var(--accent-rgb), 0.3);
+  border-radius: 999px; cursor: pointer;
+  transition: border-color .2s ease, color .2s ease;
+}
+.bm-done:hover { border-color: var(--cyan); color: var(--white); }
+.bm-done:focus-visible { outline: 2px solid var(--pink); outline-offset: 2px; }
+
+/* ---------- sealing tool (?seal) ---------- */
+.bm-seal-form { display: flex; flex-direction: column; gap: .7rem; text-align: left; margin-top: .4rem; }
+.bm-l {
+  display: flex; flex-direction: column; gap: .3rem;
+  font-family: 'JetBrains Mono', monospace; font-size: .66rem;
+  letter-spacing: .12em; text-transform: uppercase; color: var(--gray);
+}
+.bm-l input, .bm-l textarea {
+  font-family: 'Space Grotesk', sans-serif; font-size: .92rem; letter-spacing: normal;
+  text-transform: none; color: var(--white);
+  padding: .55rem .7rem;
+  background: rgba(0, 0, 0, .3);
+  border: 1px solid rgba(var(--accent-rgb), 0.25); border-radius: .55rem;
+  resize: vertical;
+}
+.bm-l input:focus, .bm-l textarea:focus { outline: none; border-color: var(--cyan); }
+.bm-row { display: flex; gap: .6rem; }
+.bm-row .bm-l { flex: 1; }
+.bm-out { margin-top: 1.1rem; text-align: left; }
+.bm-snip {
+  max-height: 11rem; overflow: auto; margin: .4rem 0 .7rem; padding: .7rem .8rem;
+  font-family: 'JetBrains Mono', monospace; font-size: .68rem; line-height: 1.5;
+  color: var(--cyan); white-space: pre;
+  background: rgba(0, 0, 0, .4);
+  border: 1px solid rgba(var(--accent-rgb), 0.25); border-radius: .55rem;
+}
+.bm-copy, .bm-try {
+  margin-right: .5rem; padding: .5rem .9rem;
+  font-family: 'JetBrains Mono', monospace; font-size: .74rem;
+  background: transparent; color: var(--text);
+  border: 1px solid rgba(var(--accent-rgb), 0.3); border-radius: 999px; cursor: pointer;
+  transition: border-color .2s ease, color .2s ease;
+}
+.bm-copy:hover, .bm-try:hover { border-color: var(--cyan); color: var(--white); }
+
+@media (max-width: 480px) { .bm-row { flex-direction: column; } }
+
+@media (prefers-reduced-motion: reduce) {
+  #bottle-overlay, .bm-card { transition: opacity .25s ease; }
+  .bm-card { transform: none; }
+  .bm-card.bm-shake, .msg-bottle.bottle-nudge { animation: none; }
+}
