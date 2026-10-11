@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<!-- =====================================================================
+   SHARE CARD — source for assets/og-image.png (the og:image / twitter:image).
+   A 1200×630 still of the orbit scene, using the site's own palette and the
+   ringed-planet + satellite sprites from descent-sprites.js. Regenerate with:
+
+     npm run og
+
+   (headless Edge screenshots this file at exactly 1200×630.)
+   ===================================================================== -->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=JetBrains+Mono:wght@400;500&display=block">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1200px; height: 630px; overflow: hidden; }
+  body {
+    position: relative;
+    background: linear-gradient(to bottom, #02030a 0%, #04060f 55%, #0a1230 100%);
+    font-family: 'Space Grotesk', 'Segoe UI', sans-serif;
+    color: #F3F5F9;
+  }
+  #stars { position: absolute; inset: 0; }
+
+  /* the planet below: a huge disc whose top edge is the horizon, a cyan
+     atmosphere halo and a thin warm dawn line where the sun is coming round */
+  .earth {
+    position: absolute; left: 50%; top: 486px;
+    width: 3000px; height: 3000px; margin-left: -1500px; border-radius: 50%;
+    background: radial-gradient(circle at 50% 0%, #1b3f7a 0%, #0c1a3d 7%, #050a1a 18%);
+    box-shadow:
+      0 -2px 0 0 rgba(240,168,120,.55),
+      0 -10px 28px 4px rgba(84,205,236,.45),
+      0 -40px 120px 30px rgba(39,64,122,.55);
+  }
+
+  .planet { position: absolute; right: 92px; top: 70px; width: 210px; opacity: .92; transform: rotate(-4deg); }
+  .sat    { position: absolute; right: 170px; top: 330px; width: 92px; opacity: .85; transform: rotate(14deg); }
+  .orbit  { position: absolute; inset: 0; }
+
+  .copy { position: absolute; left: 88px; top: 70px; width: 760px; }
+  .logo { font-weight: 700; font-size: 34px; letter-spacing: .02em; }
+  .logo span { color: #00C8F0; }
+  .kicker {
+    margin-top: 46px; font-family: 'JetBrains Mono', Consolas, monospace;
+    font-size: 21px; letter-spacing: .16em; text-transform: uppercase; color: #f0a878;
+  }
+  h1 { margin-top: 18px; font-size: 84px; line-height: 1.02; font-weight: 700; letter-spacing: -.02em; }
+  .sub { margin-top: 22px; font-size: 27px; line-height: 1.4; color: #D6DBE4; max-width: 700px; }
+  .url {
+    position: absolute; left: 88px; bottom: 44px;
+    font-family: 'JetBrains Mono', Consolas, monospace; font-size: 20px; color: rgba(214,219,228,.75);
+  }
+  .alt {
+    position: absolute; right: 88px; bottom: 44px;
+    font-family: 'JetBrains Mono', Consolas, monospace; font-size: 18px; letter-spacing: .12em; color: rgba(143,180,240,.8);
+  }
+</style>
+</head>
+<body>
+  <canvas id="stars" width="1200" height="630"></canvas>
+
+  <svg class="orbit" viewBox="0 0 1200 630" aria-hidden="true">
+    <ellipse cx="800" cy="300" rx="430" ry="92" fill="none" stroke="rgba(143,180,240,.16)" stroke-width="1.5" stroke-dasharray="3 9" transform="rotate(-8 800 300)"/>
+  </svg>
+
+  <!-- '🪐' and '🛰' from assets/js/descent-sprites.js -->
+  <svg class="planet" viewBox="0 0 130 100"><circle cx="60" cy="50" r="30" fill="#cdd8ee"/><circle cx="50" cy="41" r="8" fill="#eaf0ff" opacity=".5"/><circle cx="74" cy="60" r="5" fill="#9fb0d6" opacity=".5"/><ellipse cx="60" cy="50" rx="58" ry="16" fill="none" stroke="#aebfe2" stroke-width="5" transform="rotate(-16 60 50)"/></svg>
+  <svg class="sat" viewBox="0 0 130 80"><line x1="60" y1="30" x2="60" y2="12" stroke="#aebfe2" stroke-width="3"/><circle cx="60" cy="9" r="4" fill="#cdd8ee"/><rect x="8" y="30" width="34" height="18" rx="2" fill="#6f9fe0"/><rect x="88" y="30" width="34" height="18" rx="2" fill="#6f9fe0"/><line x1="25" y1="30" x2="25" y2="48" stroke="#21345e" stroke-width="2"/><line x1="105" y1="30" x2="105" y2="48" stroke="#21345e" stroke-width="2"/><line x1="42" y1="39" x2="50" y2="39" stroke="#aebfe2" stroke-width="3"/><line x1="80" y1="39" x2="88" y2="39" stroke="#aebfe2" stroke-width="3"/><rect x="50" y="28" width="30" height="22" rx="4" fill="#dfe9ff"/></svg>
+
+  <div class="earth"></div>
+
+  <div class="copy">
+    <div class="logo">CK<span>.</span></div>
+    <div class="kicker">✦ The Descent</div>
+    <h1>Chakri's World</h1>
+    <p class="sub">A software engineer in Dublin. Hard problems, quiet campsites, and a long fall from orbit to the seafloor.</p>
+  </div>
+  <div class="url">captchakri.github.io</div>
+  <div class="alt">ALT 400 KM · LEAVING ORBIT</div>
+
+<script>
+  // seeded star field so every regeneration produces the same image
+  const c = document.getElementById('stars'), ctx = c.getContext('2d');
+  let s = 20221008;
+  const rnd = () => (s = (s * 1664525 + 1013904223) >>> 0) / 4294967296;
+  for (let i = 0; i < 260; i++) {
+    const x = rnd() * 1200, y = rnd() * 520, r = rnd() < 0.92 ? rnd() * 1.1 + 0.3 : rnd() * 1.4 + 1.2;
+    ctx.globalAlpha = 0.25 + rnd() * 0.7;
+    ctx.fillStyle = rnd() < 0.15 ? '#ffd9b8' : rnd() < 0.3 ? '#bcd4ff' : '#ffffff';
+    ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+  }
+</script>
+</body>
+</html>

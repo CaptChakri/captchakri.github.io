@@ -85,29 +85,53 @@
     check(); setTimeout(check, 300); setTimeout(check, 1200);
   })();
 
-  /* ===== journal rail — latest 3 from blog/posts.json (date-based URLs) ===== */
+  /* ===== blog posts from blog/posts.json → hero rail (latest 3) + Field Notes grid ===== */
   (function () {
-    const rail = document.getElementById('hero-journal'); if (!rail) return;
-    const more = rail.querySelector('.hj-more');
+    const rail = document.getElementById('hero-journal');
+    const grid = document.getElementById('field-notes-grid');
+    if (!rail && !grid) return;
+    const more = rail && rail.querySelector('.hj-more');
     function postUrl(post) {
       if (post.status === 'coming-soon') return post.comingSoonUrl || '/blog/coming-soon/';
       const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(post.date);
       if (!m) return '/blog/';
       return `blog/${m[1]}/${m[2]}/${m[3]}/${encodeURIComponent(post.slug)}/`;
     }
+    function tagRow(post, cls) {
+      if (!post.tags || !post.tags.length) return null;
+      const row = document.createElement('div'); row.className = cls;
+      post.tags.forEach(t => { const s = document.createElement('span'); s.className = 'tag'; s.textContent = t; row.appendChild(s); });
+      return row;
+    }
     fetch('blog/posts.json').then(r => r.json()).then(posts => {
-      posts.filter(p => p.status !== 'coming-soon').sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 3).forEach(post => {
-        const a = document.createElement('a'); a.href = postUrl(post); a.className = 'hj-post';
-        const date = document.createElement('div'); date.className = 'hj-post-date'; date.textContent = post.dateLabel || post.date;
-        const title = document.createElement('div'); title.className = 'hj-post-title'; title.textContent = post.title;
-        a.append(date, title);
-        if (post.tags && post.tags.length) {
-          const tags = document.createElement('div'); tags.className = 'hj-post-tags';
-          post.tags.forEach(t => { const s = document.createElement('span'); s.className = 'tag'; s.textContent = t; tags.appendChild(s); });
-          a.appendChild(tags);
-        }
-        rail.insertBefore(a, more);
-      });
+      const byDate = [...posts].sort((a, b) => new Date(b.date) - new Date(a.date));
+      // hero rail: latest 3 published posts
+      if (rail && more) {
+        byDate.filter(p => p.status !== 'coming-soon').slice(0, 3).forEach(post => {
+          const a = document.createElement('a'); a.href = postUrl(post); a.className = 'hj-post';
+          const date = document.createElement('div'); date.className = 'hj-post-date'; date.textContent = post.dateLabel || post.date;
+          const title = document.createElement('div'); title.className = 'hj-post-title'; title.textContent = post.title;
+          a.append(date, title);
+          const tags = tagRow(post, 'hj-post-tags'); if (tags) a.appendChild(tags);
+          rail.insertBefore(a, more);
+        });
+      }
+      // Field Notes grid: up to 6 newest (coming-soon flagged, not hidden). Cards are
+      // added post-load, so they DON'T use .rise (that reveal list is captured once at
+      // load) — .project-card is visible by default, which is what we want here.
+      if (grid) {
+        byDate.slice(0, 6).forEach(post => {
+          const soon = post.status === 'coming-soon';
+          const card = document.createElement('a'); card.href = postUrl(post); card.className = 'project-card glass fn-card';
+          const meta = document.createElement('div'); meta.className = 'project-num';
+          meta.textContent = soon ? 'COMING SOON' : ((post.dateLabel || post.date) + (post.readMins ? ' · ' + post.readMins + ' min' : ''));
+          const title = document.createElement('div'); title.className = 'project-title'; title.textContent = post.title;
+          const desc = document.createElement('div'); desc.className = 'project-desc'; desc.textContent = post.excerpt || '';
+          card.append(meta, title, desc);
+          const tags = tagRow(post, 'fn-tags'); if (tags) card.appendChild(tags);
+          grid.appendChild(card);
+        });
+      }
     }).catch(() => {});
   })();
 

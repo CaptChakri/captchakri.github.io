@@ -5,7 +5,8 @@
   "type": "module",
   "description": "Build tooling for captchakri.github.io — assembles _site/ and minifies JS/CSS for GitHub Pages.",
   "scripts": {
-    "build": "node scripts/build.mjs"
+    "build": "node scripts/build.mjs",
+    "og": "node scripts/og-image.mjs"
   },
   "devDependencies": {
     "esbuild": "^0.25.0"

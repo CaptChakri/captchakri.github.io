@@ -7,7 +7,7 @@
    up a counter — with the occasional witty costume and a dry one-liner.
 
    Soothing by design: the sheep arrive slower and amble slower the longer
-   you watch (drowsiness), there's an optional 4-2-6 breathing pacer, a
+   you watch (drowsiness), there's an optional 4-7-8 breathing pacer, a
    "dim" dusk, and a soft Korean lullaby — "jajang jajang, uri agi" — on a
    gentle piano voice (off by default, started only on a click so no autoplay).
    prefers-reduced-motion gets a calm, movement-free counter instead.
@@ -192,65 +192,44 @@
     ].join('');
   })();
 
-  // the paddock fence wraps the farm on the RIGHT as a flat-perspective half circle.
-  // It is drawn in TWO depth layers off ONE shared ellipse so the sheep can't read as
-  // walking "under" it:
-  //   • the PEN (a faded arc curving from the gate round behind the barn) sits in the
-  //     mid-ground at z-2, BEHIND the flock — sheep pass cleanly in front of it.
-  //   • the GATE (the broken centre span, top rail snapped out) sits at z-4 in FRONT,
-  //     the one stretch a sheep rises BEHIND (z-3) and lands IN FRONT of (z-6), which
-  //     is the occlusion that reads as hopping OVER. The two meet at the same post.
-  // Near posts (the gate) are tall and bold; the arc foreshortens — short, dim, and
-  // tucked toward the horizon behind the barn — so the curve reads with real depth.
-  var FENCE_PARTS = (function () {
-    var cx = 180, cy = 64, rx = 150, ry = 33;      // viewBox-360x100 ellipse, bowing out to the RIGHT (gate centred at x=180 = stage 50%, where sheep hop)
-    var aGateL = 104, aGateR = 70, aEnd = -9;      // gate spans the centre (104..70deg); the arc runs 70..-9deg
-    var brkLo = 78, brkHi = 102;                   // the broken top-rail span, symmetric about the centre (no post dead-centre)
-    function P(a) {
-      var rad = a * Math.PI / 180;
-      var y = cy + ry * Math.sin(rad), depth = (Math.sin(rad) + 1) / 2, h = 3 + 18 * depth;   // near posts tall, far posts short
-      return { a: a, x: cx + rx * Math.cos(rad), y: y, depth: depth,
-               r1: y - h, r2: y - h * 0.60, r3: y - h * 0.22, top: y - h - 3, base: y + 1.5 };
+  // the fence: a SIDE-ON garden panel in the wood-framed welded-wire style — two square
+  // timber posts with pyramid caps, a top and bottom rail cantilevered a touch past them,
+  // a galvanised wire grid strung between, and a couple of horizontal wood battens across
+  // it (as on a real hog-wire fence). Warm night-wood with a faint moonlit left edge. The
+  // element keeps a FIXED aspect (no stretch), so it can't flatten on small screens; the
+  // flock hops the panel dead centre (apexX). measure() reads apexX off the live element to
+  // drop the hop (fenceHopX) on the middle of the run. A sheep rises BEHIND it (z-3, seen
+  // through the wire) and lands IN FRONT (z-6) — that occlusion-then-reveal reads as OVER.
+  var FENCE_VB = { w: 220, h: 74, apexX: 110 };   // side-view panel; apexX = the hop column (panel centre)
+  var FENCE_SVG = (function () {
+    var W = 220, H = 74;
+    var pw = 14, lp = 22, rp = 184;                 // post width + the left-edge x of each post
+    var railTopY = 19, railBotY = 58, railH = 8;
+    var mL = lp + pw, mR = rp;                       // wire spans between the posts (36 .. 184)
+    var mT = railTopY + railH, mB = railBotY;        // and between the rails (27 .. 58)
+    function rect(x, y, w, h, fill) { return '<rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '" fill="' + fill + '"/>'; }
+    // 1) welded-wire grid, behind the frame
+    var wire = '<g stroke="rgba(205,214,230,0.32)" stroke-width="0.9">', vx, hy;
+    for (vx = mL + 4; vx < mR; vx += 8) wire += '<line x1="' + vx + '" y1="' + mT + '" x2="' + vx + '" y2="' + mB + '"/>';
+    for (hy = mT + 4; hy < mB; hy += 7) wire += '<line x1="' + mL + '" y1="' + hy + '" x2="' + mR + '" y2="' + hy + '"/>';
+    wire += '</g>';
+    // 2) top + bottom rails, cantilevered a touch past the posts, with a moonlit top edge
+    var rails = rect(8, railTopY, W - 16, railH, '#6a4d2e') + rect(8, railBotY, W - 16, railH, '#573f24') +
+                rect(8, railTopY, W - 16, 1.6, 'rgba(150,170,220,0.16)');
+    // 3) two horizontal wood battens across the wire (as in the reference)
+    var batt = rect(mL, 34, mR - mL, 4, '#6f5433') + rect(mL, 47, mR - mL, 4, '#654a2b');
+    // 4) posts (in front of the rail ends): a moonlit left edge, a shaded right edge, and a pyramid cap
+    function post(px) {
+      return rect(px, 15, pw, H - 15, '#614829') +
+             rect(px, 15, 3, H - 15, 'rgba(150,170,220,0.12)') +
+             rect(px + pw - 2.5, 15, 2.5, H - 15, 'rgba(0,0,0,0.22)') +
+             '<rect x="' + (px - 3.5) + '" y="11" width="' + (pw + 7) + '" height="4" rx="1" fill="#82623c"/>' +
+             '<path d="M' + (px - 1.5) + ' 12 L' + (px + pw + 1.5) + ' 12 L' + (px + pw - 3) + ' 5 L' + (px + 3) + ' 5 Z" fill="#7c5d39"/>' +
+             '<path d="M' + (px + 3) + ' 5 L' + (px + pw - 3) + ' 5 L' + (px + pw - 3) + ' 6.2 L' + (px + 3) + ' 6.2 Z" fill="rgba(150,170,220,0.18)"/>';
     }
-    function ln(x1, y1, x2, y2, col, w, op) {
-      return '<line x1="' + x1.toFixed(1) + '" y1="' + y1.toFixed(1) + '" x2="' + x2.toFixed(1) +
-             '" y2="' + y2.toFixed(1) + '" stroke="' + col + '" stroke-width="' + w.toFixed(2) +
-             '" opacity="' + op.toFixed(2) + '"/>';
-    }
-    // build a run of posts + three rails over an angle range; fadeFn(t in 0..1) dims it,
-    // brk (or null) skips the top rail across a broken span
-    function seg(lo, hi, n, fadeFn, brk) {
-      var pts = [], i;
-      for (i = 0; i <= n; i++) pts.push(P(lo + (hi - lo) * (i / n)));
-      var posts = '', rails = '', top = '';
-      for (i = 0; i < pts.length; i++) {
-        var p = pts[i], f = fadeFn(i / n);
-        posts += ln(p.x, p.top, p.x, p.base, '#5a4128', 1.0 + 1.5 * p.depth, (0.2 + 0.8 * p.depth) * f);
-        if (i > 0) {
-          var q = pts[i - 1], d = Math.min(p.depth, q.depth), f2 = fadeFn((i - 0.5) / n);
-          var op = (0.16 + 0.82 * d) * f2, w = 1.0 + 1.3 * d;
-          rails += ln(q.x, q.r2, p.x, p.r2, '#5e4630', w, op) + ln(q.x, q.r3, p.x, p.r3, '#5a4228', w, op);
-          var midA = (p.a + q.a) / 2;
-          if (!brk || midA < brk.lo || midA > brk.hi) top += ln(q.x, q.r1, p.x, p.r1, '#6a4f34', w, op);
-        }
-      }
-      return rails + top + posts;
-    }
-    function wrap(inner) {
-      return '<svg viewBox="0 0 360 100" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
-             '<g stroke-linecap="round">' + inner + '</g></svg>';
-    }
-    // the gate: full-strength, with the broken middle + splintered stubs at each break
-    var bl = P(brkHi), br = P(brkLo);
-    var spl = '<path d="M' + bl.x.toFixed(1) + ' ' + (bl.r1 - 2).toFixed(1) + ' l-5 2.4 l5 2 z" fill="#4d3823" opacity="0.9"/>' +
-              '<path d="M' + br.x.toFixed(1) + ' ' + (br.r1 - 2).toFixed(1) + ' l5 2.4 l-5 2 z" fill="#4d3823" opacity="0.9"/>';
-    var gate = wrap(seg(aGateL, aGateR, 6, function () { return 1; }, { lo: brkLo, hi: brkHi }) + spl);
-    // the pen arc: starts where the gate ends and fades into the night behind the barn
-    var pen = wrap(seg(aGateR, aEnd, 16, function (t) { return 0.85 * (1 - t) + 0.18; }, null));
-    return { gate: gate, pen: pen };
+    return '<svg viewBox="0 0 ' + W + ' ' + H + '" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
+           wire + rails + batt + post(lp) + post(rp) + '</svg>';
   })();
-  var FENCE_SVG = FENCE_PARTS.gate;
-  var PEN_SVG = FENCE_PARTS.pen;
 
   // a forest on the LEFT — a stand of dark pines of varying height, receding into the
   // night. Flat silhouettes with a faint moonlit left edge; the owl roosts atop one.
@@ -417,7 +396,6 @@
         '<div class="sheepc-sky-fx"></div>' +
         '<div class="sheepc-ground"></div>' +           // moonlit grassy clearing (from the descent camp)
         '<div class="sheepc-forest">' + FOREST_SVG + '</div>' +    // a stand of pines on the LEFT
-        '<div class="sheepc-pen">' + PEN_SVG + '</div>' +          // the pen arc wrapping the farm (behind the flock)
         '<div class="sheepc-farm">' +                   // the farmstead on the RIGHT: barn, silo, windmill
           '<div class="sheepc-windmill">' + WINDMILL_SVG + '</div>' +
           '<div class="sheepc-barn">' + BARN_SVG + '</div>' +
@@ -425,7 +403,7 @@
         '<div class="sheepc-mist"></div>' +             // low fog blending the turf into the night sky (drifts in front of the farm)
         '<div class="sheepc-bio"></div>' +              // fireflies drift over the grass
         '<div class="sheepc-grass-near"></div>' +       // taller foreground blades, for depth at the base
-        '<div class="sheepc-fence">' + FENCE_SVG + '</div>' +     // the half-circle paddock fence; its broken middle is where the flock hops
+        '<div class="sheepc-fence">' + FENCE_SVG + '</div>' +     // the straight post-and-rail fence the flock hops at centre
         '<div class="sheepc-owl">' + OWL_SVG + '</div>' + // the night watcher, perched
         '<div class="sheepc-track"></div>' +
         '<div class="sheepc-breath" data-breath hidden>' +
@@ -576,7 +554,7 @@
       if (tortEl) return;                          // only ever one at a time
       var w = stageW(), rightward = Math.random() < 0.5;
       var jump = Math.random() < 0.6;              // mostly it hops the fence now (like the flock); now and then it just peeks
-      var fenceMid = w * 0.5 - 31;                 // the tortoise (62px wide) centred over the fence
+      var fenceMid = (fenceHopX || w * 0.78) - tortW / 2; // the tortoise centred over the C's near rail (tortW scales with the scene)
       var el = document.createElement('div');
       el.className = 'sheepc-tortoise' + (rightward ? ' face-right' : '');
       el.innerHTML = TORT_SVG;
@@ -593,6 +571,10 @@
         el.style.setProperty('--tHop', tortHopPx.toFixed(0) + 'px');
         dur = rint(15000, 19000);
         el.style.animation = 'sheepcTortJump ' + dur + 'ms ease-in-out forwards';
+        // freeze the striding legs while it's actually airborne over the rail (CSS pauses the
+        // leg animations under .is-hop), then let them resume as it comes down.
+        el._hopUp = setTimeout(function () { el.classList.add('is-hop'); }, dur * 0.47);
+        el._hopDown = setTimeout(function () { el.classList.remove('is-hop'); }, dur * 0.58);
       } else {
         el.style.setProperty('--tMid', (fenceMid + (Math.random() * 60 - 30)).toFixed(0) + 'px');   // pause spot, near centre
         dur = rint(20000, 26000);                  // slow — it's a tortoise
@@ -603,7 +585,7 @@
       track.appendChild(el);
       tortEl = el;
       el.addEventListener('animationend', function (e) {   // roam/jump end (not the head's peek)
-        if (e.target === el) { el.remove(); if (tortEl === el) tortEl = null; }
+        if (e.target === el) { clearTimeout(el._hopUp); clearTimeout(el._hopDown); el.remove(); if (tortEl === el) tortEl = null; }
       });
     }
 
@@ -613,7 +595,7 @@
       var el = document.createElement('div');
       el.className = 'sheepc-tortoise';
       el.innerHTML = TORT_SVG;
-      el.style.left = (stageW() * 0.5 - 31).toFixed(0) + 'px';
+      el.style.left = ((fenceHopX || stageW() * 0.78) - tortW / 2).toFixed(0) + 'px';
       el.style.opacity = '0';
       track.appendChild(el);
       tortEl = el;
@@ -670,30 +652,41 @@
     var PACE_MIN = 2.4, PACE_MAX = 6.0;   // seconds between sheep (grows with count)
     var BASE_DUR = 6.0, EXTRA_DUR = 4.5;  // seconds to cross (grows with count)
     var SHEEP_SPEED = 130;                // px/s ceiling so a wide (e.g. full-screen) stage doesn't race the flock across — kept near the calm phone pace (~90px/s) so big screens stay soothing rather than streaking
-    var HOP_SPAN = 78;                    // px half-width of the fence-clearing arc — FIXED, so the leap is the same size on any screen
     var GATHER = 30;                      // px of ground on each side of the arc: the crouch (before) and the landing absorb (after)
     var SPOOK_RUN = 1.9;                  // while a dragon is overhead the spooked flock bolts this much faster
 
     var count = 0, running = true;
     var sheep = [], lastTs = 0, nextSpawn = 0, sinceQuip = 0;
     var specialIn = rint(4, 7);
-    var dimsW = 0, hop = 70, tortHopPx = 80;
+    var dimsW = 0, hop = 70, tortHopPx = 80, fenceHopX = 0;   // fenceHopX: the C's near-bulge column, in stage px (set by measure)
+    // sheep + hop geometry, now scaled with the scene (measure() recomputes these from the live fence):
+    var sheepW = 70, sheepHalf = 35, hopSpan = 78, tortW = 62;
     var rafId = null, reduceTimer = null;
+    var fenceEl = mount.querySelector('.sheepc-fence');
     var dragon = null, stageSpooked = false;    // the dragon aloft, tracked so each sheep's fright can scale with its proximity
 
     function measure() {
       var r = stage.getBoundingClientRect();
       dimsW = r.width;
-      // The flock passes in FRONT of the fence, so each sheep should crest just
-      // clear of the whole thing — hooves rising a touch above the post tops at
-      // the apex. The sheep base (17%) sits a fixed ~(0.02·height + 50px) below
-      // the post tops (fence base 19% + a 50px box); the small-screen playground
-      // override shifts sheep and fence by the same +13%, so one formula fits
-      // every mount. The +54 (≈ +4 over that gap) lifts the hooves clear.
-      hop = Math.max(56, Math.min(88, r.height * 0.02 + 54));
-      // the tortoise sits a touch lower than the sheep (15% vs 17%) and is shorter, so it
-      // needs to rise a little further to crest the same rail — clears the post tops by ~6px.
-      tortHopPx = Math.max(64, Math.min(120, r.height * 0.04 + 56));
+      // where the flock hops: read the C's live box and map its near-bulge (FENCE_VB.apexX)
+      // to a stage-px column, so the leap lands on the drawn rail at any size/position/mount.
+      if (fenceEl) {
+        var fr = fenceEl.getBoundingClientRect();
+        fenceHopX = (fr.left - r.left) + (FENCE_VB.apexX / FENCE_VB.w) * fr.width;
+      } else fenceHopX = dimsW * 0.78;
+      // size the flock and its leap to the STAGE (not the now-wide fence panel), so nothing is
+      // a fixed 70px on a full-screen monitor. CSS reads --sheep-w / --tort-w to draw them.
+      sheepW = Math.max(46, Math.min(82, dimsW * 0.052));   // scales with the stage width
+      sheepHalf = sheepW / 2;
+      hopSpan = Math.max(46, Math.min(92, sheepW * 1.08));  // the airborne span is a touch wider than the sheep
+      tortW = sheepW * 62 / 70;                              // keep the tortoise’s proportion to the sheep
+      // the arc must crest the top rail: key the hop height to the fence's live height so the
+      // flock clears it with a little margin at any size (and the shorter tortoise a bit more).
+      var fenceH = fenceEl ? fenceEl.getBoundingClientRect().height : r.height * 0.09;
+      hop = Math.max(52, Math.min(104, fenceH + 14));
+      tortHopPx = Math.max(60, Math.min(128, fenceH + 30));
+      stage.style.setProperty('--sheep-w', sheepW.toFixed(1) + 'px');
+      stage.style.setProperty('--tort-w', tortW.toFixed(1) + 'px');
     }
     measure();
     window.addEventListener('resize', measure);
@@ -729,15 +722,18 @@
       var el = document.createElement('div');
       el.className = 'sheepc-sheep' + (sp ? ' ' + sp : '');
       el.style.zIndex = '3';                 // behind the fence (z 4) on the way up
-      el.innerHTML = SHEEP_SVG;
+      // the body carries the hop (up/rotate/scale); the shadow is a sibling that stays on the
+      // ground, so it separates from a leaping sheep instead of flying up glued to it.
+      el.innerHTML = '<div class="sg-shadow"></div><div class="sg-body">' + SHEEP_SVG + '</div>';
       track.appendChild(el);
+      var body = el.querySelector('.sg-body'), shadow = el.querySelector('.sg-shadow');
       // time to cross grows with count (drowsiness) — but never let it cross faster than
       // SHEEP_SPEED, so on a wide stage the sheep amble at the same pace as on a phone
       // instead of streaking across (the duration stretches with the extra width).
       var base = (BASE_DUR + Math.min(count, 40) / 40 * EXTRA_DUR) * (0.9 + Math.random() * 0.2);
       var travel = (dimsW || stage.clientWidth || 600) + 160;
       var dur = Math.max(base, travel / SHEEP_SPEED);
-      sheep.push({ el: el, p: 0, dur: dur, jumped: false, sp: sp, spooked: false, air: false });
+      sheep.push({ el: el, body: body, shadow: shadow, p: 0, dur: dur, jumped: false, sp: sp, spooked: false, air: false });
     }
 
     function frame(ts) {
@@ -755,14 +751,17 @@
         if (nextSpawn <= 0) {
           spawn();
           var pace = PACE_MIN + Math.min(count, 50) / 50 * (PACE_MAX - PACE_MIN);
-          nextSpawn = pace * (0.85 + Math.random() * 0.3);
+          // stretch the gap with the stage width so a wide screen doesn't crowd with sheep —
+          // the on-screen flock count stays roughly constant instead of scaling with width.
+          var crowd = Math.max(1, (dimsW || stage.clientWidth || 600) / 480);
+          nextSpawn = pace * crowd * (0.85 + Math.random() * 0.3);
           if (Math.random() < 0.06) spawn();   // the odd pair, trotting together
         }
       }
 
       var w = dimsW || stage.clientWidth || 600;
       var startX = w + 40, endX = -120;
-      var fenceC = w * 0.5;                          // the fence is centred on the stage
+      var fenceC = fenceHopX || w * 0.78;            // the C's near-bulge rail (the half-circle on the right)
       // ---- the dragon's menace falls off with distance. Read where it is right now
       // and let each sheep's fright scale with how near that column passes — a wave of
       // panic that travels across the flock under the dragon, fiercest right below it. ----
@@ -782,21 +781,21 @@
         var s = sheep[i];
         var x = startX + (endX - startX) * s.p;
         // fright = how near the dragon's column is to this sheep (0 far … 1 right overhead)
-        var inten = dragonX == null ? 0 : Math.max(0, 1 - Math.abs((x + 35) - dragonX) / SPOOK_REACH);
+        var inten = dragonX == null ? 0 : Math.max(0, 1 - Math.abs((x + sheepHalf) - dragonX) / SPOOK_REACH);
         var spooked = inten > 0.04;
         if (spooked !== s.spooked) { s.spooked = spooked; s.el.classList.toggle('is-spooked', spooked); }
         if (spooked) s.el.style.setProperty('--spook', inten.toFixed(3));   // CSS scales shiver + wide eyes by this
         // the hop is keyed to how far the sheep's CENTRE is from the fence (in px), not to its
         // progress across the stage — so the arc is the same physical size on a phone and on a
         // full-screen monitor, instead of stretching wider (and faster) the wider the stage gets.
-        var c = (x + 35) - fenceC;
-        var airborne = c > -HOP_SPAN && c < HOP_SPAN;   // off the ground, mid-hop
+        var c = (x + sheepHalf) - fenceC;
+        var airborne = c > -hopSpan && c < hopSpan;   // off the ground, mid-hop
         // breathing stops the flock — but a sheep caught mid-jump keeps going until it has
         // finished its arc and landed, so none ever freeze in mid-air
         if (!breathOn || airborne) {
           s.p += dt / s.dur * (1 + (SPOOK_RUN - 1) * inten);   // the closer the dragon, the harder they bolt
           x = startX + (endX - startX) * s.p;
-          c = (x + 35) - fenceC;
+          c = (x + sheepHalf) - fenceC;
         }
         // ---- the hop: a believable little leap rather than a slide over a bump. The
         // sheep (1) GATHERS — a quick crouch + squash a beat before it springs, (2) flies
@@ -805,31 +804,38 @@
         // squash-and-recover. y = arc height, rot = pitch along the flight, sx/sy = the
         // squash-&-stretch, --legF/--legB pose the legs (read by CSS while .is-airborne). ----
         var y = 0, rot = 0, sx = 1, sy = 1, air = false;
-        if (c >= HOP_SPAN && c < HOP_SPAN + GATHER) {
-          var g = (HOP_SPAN + GATHER - c) / GATHER;        // 0 entering the zone ... 1 at the lip, about to launch
+        if (c >= hopSpan && c < hopSpan + GATHER) {
+          var g = (hopSpan + GATHER - c) / GATHER;         // 0 entering the zone ... 1 at the lip, about to launch
           g *= g;                                          // bite late, so the dip lands right before takeoff
           y = 5 * g;                                       // sink into the crouch
           sy = 1 - 0.13 * g; sx = 1 + 0.10 * g;            // squash down, spread out
           rot = -3 * g;                                    // tip the nose up to push off
-        } else if (c > -HOP_SPAN && c < HOP_SPAN) {
+        } else if (c > -hopSpan && c < hopSpan) {
           air = true;
-          var u = (c + HOP_SPAN) / (2 * HOP_SPAN);         // 1 at takeoff (right) ... 0 at landing (left)
+          var u = (c + hopSpan) / (2 * hopSpan);           // 1 at takeoff (right) ... 0 at landing (left)
           y = -Math.sin(u * Math.PI) * hop;                // the ballistic arc, apex over the rail
           var spd = Math.abs(Math.cos(u * Math.PI));       // vertical speed: 1 leaving/meeting the ground ... 0 at the float
           sy = 1 + 0.15 * spd; sx = 1 - 0.09 * spd;        // stretch tall & thin moving fast, soften to a hang at the apex
-          rot = -(c / HOP_SPAN) * 9;                       // pitch along the path: nose-up climbing, nose-down falling
+          rot = -(c / hopSpan) * 9;                        // pitch along the path: nose-up climbing, nose-down falling
           var tuck = Math.sin(u * Math.PI);                // 0 at the ends ... 1 at the float
           s.el.style.setProperty('--legF', (26 - 34 * tuck).toFixed(1) + 'deg');   // front legs reach out, then gather in
           s.el.style.setProperty('--legB', (-26 + 34 * tuck).toFixed(1) + 'deg');  // hind legs trail, then gather in
-        } else if (c <= -HOP_SPAN && c > -HOP_SPAN - GATHER) {
-          var h = (c + HOP_SPAN + GATHER) / GATHER;        // 1 just landed ... 0 recovered
+        } else if (c <= -hopSpan && c > -hopSpan - GATHER) {
+          var h = (c + hopSpan + GATHER) / GATHER;         // 1 just landed ... 0 recovered
           y = 3 * h;                                       // dip as the legs soak up the impact
           sy = 1 - 0.15 * h; sx = 1 + 0.12 * h;            // compress on contact, then spring back
         }
         if (air !== s.air) { s.air = air; s.el.classList.toggle('is-airborne', air); }
-        s.el.style.transform =
-          'translate3d(' + x.toFixed(1) + 'px,' + y.toFixed(1) + 'px,0) rotate(' + rot.toFixed(2) +
+        // the horizontal travel rides the outer element; the hop (lift/pitch/squash) rides the
+        // body, so the shadow (a sibling) can stay behind on the ground as the sheep leaps.
+        s.el.style.transform = 'translate3d(' + x.toFixed(1) + 'px,0,0)';
+        s.body.style.transform =
+          'translate3d(0,' + y.toFixed(1) + 'px,0) rotate(' + rot.toFixed(2) +
           'deg) scale(' + sx.toFixed(3) + ',' + sy.toFixed(3) + ')';
+        // shadow shrinks + fades as the sheep climbs, so the leap reads as leaving the ground
+        var lift = hop > 0 ? Math.min(1, -y / hop) : 0;             // 0 on the ground … 1 at the apex
+        s.shadow.style.opacity = (0.34 * (1 - 0.55 * lift)).toFixed(2);
+        s.shadow.style.transform = 'translateX(-50%) scale(' + (1 - 0.4 * lift).toFixed(2) + ',1)';
         // once it has landed and is standing still on the field, the sheep turns to watch you —
         // forward-facing eyes and stilled legs (.is-watching); it keeps trotting until then
         s.el.classList.toggle('is-watching', breathOn && !airborne);
@@ -847,11 +853,12 @@
       if (--specialIn <= 0) { sp = pick(SPECIAL_CLASSES); specialIn = rint(5, 9); }
       var el = document.createElement('div');
       el.className = 'sheepc-sheep' + (sp ? ' ' + sp : '');
-      el.style.left = '50%';
-      el.style.zIndex = '6';                 // shown in front of the fence, centred over it
+      el.style.left = ((fenceHopX || stageW() * 0.78) / stageW() * 100).toFixed(1) + '%';
+      el.style.zIndex = '6';                 // shown in front of the fence, centred over the C's near rail
       el.style.transform = 'translateX(-50%)';
       el.style.opacity = '0';
-      el.innerHTML = SHEEP_SVG;
+      // same shadow + body structure as the animated path (no hop here, so no per-frame shadow work)
+      el.innerHTML = '<div class="sg-shadow"></div><div class="sg-body">' + SHEEP_SVG + '</div>';
       track.appendChild(el);
       requestAnimationFrame(function () { el.style.opacity = '1'; });
       bump(sp ? { sp: sp } : null);

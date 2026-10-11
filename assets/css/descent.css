@@ -284,6 +284,21 @@ nav { z-index: 100; }
 .edu-details { font-size: .875rem; color: var(--text); opacity: .82; }
 .cert-list { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .75rem; }
 
+/* ----- shared section lead + "browse more" link (Learning, Field Notes, Work) ----- */
+.section-lead { max-width: 640px; margin: 0 0 2rem; font-size: 1rem; line-height: 1.75; color: var(--text); }
+.section-lead strong { color: var(--white); font-weight: 500; }
+.section-more { display: inline-block; margin-top: 1.75rem; font-family: 'JetBrains Mono', monospace; font-size: .82rem; color: var(--cyan); text-decoration: none; letter-spacing: .03em; transition: transform .2s, opacity .2s; }
+.section-more:hover { transform: translateX(4px); opacity: .85; }
+
+/* ----- Field Notes: post cards reuse .project-card, rendered as anchors ----- */
+.fn-card { display: flex; flex-direction: column; text-decoration: none; }
+.fn-tags { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: auto; padding-top: .35rem; }
+
+/* ----- Work: résumé CTA row + folded-in education ----- */
+.work-resume { display: flex; align-items: center; gap: 1rem 1.25rem; flex-wrap: wrap; margin-top: 2.25rem; }
+.work-resume-note { font-size: .82rem; color: var(--gray); }
+.work-edu { margin-top: 2.5rem; }
+
 /* ----- CAMPING centerpiece ----- */
 .dz-camp { min-height: 92vh; display: flex; flex-direction: column; justify-content: center; }
 .camp-grid { display: grid; grid-template-columns: 1.3fr 1fr; gap: 3.5rem; align-items: center; }

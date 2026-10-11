@@ -11,7 +11,12 @@
 <meta property="og:description" content="A gentle, full-screen bedtime toy: hop the fence, slow your breathing, and let the sheep do the counting.">
 <meta property="og:url" content="https://captchakri.github.io/playground/counting-sheep/">
 <meta property="og:site_name" content="Chakri's World">
-<meta name="twitter:card" content="summary">
+<meta property="og:image" content="https://captchakri.github.io/assets/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Chakri&#39;s World: the curve of a planet seen from orbit, with a ringed planet and a satellite overhead">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://captchakri.github.io/assets/og-image.png">
 <meta name="twitter:title" content="Counting-Sheep Playground · Chakri's World">
 <meta name="twitter:description" content="A gentle, full-screen bedtime toy: hop the fence, slow your breathing, and let the sheep do the counting.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -183,7 +188,7 @@ body.imm.is-idle .sheepc-quip { opacity: 0.32; }
   body.imm .sheepc-fence { bottom: 32%; }
   body.imm .sheepc-sheep { bottom: 30%; }
   body.imm .sheepc-tortoise { bottom: 28%; }
-  body.imm .sheepc-owl { bottom: calc(32% + 40px); }
+  body.imm .sheepc-owl { bottom: calc(var(--ground-h) + 11%); }
 
   body.imm .sheepc-controls {
     gap: 0.3rem; max-width: 96vw; padding: 0.35rem; border-radius: 1.1rem;
@@ -223,7 +228,7 @@ body.imm.is-idle .sheepc-quip { opacity: 0.32; }
 <nav aria-label="Primary navigation">
   <a href="/" class="nav-logo">CK<span>.</span></a>
   <ul class="nav-links" id="primary-links">
-    <li><a href="/#projects">Projects</a></li>
+    <li><a href="/#built">Built</a></li>
     <li><a href="/blog/">Blog</a></li>
   </ul>
 </nav>

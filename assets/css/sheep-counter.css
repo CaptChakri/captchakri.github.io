@@ -128,25 +128,23 @@
 .mill-fan { transform-box: view-box; transform-origin: 32px 34px; animation: sheepcMillSpin 11s linear infinite; }
 @keyframes sheepcMillSpin { to { transform: rotate(360deg); } }
 
-/* ---- the paddock fence: ONE continuous post-and-rail run bent into a half circle
-   around the front of the farm (drawn by the JS as the front half of a flat ellipse,
-   nearest at the centre and fading back to either side — that curve is the depth).
-   Three rails; whole all along except the centre, where the top rail is snapped out
-   — the broken span the flock hops. A full-width layer at z-index 4: each sheep
-   rises BEHIND it (z 3, so the rails occlude its legs as it comes up), then at the
-   apex flips IN FRONT (z 6) and lands on the near side — that occlusion-then-reveal
-   is what reads as hopping OVER. preserveAspectRatio="none" lets it stretch flat
-   without letterboxing — the posts are vertical lines, so they stay upright.
-   Anchored to --ground-h so it rides up with the meadow on small screens. ---- */
-.sheepc-pen, .sheepc-fence {
-  position: absolute; left: 50%; transform: translateX(-50%);
-  bottom: calc(var(--ground-h) - 9%);
-  width: 106%; height: 24%; pointer-events: none;
-  filter: drop-shadow(0 3px 4px rgba(0,0,0,0.34));
+/* ---- the fence: a reversed C — a half-circle corral that wraps the barn on the RIGHT,
+   drawn by the JS as concentric rail-arcs that bulge around the barn and open LEFT toward
+   the meadow. The flock hops the near bulge: each sheep rises BEHIND it (z 3, so the rails
+   occlude its legs as it climbs),
+   then at the apex flips IN FRONT (z 6) and lands on the near side — that occlusion-then-
+   reveal is what reads as hopping OVER. A FIXED aspect-ratio box (no stretch), so the C
+   stays round at any size and a single element can't flatten or come apart on small
+   screens. Anchored to --ground-h so it rides up with the meadow; the JS reads its live
+   box to drop the hop column on the bulge. ---- */
+.sheepc-fence {
+  position: absolute; right: 11%;
+  bottom: calc(var(--ground-h) - 15%);
+  width: clamp(58px, 13%, 108px); height: auto; aspect-ratio: 160 / 220;
+  pointer-events: none; z-index: 4;
+  filter: drop-shadow(0 4px 5px rgba(0,0,0,0.42));
 }
-.sheepc-pen   { z-index: 2; }   /* the receding arc — BEHIND the flock, so sheep never read as under it */
-.sheepc-fence { z-index: 4; }   /* the gate — IN FRONT, the one span a sheep hops (rising behind, landing ahead) */
-.sheepc-pen svg, .sheepc-fence svg { width: 100%; height: 100%; display: block; overflow: visible; }
+.sheepc-fence svg { width: 100%; height: 100%; display: block; overflow: visible; }
 
 /* the lane the sheep travel along. Deliberately NOT a stacking context (no
    z-index) so each sheep can sit behind the fence (z 3) on the way up and in
@@ -156,9 +154,21 @@
 /* a single sheep; JS sets transform every frame (translate + hop + lean) */
 .sheepc-sheep {
   position: absolute; bottom: 17%; left: 0;
-  width: 70px; height: 50px; will-change: transform;
-  filter: drop-shadow(0 6px 5px rgba(0,0,0,0.35));
-  transform-origin: 50% 100%;   /* pivot the lean + squash-&-stretch at the hooves, so it coils and lands on the ground rather than about its middle */
+  width: var(--sheep-w, 70px); height: calc(var(--sheep-w, 70px) * 5 / 7);
+  will-change: transform;
+}
+/* the body carries the hop (translateY + pitch + squash); the shadow is a sibling
+   pinned at the hooves, so a leaping sheep visibly separates from its shadow */
+.sg-body {
+  position: absolute; inset: 0; transform-origin: 50% 100%; will-change: transform;
+}
+/* a soft ground shadow at the hooves — JS shrinks & fades it as the sheep rises */
+.sg-shadow {
+  position: absolute; left: 50%; bottom: -1px;
+  width: 74%; height: 13%;
+  transform: translateX(-50%);
+  background: radial-gradient(ellipse at 50% 50%, rgba(0,0,0,0.36), rgba(0,0,0,0) 70%);
+  filter: blur(1px); opacity: 0.34; pointer-events: none;
 }
 .sheepc-sheep svg { width: 100%; height: 100%; overflow: visible; display: block; }
 .sg-wool { fill: #f4f6fb; }
@@ -399,7 +409,7 @@
    animation duration so the head's peek lines up with the pause. */
 .sheepc-tortoise {
   position: absolute; bottom: 15%; left: 0;
-  width: 62px; height: 40px; z-index: 3; will-change: transform;
+  width: var(--tort-w, 62px); height: calc(var(--tort-w, 62px) * 40 / 62); z-index: 3; will-change: transform;
   filter: drop-shadow(0 5px 4px rgba(0,0,0,0.40));
 }
 .sheepc-tortoise svg { width: 100%; height: 100%; display: block; overflow: visible; }
@@ -413,6 +423,10 @@
 .tort-leg-f { animation: sheepcTortStep 0.55s ease-in-out infinite; }
 .tort-leg-b { animation: sheepcTortStep 0.55s ease-in-out infinite; animation-delay: -0.275s; }
 @keyframes sheepcTortStep { 0%, 100% { transform: rotate(7deg); } 50% { transform: rotate(-7deg); } }
+/* the tortoise's legs stop striding while it's airborne mid-leap (JS toggles .is-hop) */
+.sheepc-tortoise.is-hop .tort-legs,
+.sheepc-tortoise.is-hop .tort-leg-f,
+.sheepc-tortoise.is-hop .tort-leg-b { animation-play-state: paused; }
 @keyframes sheepcTortRoam {
   0%   { transform: translateX(var(--tStart)); }
   20%  { transform: translateX(var(--tMid)); }
@@ -543,6 +557,7 @@
   .sheepc-quip { transition: opacity 0.4s ease; }
   .sheepc-quip.show { animation: none; opacity: 0.92; transform: none; }
   .sheepc-sheep { transition: opacity 0.6s ease; }
+  .sg-shadow { opacity: 0.26; }
   /* the reduced-motion sheep just fade in centred (no flock loop to set .is-watching),
      so let them face you straight away while breathing */
   .sheepc-stage.is-breathing .sheepc-sheep .sg-look { display: block; }
